@@ -1,0 +1,183 @@
+    Checking legion-loq-control v0.1.0 (C:\Users\anand\Repos\Legion + Loq Controller)
+error: cannot find macro `info` in this scope
+  --> src\main.rs:38:9
+   |
+38 |         info!("Starting Legion + LOQ Control...");
+   |         ^^^^
+   |
+help: consider importing this macro
+   |
+ 1 + use log::info;
+   |
+
+error: cannot find macro `info` in this scope
+  --> src\main.rs:40:13
+   |
+40 |             info!("DRY RUN MODE: No changes will be applied.");
+   |             ^^^^
+   |
+help: consider importing this macro
+   |
+ 1 + use log::info;
+   |
+
+error: cannot find macro `info` in this scope
+  --> src\main.rs:46:9
+   |
+46 |         info!("Command: Set Conservation Mode to {}", if target_state { "ON" } else { "OFF" });
+   |         ^^^^
+   |
+help: consider importing this macro
+   |
+ 1 + use log::info;
+   |
+
+error: cannot find macro `info` in this scope
+  --> src\main.rs:81:17
+   |
+81 |                 info!("Conservation Mode update successful.");
+   |                 ^^^^
+   |
+help: consider importing this macro
+   |
+ 1 + use log::info;
+   |
+
+error: cannot find macro `error` in this scope
+  --> src\main.rs:84:17
+   |
+84 |                 error!("Operation failed: {}", e);
+   |                 ^^^^^
+   |
+   = note: `error` is an attribute that can be used by the derive macro `Error`, you might be missing a `derive` attribute
+help: consider importing this macro
+   |
+ 1 + use log::error;
+   |
+
+error: cannot find macro `info` in this scope
+  --> src\main.rs:96:9
+   |
+96 |         info!("Command: Set Rapid Charge to {}", if target_state { "ON" } else { "OFF" });
+   |         ^^^^
+   |
+help: consider importing this macro
+   |
+ 1 + use log::info;
+   |
+
+error: cannot find macro `error` in this scope
+   --> src\main.rs:114:17
+    |
+114 |                 error!("Operation failed: {}", e);
+    |                 ^^^^^
+    |
+    = note: `error` is an attribute that can be used by the derive macro `Error`, you might be missing a `derive` attribute
+help: consider importing this macro
+    |
+  1 + use log::error;
+    |
+
+error: cannot find macro `info` in this scope
+   --> src\main.rs:134:9
+    |
+134 |         info!("Command: Set Power Profile to {:?}", target_profile);
+    |         ^^^^
+    |
+help: consider importing this macro
+    |
+  1 + use log::info;
+    |
+
+error: cannot find macro `error` in this scope
+   --> src\main.rs:153:17
+    |
+153 |                 error!("Operation failed: {}", e);
+    |                 ^^^^^
+    |
+    = note: `error` is an attribute that can be used by the derive macro `Error`, you might be missing a `derive` attribute
+help: consider importing this macro
+    |
+  1 + use log::error;
+    |
+
+error: cannot find macro `error` in this scope
+   --> src\main.rs:223:17
+    |
+223 |                 error!("Device detection failed: {}", e);
+    |                 ^^^^^
+    |
+    = note: `error` is an attribute that can be used by the derive macro `Error`, you might be missing a `derive` attribute
+help: consider importing this macro
+    |
+  1 + use log::error;
+    |
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `env`
+ --> src\main.rs:7:29
+  |
+7 |     let args: Vec<String> = env::args().collect();
+  |                             ^^^ use of unresolved module or unlinked crate `env`
+  |
+  = help: if you wanted to use a crate named `env`, use `cargo add env` to add it to your `Cargo.toml`
+help: consider importing this module
+  |
+1 + use std::env;
+  |
+
+error[E0425]: cannot find value `set_rapid_charge_arg` in this scope
+  --> src\main.rs:95:33
+   |
+95 |     if let Some(target_state) = set_rapid_charge_arg {
+   |                                 ^^^^^^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `set_profile_arg` in this scope
+   --> src\main.rs:123:32
+    |
+123 |     if let Some(profile_str) = set_profile_arg {
+    |                                ^^^^^^^^^^^^^^^ not found in this scope
+
+warning: unused imports: `info` and `warn`
+ --> src\legion_core\device\detect.rs:3:11
+  |
+3 | use log::{info, warn};
+  |           ^^^^  ^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: type `Win32_ComputerSystem` should have an upper camel case name
+  --> src\platform\windows.rs:11:8
+   |
+11 | struct Win32_ComputerSystem {
+   |        ^^^^^^^^^^^^^^^^^^^^ help: convert the identifier to upper camel case: `Win32ComputerSystem`
+   |
+   = note: `#[warn(non_camel_case_types)]` (part of `#[warn(nonstandard_style)]`) on by default
+
+warning: type `Win32_Battery` should have an upper camel case name
+  --> src\platform\windows.rs:17:8
+   |
+17 | struct Win32_Battery {
+   |        ^^^^^^^^^^^^^ help: convert the identifier to upper camel case: `Win32Battery`
+
+warning: type `Lenovo_BiosSetting` should have an upper camel case name
+  --> src\platform\windows.rs:24:8
+   |
+24 | struct Lenovo_BiosSetting {
+   |        ^^^^^^^^^^^^^^^^^^ help: convert the identifier to upper camel case: `LenovoBiosSetting`
+
+warning: type `Win32_BIOS` should have an upper camel case name
+  --> src\platform\windows.rs:29:8
+   |
+29 | struct Win32_BIOS {
+   |        ^^^^^^^^^^ help: convert the identifier to upper camel case: `Win32Bios`
+
+error[E0282]: type annotations needed
+   --> src\main.rs:124:36
+    |
+124 |         let target_profile = match profile_str.as_str() {
+    |                                    ^^^^^^^^^^^ cannot infer type
+
+Some errors have detailed explanations: E0282, E0425, E0433.
+For more information about an error, try `rustc --explain E0282`.
+warning: `legion-loq-control` (bin "legion-loq-control") generated 5 warnings
+error: could not compile `legion-loq-control` (bin "legion-loq-control") due to 14 previous errors; 5 warnings emitted

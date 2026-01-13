@@ -1,19 +1,32 @@
 use log::{info, error};
 use std::env;
 
-mod core;
+mod legion_core;
 mod platform;
+mod gui;
 
 fn main() {
     env_logger::init();
     
     let args: Vec<String> = env::args().collect();
+    
+    // GUI mode check (early exit)
+    if args.contains(&"--gui".to_string()) {
+        if let Err(e) = gui::run_gui() {
+            eprintln!("GUI Error: {}", e);
+            std::process::exit(1);
+        }
+        return;
+    }
+    
+    // CLI mode
+    let dry_run = args.contains(&"--dry-run".to_string());
     let json_mode = args.len() > 1 && args.contains(&"--json".to_string());
     
-    // Simple arg parsing (clap is overkill for now)
-    let dry_run = args.contains(&"--dry-run".to_string());
     let mut set_conservation_mode_arg: Option<bool> = None;
-    
+    let mut set_rapid_charge_arg: Option<bool> = None;
+    let mut set_profile_arg: Option<String> = None;
+
     for i in 0..args.len() {
         if args[i] == "--set-conservation-mode" && i + 1 < args.len() {
             let val = args[i+1].to_lowercase();
@@ -25,6 +38,22 @@ fn main() {
                  eprintln!("Invalid value for --set-conservation-mode. Use 'on' or 'off'.");
                  std::process::exit(1);
             }
+        }
+        
+        if args[i] == "--rapid-charge" && i + 1 < args.len() {
+            let val = args[i+1].to_lowercase();
+            if val == "on" || val == "enable" || val == "true" {
+                set_rapid_charge_arg = Some(true);
+            } else if val == "off" || val == "disable" || val == "false" {
+                 set_rapid_charge_arg = Some(false);
+            } else {
+                 eprintln!("Invalid value for --rapid-charge. Use 'on' or 'off'.");
+                 std::process::exit(1);
+            }
+        }
+
+        if args[i] == "--set-profile" && i + 1 < args.len() {
+            set_profile_arg = Some(args[i+1].to_lowercase());
         }
     }
 
@@ -43,7 +72,7 @@ fn main() {
             println!("--- Dry Run Mode ---");
             println!("Action: Set Conservation Mode to {}", if target_state { "ON" } else { "OFF" });
             
-            match core::hw::battery::get_conservation_mode() {
+            match legion_core::hw::battery::get_conservation_mode() {
                 Some(current) => {
                     println!("Current State: {}", if current { "ON" } else { "OFF" });
                     
@@ -67,9 +96,9 @@ fn main() {
         // but it's good practice to ensure we aren't running on a toaster.
         // (We rely on WMI failing if checking failed).
 
-        core::safety::guards::GlobalWriteLock::request_write_access();
+        legion_core::safety::guards::GlobalWriteLock::request_write_access();
         
-        match core::hw::battery::set_conservation_mode(target_state) {
+        match legion_core::hw::battery::set_conservation_mode(target_state) {
             Ok(_) => {
                 println!("Success: Conservation Mode set to {}.", if target_state { "ON" } else { "OFF" });
                 info!("Conservation Mode update successful.");
@@ -85,7 +114,74 @@ fn main() {
         return;
     }
 
-    match core::device::detect::detect_device() {
+    // Handle Rapid Charge
+    if let Some(target_state) = set_rapid_charge_arg {
+        info!("Command: Set Rapid Charge to {}", if target_state { "ON" } else { "OFF" });
+        if dry_run {
+            println!("--- Dry Run Mode ---");
+            println!("Action: Set Rapid Charge to {}", if target_state { "ON" } else { "OFF" });
+            match legion_core::hw::battery::get_rapid_charge() {
+                Some(current) => {
+                    println!("Current State: {}", if current { "ON" } else { "OFF" });
+                    if current == target_state { println!("Result: No change needed."); } 
+                    else { println!("Result: State would change."); }
+                },
+                None => println!("WARNING: Unable to read current state. Write might be unsafe."),
+            }
+            return;
+        }
+        legion_core::safety::guards::GlobalWriteLock::request_write_access();
+        match legion_core::hw::battery::set_rapid_charge(target_state) {
+            Ok(_) => println!("Success: Rapid Charge set to {}.", if target_state { "ON" } else { "OFF" }),
+            Err(e) => {
+                error!("Operation failed: {}", e);
+                eprintln!("Error: Failed to set Rapid Charge: {}", e);
+                std::process::exit(1);
+            }
+        }
+        return;
+    }
+
+    // Handle Power Profile
+    if let Some(profile_str) = set_profile_arg {
+        let target_profile = match profile_str.as_str() {
+            "quiet" | "blue" => legion_core::hw::power::PowerProfile::Quiet,
+            "balanced" | "white" | "auto" => legion_core::hw::power::PowerProfile::Balanced,
+            "perf" | "performance" | "red" => legion_core::hw::power::PowerProfile::Performance,
+            _ => {
+                eprintln!("Error: Invalid profile '{}'. Use 'quiet', 'balanced', or 'perf'.", profile_str);
+                std::process::exit(1);
+            }
+        };
+
+        info!("Command: Set Power Profile to {:?}", target_profile);
+        if dry_run {
+            println!("--- Dry Run Mode ---");
+            println!("Action: Set Power Profile to {:?}", target_profile);
+            match legion_core::hw::power::get_power_profile() {
+                Some(current) => {
+                    println!("Current Profile: {:?}", current);
+                    if current == target_profile { println!("Result: No change needed."); }
+                    else { println!("Result: Profile would change."); }
+                },
+                None => println!("WARNING: Unable to read current profile."),
+            }
+            return;
+        }
+
+        legion_core::safety::guards::GlobalWriteLock::request_write_access();
+        match legion_core::hw::power::set_power_profile(target_profile) {
+            Ok(_) => println!("Success: Power Profile set to {:?}.", target_profile),
+            Err(e) => {
+                error!("Operation failed: {}", e);
+                eprintln!("Error: Failed to set Power Profile: {}", e);
+                std::process::exit(1);
+            }
+        }
+        return;
+    }
+
+    match legion_core::device::detect::detect_device() {
         Ok(device) => {
             if json_mode {
                 let json = serde_json::to_string_pretty(&device).unwrap_or_default();
@@ -111,22 +207,33 @@ fn main() {
                 // Hardware Monitoring
                 println!("\n--- Hardware Status ---");
                 
-                match core::hw::battery::get_battery_status() {
+                match legion_core::hw::battery::get_battery_status() {
                     Some(bat) => println!("Battery:           {}% (Charging: {})", bat.charge_percent, bat.is_charging),
                     None => println!("Battery:           Not detected"),
                 }
                 
-                match core::hw::battery::get_conservation_mode() {
+                
+                match legion_core::hw::battery::get_conservation_mode() {
                     Some(enabled) => println!("Conservation Mode: {}", if enabled { "ON" } else { "OFF" }),
                     None => println!("Conservation Mode: Unknown (WMI unavailable)"),
                 }
+
+                match legion_core::hw::battery::get_rapid_charge() {
+                    Some(enabled) => println!("Rapid Charge:      {}", if enabled { "ON" } else { "OFF" }),
+                    None => println!("Rapid Charge:      Unknown"),
+                }
+
+                match legion_core::hw::power::get_power_profile() {
+                    Some(p) => println!("Power Profile:     {}", p),
+                    None => println!("Power Profile:     Unknown"),
+                }
                 
-                match core::hw::thermal::get_cpu_temp() {
+                match legion_core::hw::thermal::get_cpu_temp() {
                     Some(t) => println!("CPU Temp:          {:.1}°C", t),
                     None => println!("CPU Temp:          N/A (Stubbed)"),
                 }
 
-                 match core::hw::thermal::get_gpu_temp() {
+                 match legion_core::hw::thermal::get_gpu_temp() {
                     Some(t) => println!("GPU Temp:          {:.1}°C", t),
                     None => println!("GPU Temp:          N/A (Stubbed)"),
                 }

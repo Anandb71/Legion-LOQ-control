@@ -52,7 +52,7 @@ pub fn get_conservation_mode() -> Option<bool> {
 
 pub fn set_conservation_mode(enable: bool) -> Result<(), Box<dyn std::error::Error>> {
     // 1. Safety Check: Global Write Lock
-    if !crate::core::safety::guards::GlobalWriteLock::is_write_allowed() {
+    if !crate::legion_core::safety::guards::GlobalWriteLock::is_write_allowed() {
         return Err("Write operations are locked. Use --set-conservation-mode explicitly (and ensure code requests access).".into());
     }
 
@@ -64,5 +64,39 @@ pub fn set_conservation_mode(enable: bool) -> Result<(), Box<dyn std::error::Err
     // 2. Execute
     wmi.set_conservation_mode(enable)?;
     
+    Ok(())
+}
+
+pub fn get_rapid_charge() -> Option<bool> {
+    let wmi = match WmiQueryHandler::new() {
+        Ok(w) => w,
+        Err(e) => {
+            warn!("Failed to init WMI for rapid charge: {}", e);
+            return None;
+        }
+    };
+    
+    match wmi.get_rapid_charge() {
+        Ok(enabled) => Some(enabled),
+        Err(e) => {
+            warn!("Failed to read rapid charge: {}", e);
+            None
+        }
+    }
+}
+
+pub fn set_rapid_charge(enable: bool) -> Result<(), Box<dyn std::error::Error>> {
+    if !crate::legion_core::safety::guards::GlobalWriteLock::is_write_allowed() {
+        return Err("Write operations are locked. Use --rapid-charge explicitly.".into());
+    }
+
+    let wmi = match WmiQueryHandler::new() {
+        Ok(w) => w,
+        Err(e) => return Err(format!("Failed to init WMI: {}", e).into()),
+    };
+    
+    // Safety: Check if conservation mode is on? 
+    // Usually harmless to try, firmware handles it, but let's just do it.
+    wmi.set_rapid_charge(enable)?;
     Ok(())
 }
