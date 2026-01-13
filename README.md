@@ -7,24 +7,22 @@ This tool focuses on the essentials: power modes, battery limits, and hardware i
 
 **Note:** Not affiliated with Lenovo.
 
-## What it does
-- [Planned] Device detection & verification
-- [Planned] Lightweight hardware monitoring (temps, battery, power)
-- [Planned] Essential controls (Battery limit, Power modes)
+## Current Status (v0.1.0)
+**Read-Only Foundation (Phase B Complete)**
+- ✅ **Device Detection**: Safely identifies Legion and LOQ models.
+- ✅ **Hardware Monitoring**: Reads Battery charge and status.
+- ✅ **Safety**: Strict gating ensures it only runs on supported hardware.
+- ⚠️ **Thermals**: Currently stubbed/disabled for stability while we migrate to robust WMI readings.
 
-## What it does NOT do
-- No RGB control (Use OpenRGB)
-- No Fan curves (Use LFC if needed, risky)
-- No Overclocking
-- No Driver updates
-- No Telemetry / Spyware
+**Coming Soon (Phase C)**
+- Battery Charge Limiting (Conservation Mode)
 
 ## Supported Models
 
 | Series | Models | Status |
 | :--- | :--- | :--- |
-| Legion | 5, 7, Pro, Slim | Planning |
-| LOQ | 15, 16 | Planning |
+| Legion | 5, 7, Pro, Slim | **Supported (Read-Only)** |
+| LOQ | 15, 16 | **Supported (Read-Only)** |
 | IdeaPad | - | **Unsupported** |
 
 ## Safety Notes
