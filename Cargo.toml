@@ -1,0 +1,22 @@
+[package]
+name = "legion-loq-control"
+version = "0.1.0"
+edition = "2021"
+authors = ["Anand"]
+description = "Lightweight control tool for Lenovo Legion and LOQ laptops"
+
+[dependencies]
+windows = { version = "0.52", features = [
+    "Win32_System_Com",
+    "Win32_System_Wmi",
+    "Win32_Foundation",
+    "Win32_System_SystemInformation",
+    "Win32_System_Power",
+    "Win32_Security",
+] }
+sysinfo = "0.30"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+log = "0.4"
+env_logger = "0.10"
+wmi = "0.13"
