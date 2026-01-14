@@ -4,3 +4,15 @@
 *.exe
 .idea/
 .vscode/
+
+# Logs and Errors
+*.log
+*.txt
+!CMakeLists.txt
+!LICENSE.txt
+!LICENSE
+
+# Temp
+tmp/
+temp/
+
