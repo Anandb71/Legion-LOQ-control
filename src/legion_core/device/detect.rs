@@ -47,7 +47,7 @@ fn determine_series(model: &str) -> Series {
     
     if model_upper.contains("LEGION") {
         Series::Legion
-    } else if model_upper.contains("LOQ") {
+    } else if model_upper.contains("LOQ") || model_upper.contains("83DV") {
         Series::LOQ
     } else if model_upper.contains("IDEAPAD") {
         Series::IdeaPad

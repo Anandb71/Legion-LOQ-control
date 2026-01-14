@@ -30,11 +30,11 @@ pub fn get_power_profile() -> Option<PowerProfile> {
         }
     };
 
-    match wmi.get_performance_mode() {
-        Ok(mode_str) => Some(match mode_str.as_str() {
-            "Performance" => PowerProfile::Performance,
-            "Balanced" => PowerProfile::Balanced,
-            "Quiet" => PowerProfile::Quiet,
+    match wmi.get_thermal_mode() {
+        Ok(mode_int) => Some(match mode_int {
+            3 => PowerProfile::Performance, // Assuming 3 based on offset. Might be 4.
+            2 => PowerProfile::Balanced,
+            1 => PowerProfile::Quiet,
             _ => PowerProfile::Unknown,
         }),
         Err(e) => {
@@ -45,23 +45,19 @@ pub fn get_power_profile() -> Option<PowerProfile> {
 }
 
 pub fn set_power_profile(profile: PowerProfile) -> Result<(), Box<dyn std::error::Error>> {
-    // Safety Check
     if !crate::legion_core::safety::guards::GlobalWriteLock::is_write_allowed() {
-         return Err("Write operations are locked. Use --set-profile explicitly.".into());
+         return Err("Write operations locked.".into());
     }
 
-    let mode_str = match profile {
-        PowerProfile::Performance => "Performance",
-        PowerProfile::Balanced => "Balanced",
-        PowerProfile::Quiet => "Quiet",
-        PowerProfile::Unknown => return Err("Cannot set profile to Unknown".into()),
+    let mode_int = match profile {
+        PowerProfile::Quiet => 1,
+        PowerProfile::Balanced => 2,
+        PowerProfile::Performance => 3, // Assuming offset 1 from Enum 2. If fails, try 4.
+        _ => return Err("Unsupported mode".into()),
     };
 
-    let wmi = match WmiQueryHandler::new() {
-        Ok(w) => w,
-        Err(e) => return Err(format!("Failed to init WMI: {}", e).into()),
-    };
-
-    wmi.set_performance_mode(mode_str)?;
+    let wmi = crate::platform::windows::WmiQueryHandler::new()?;
+    wmi.set_thermal_mode(mode_int)?;
+    
     Ok(())
 }

@@ -7,6 +7,11 @@ This tool focuses on the essentials: power modes, battery limits, and hardware i
 
 **Note:** Not affiliated with Lenovo.
 
+## Acknowledgements
+
+-   **[LenovoLegionToolkit](https://github.com/BartoszCichecki/LenovoLegionToolkit)**: A huge inspiration and reference for this project. Although archived, its codebase provided invaluable insights into WMI device detection and specific Lenovo WMI calls. We aim to carry on its spirit of lightweight, bloat-free control.
+-   **Lenovo**: For making great hardware (even if the software needs a community alternative).
+
 ## Current Status (v0.1.0)
 **Read-Only Foundation (Phase B Complete)**
 - ✅ **Device Detection**: Safely identifies Legion and LOQ models.
