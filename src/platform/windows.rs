@@ -137,6 +137,29 @@ impl WmiQueryHandler {
             Err(format!("Invalid integer from WMI: {}", trimmed).into())
         }
     }
+
+    pub fn set_light_control_owner(&self, enabled: bool) -> Result<(), Box<dyn Error>> {
+        use std::process::Command;
+        
+        // 1 = App Control, 0 = Firmware Control
+        let val = if enabled { 1 } else { 0 };
+        
+        // (Get-WmiObject -Namespace root/WMI -Class LENOVO_GAMEZONE_DATA).SetLightControlOwner(1)
+        let ps_script = format!(
+            "(Get-WmiObject -Namespace root\\WMI -Class LENOVO_GAMEZONE_DATA).SetLightControlOwner({})",
+            val
+        );
+        
+        let output = Command::new("powershell")
+            .args(&["-NoProfile", "-Command", &ps_script])
+            .output()?;
+            
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(format!("Set Light Control Owner failed: {}", stderr).into());
+        }
+        Ok(())
+    }
     
     pub fn get_manufacturer(&self) -> Result<String, Box<dyn Error>> {
         // Use Win32_ComputerSystemProduct (matching LenovoLegionToolkit)

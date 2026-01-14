@@ -14,13 +14,16 @@ It provides essential hardware control—Power Profiles, Battery Conservation, a
 
 | Feature | Status | Notes |
 | :--- | :--- | :--- |
-| **Power Profiles** | ✅ Active | Quiet (Blue), Balanced (White), Performance (Red) |
+| **Power Profiles** | ✅ Active | Quiet, Balanced, Performance modes |
 | **Battery Conservation** | ✅ Active | Limits charge to ~60-80% to prolong lifespan |
 | **Rapid Charge** | ✅ Active | Fast charging toggle |
+| **Keyboard Backlight** | ✅ Active | Brightness (Off/Low/High) + Static colors |
 | **Device Detection** | ✅ Active | Strict validation for Legion & LOQ models (e.g., 83DV) |
-| **GUI** | ✅ Beta | Modern, dark-mode friendly interface |
+| **GUI** | ✅ Beta | Modern, dark-mode friendly, scrollable interface |
 | **Telemetry** | 🚫 None | Zero data collection. Offline only. |
 | **Background Services** | 🚫 None | Runs only when you open it. |
+
+> ⚠️ **Important**: This application requires **Administrator privileges** to interact with hardware (BIOS, WMI, Keyboard LEDs). Right-click the `.exe` and select "Run as administrator".
 
 ## 🛠️ Installation
 

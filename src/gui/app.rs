@@ -46,6 +46,9 @@ enum GuiAction {
     SetConservation(bool),
     SetRapidCharge(bool),
     SetProfile(legion_core::hw::power::PowerProfile),
+    SetLightingOwner(bool),
+    SetBrightness(u8),
+    SetStaticColor(u8, u8, u8),
 }
 
 impl Default for LegionControlApp {
@@ -93,6 +96,35 @@ impl Default for LegionControlApp {
                                 }
                                 let state = perform_refresh();
                                 let _ = tx_scan.send(GuiUpdate::StateRefreshed(Box::new(state)));
+                            },
+                             GuiAction::SetLightingOwner(enable) => {
+                                // WMI Call
+                                let wmi = match crate::platform::windows::WmiQueryHandler::new() {
+                                    Ok(w) => w,
+                                    Err(e) => { let _ = tx_scan.send(GuiUpdate::Error(format!("Failed to init WMI: {}", e))); return; }
+                                };
+                                match wmi.set_light_control_owner(enable) {
+                                    Ok(_) => { let _ = tx_scan.send(GuiUpdate::ActionComplete(format!("Lighting Control: {}", if enable { "APP" } else { "FIRMWARE" }))); },
+                                    Err(e) => { let _ = tx_scan.send(GuiUpdate::Error(format!("Failed to set ownership: {}", e))); }
+                                }
+                            },
+                            GuiAction::SetBrightness(level) => {
+                                // HID Call
+                                legion_core::safety::guards::GlobalWriteLock::request_write_access();
+                                let lc = legion_core::hw::lighting::LightingController::new();
+                                match lc.set_brightness(level) {
+                                    Ok(_) => { let _ = tx_scan.send(GuiUpdate::ActionComplete(format!("Brightness set to {}", level))); },
+                                    Err(e) => { let _ = tx_scan.send(GuiUpdate::Error(format!("Lighting Error: {}", e))); }
+                                }
+                            },
+                            GuiAction::SetStaticColor(r, g, b) => {
+                                // HID Call
+                                legion_core::safety::guards::GlobalWriteLock::request_write_access();
+                                let lc = legion_core::hw::lighting::LightingController::new();
+                                match lc.set_static_color(r, g, b) {
+                                    Ok(_) => { let _ = tx_scan.send(GuiUpdate::ActionComplete("Static Color Applied".to_string())); },
+                                    Err(e) => { let _ = tx_scan.send(GuiUpdate::Error(format!("Lighting Error: {}", e))); }
+                                }
                             }
                         }
                     },
@@ -227,6 +259,7 @@ impl eframe::App for LegionControlApp {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
+            egui::ScrollArea::vertical().show(ui, |ui| {
             // Section: Device Info
             ui.group(|ui| {
                 ui.set_width(ui.available_width());
@@ -327,6 +360,54 @@ impl eframe::App for LegionControlApp {
             });
             
             ui.add_space(10.0);
+            
+             // Section: Keyboard Lighting
+            ui.group(|ui| {
+                ui.set_width(ui.available_width());
+                ui.heading("Keyboard Backlight");
+                ui.add_space(5.0);
+                
+                ui.set_enabled(!self.is_busy && self.supported);
+
+                // Ownership Toggle
+                if ui.button("Take Control (Enable App Lighting)").clicked() {
+                     let _ = self.tx_action.send(GuiAction::SetLightingOwner(true));
+                     self.is_busy = true;
+                }
+                ui.small("Must click this once to enable custom effects.");
+                
+                ui.add_space(5.0);
+                ui.separator();
+                
+                ui.label("Brightness:");
+                ui.horizontal(|ui| {
+                    if ui.button("OFF").clicked() {
+                        let _ = self.tx_action.send(GuiAction::SetBrightness(0));
+                    }
+                    if ui.button("LOW").clicked() {
+                         let _ = self.tx_action.send(GuiAction::SetBrightness(1));
+                    }
+                    if ui.button("HIGH").clicked() {
+                         let _ = self.tx_action.send(GuiAction::SetBrightness(2));
+                    }
+                });
+                
+                ui.add_space(5.0);
+                ui.label("Static Color Presets:");
+                ui.horizontal(|ui| {
+                    if ui.button(egui::RichText::new("BLUE").color(egui::Color32::BLUE)).clicked() {
+                         let _ = self.tx_action.send(GuiAction::SetStaticColor(0, 0, 255));
+                    }
+                    if ui.button(egui::RichText::new("WHITE").color(egui::Color32::WHITE)).clicked() {
+                         let _ = self.tx_action.send(GuiAction::SetStaticColor(255, 255, 255));
+                    }
+                    if ui.button(egui::RichText::new("RED").color(egui::Color32::RED)).clicked() {
+                         let _ = self.tx_action.send(GuiAction::SetStaticColor(255, 0, 0));
+                    }
+                });
+            });
+            
+            ui.add_space(10.0);
 
             // Footer / Status
             ui.vertical_centered(|ui| {
@@ -339,6 +420,7 @@ impl eframe::App for LegionControlApp {
                 if ui.button("⟳ Refresh State").clicked() {
                     self.request_refresh();
                 }
+            });
             });
         });
         

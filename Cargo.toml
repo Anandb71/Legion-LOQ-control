@@ -23,3 +23,7 @@ log = "0.4"
 env_logger = "0.10"
 wmi = "0.13"
 eframe = "0.27"
+hidapi = "2.6.4"
+
+[build-dependencies]
+embed-resource = "3"
