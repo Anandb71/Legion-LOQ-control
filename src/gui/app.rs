@@ -280,7 +280,9 @@ impl eframe::App for LegionControlApp {
                     if self.show_sensitive {
                         ui.strong(&self.device_name);
                     } else {
-                        ui.strong("████████");
+                        // Discord-style gray spoiler
+                        let (rect, _) = ui.allocate_exact_size(egui::vec2(80.0, 18.0), egui::Sense::hover());
+                        ui.painter().rect_filled(rect, 4.0, egui::Color32::from_rgb(70, 70, 75));
                     }
                     ui.end_row();
                     
@@ -288,7 +290,9 @@ impl eframe::App for LegionControlApp {
                     if self.show_sensitive {
                         ui.label(&self.bios_version);
                     } else {
-                        ui.label("████████");
+                        // Discord-style gray spoiler
+                        let (rect, _) = ui.allocate_exact_size(egui::vec2(80.0, 18.0), egui::Sense::hover());
+                        ui.painter().rect_filled(rect, 4.0, egui::Color32::from_rgb(70, 70, 75));
                     }
                     ui.end_row();
                     
