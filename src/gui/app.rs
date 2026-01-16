@@ -14,6 +14,7 @@ pub struct LegionControlApp {
     power_profile: Option<legion_core::hw::power::PowerProfile>,
     status_message: String,
     last_error: Option<String>,
+    show_sensitive: bool,  // Privacy: hide device ID/BIOS by default
     
     // Threading
     rx: Receiver<GuiUpdate>,
@@ -147,6 +148,7 @@ impl Default for LegionControlApp {
             rx,
             tx_action,
             is_busy: false,
+            show_sensitive: false,  // Hidden by default for privacy
         }
     }
 }
@@ -263,23 +265,38 @@ impl eframe::App for LegionControlApp {
             // Section: Device Info
             ui.group(|ui| {
                 ui.set_width(ui.available_width());
-                ui.heading("Device Information");
+                ui.horizontal(|ui| {
+                    ui.heading("Device Information");
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        if ui.button(if self.show_sensitive { "🔓 Hide" } else { "🔒 Show" }).clicked() {
+                            self.show_sensitive = !self.show_sensitive;
+                        }
+                    });
+                });
                 ui.add_space(5.0);
                 
                 egui::Grid::new("device_info_grid").striped(true).show(ui, |ui| {
                     ui.label("Model:");
-                    ui.strong(&self.device_name);
+                    if self.show_sensitive {
+                        ui.strong(&self.device_name);
+                    } else {
+                        ui.strong("████████");
+                    }
                     ui.end_row();
                     
                     ui.label("BIOS:");
-                    ui.label(&self.bios_version);
+                    if self.show_sensitive {
+                        ui.label(&self.bios_version);
+                    } else {
+                        ui.label("████████");
+                    }
                     ui.end_row();
                     
                     ui.label("Status:");
                     if self.supported {
                         ui.colored_label(egui::Color32::GREEN, "Supported");
                     } else {
-                        ui.colored_label(egui::Color32::from_rgb(255, 140, 0), "Unsupported"); // Orange-ish
+                        ui.colored_label(egui::Color32::from_rgb(255, 140, 0), "Unsupported");
                     }
                     ui.end_row();
                     

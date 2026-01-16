@@ -1,76 +1,138 @@
 # Legion + LOQ Control
 
+<div align="center">
+
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows-0078D6.svg)
-![Status](https://img.shields.io/badge/status-Alpha-orange.svg)
+![Version](https://img.shields.io/badge/version-0.2.0-green.svg)
+![Rust](https://img.shields.io/badge/rust-stable-orange.svg)
 
-**Legion + LOQ Control** is a lightweight, open-source replacment for Lenovo Vantage, designed specifically for **Lenovo Legion** and **LOQ** series laptops.
+**A lightweight, open-source replacement for Lenovo Vantage**
 
-It provides essential hardware control—Power Profiles, Battery Conservation, and Rapid Charge—without the bloat, telemetry, or background services of the official software.
+*No bloat. No telemetry. No background services.*
+
+[Features](#-features) • [Installation](#️-installation) • [Usage](#-usage) • [Contributing](#-contributing)
+
+</div>
 
 ---
+
+## ⚡ Why This Exists
+
+Lenovo Vantage is bloated, collects telemetry, and runs background services 24/7. This tool provides the same essential features in a **single lightweight executable** that only runs when you need it.
 
 ## 🚀 Features
 
-| Feature | Status | Notes |
-| :--- | :--- | :--- |
-| **Power Profiles** | ✅ Active | Quiet, Balanced, Performance modes |
-| **Battery Conservation** | ✅ Active | Limits charge to ~60-80% to prolong lifespan |
-| **Rapid Charge** | ✅ Active | Fast charging toggle |
-| **Keyboard Backlight** | ✅ Active | Brightness (Off/Low/High) + Static colors |
-| **Device Detection** | ✅ Active | Strict validation for Legion & LOQ models (e.g., 83DV) |
-| **GUI** | ✅ Beta | Modern, dark-mode friendly, scrollable interface |
-| **Telemetry** | 🚫 None | Zero data collection. Offline only. |
-| **Background Services** | 🚫 None | Runs only when you open it. |
+| Feature | Status | Description |
+| :--- | :---: | :--- |
+| **Thermal Profiles** | ✅ | Quiet / Balanced / Performance modes |
+| **Battery Conservation** | ✅ | Limit charge to ~60% for battery longevity |
+| **Rapid Charge** | ✅ | Fast charging toggle |
+| **Keyboard Backlight** | ✅ | Brightness levels + Static RGB colors |
+| **Device Detection** | ✅ | Auto-detects Legion & LOQ models |
+| **GUI** | ✅ | Modern, dark-mode interface |
+| **CLI** | ✅ | Full command-line support with `--help` |
+| **Telemetry** | 🚫 | Zero data collection |
+| **Background Services** | 🚫 | Runs only when launched |
 
-> ⚠️ **Important**: This application requires **Administrator privileges** to interact with hardware (BIOS, WMI, Keyboard LEDs). Right-click the `.exe` and select "Run as administrator".
+> ⚠️ **Requires Administrator**: Right-click `.exe` → "Run as administrator"
+
+---
 
 ## 🛠️ Installation
 
-### Prerequisites
-- Windows 10 or Windows 11
-- A supported Lenovo Legion or LOQ laptop (see below)
+### Option 1: Download Release
+Download the latest `.exe` from [Releases](https://github.com/Anandb71/Legion-LOQ-control/releases).
 
-### Building from Source
-This project is written in **Rust**. You will need the latest stable Rust toolchain.
-
+### Option 2: Build from Source
 ```bash
-# Clone the repository
+# Requires Rust toolchain
 git clone https://github.com/Anandb71/Legion-LOQ-control.git
 cd Legion-LOQ-control
+cargo build --release
 
-# Build and Run
-cargo run --release -- --gui
+# Run the GUI
+./target/release/legion-loq-control.exe --gui
 ```
+
+---
+
+## 📖 Usage
+
+### GUI Mode
+```bash
+legion-loq-control --gui
+```
+
+### CLI Mode
+```bash
+# Show help
+legion-loq-control --help
+
+# Show device info
+legion-loq-control
+
+# Set thermal profile
+legion-loq-control --set-profile perf    # Options: quiet, balanced, perf
+
+# Toggle battery features
+legion-loq-control --set-conservation-mode on
+legion-loq-control --rapid-charge off
+
+# Preview changes without applying
+legion-loq-control --dry-run --set-profile quiet
+
+# JSON output (for scripting)
+legion-loq-control --json
+```
+
+---
 
 ## 💻 Supported Models
 
-This tool is strictly tested on specific hardware to ensure safety.
-
 | Series | Models | Status |
-| :--- | :--- | :--- |
-| **LOQ** | 15, 16 (e.g., 83DV) | **Verified** |
-| **Legion** | 5, 7, Pro, Slim | **Beta Support** |
-| **IdeaPad** | Gaming 3 | *Unsupported* |
+| :--- | :--- | :---: |
+| **LOQ** | 15, 16 (83DV, etc.) | ✅ Verified |
+| **Legion** | 5, 7, Pro, Slim | ✅ Beta |
+| **IdeaPad Gaming** | — | ❌ Unsupported |
 
-> **Note**: If your device is not detected, please open an Issue with your "System Model" information.
+> 📝 Not detected? Open an [Issue](https://github.com/Anandb71/Legion-LOQ-control/issues) with your model number.
+
+---
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on code style, safety rules, and pull requests.
+Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-## 🔒 Security & Safety
+**Core Principles:**
+- 🔒 **Safety First** — Read-only by default, writes require explicit action
+- 🎯 **Minimal Scope** — Legion + LOQ only, no feature creep
+- 📖 **Transparency** — All hardware interactions are logged
 
-Safety is our #1 priority. We use a "Read-Only First" architecture and verify all hardware interactions. See [SECURITY.md](SECURITY.md) for our full policy.
+---
+
+## 🔒 Security
+
+See [SECURITY.md](SECURITY.md) for vulnerability reporting and our safety philosophy.
+
+---
 
 ## 🙏 Acknowledgements
 
-*   **[LenovoLegionToolkit](https://github.com/BartoszCichecki/LenovoLegionToolkit)**: The gold standard for Legion tools. Use it if you want a feature-complete C# experience. This project draws heavy inspiration and technical reference from LLT's research.
-*   **Lenovo**: For the hardware.
+- **[LenovoLegionToolkit](https://github.com/BartoszCichecki/LenovoLegionToolkit)** — The gold standard. This project references LLT's excellent reverse-engineering work.
+
+---
 
 ## 📄 License
 
-Distributed under the MIT License. See `LICENSE` for more information.
+MIT License — See [LICENSE](LICENSE).
 
 ---
-*Disclaimer: This project is not affiliated with or endorsed by Lenovo. Use at your own risk.*
+
+<div align="center">
+
+*Not affiliated with Lenovo. Use at your own risk.*
+
+**Made with ❤️ for the Legion community**
+
+</div>
