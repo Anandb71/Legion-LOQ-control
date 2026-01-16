@@ -5,10 +5,44 @@ mod legion_core;
 mod platform;
 mod gui;
 
+fn print_help() {
+    println!("Legion + LOQ Control v0.2.0");
+    println!("A lightweight Lenovo Vantage replacement for Legion & LOQ laptops.\n");
+    println!("USAGE:");
+    println!("  legion-loq-control [OPTIONS]\n");
+    println!("OPTIONS:");
+    println!("  --gui                       Launch graphical interface");
+    println!("  --json                      Output device info as JSON");
+    println!("  --dry-run                   Preview changes without applying");
+    println!("  --set-conservation-mode <on|off>  Toggle battery conservation");
+    println!("  --rapid-charge <on|off>     Toggle rapid charging");
+    println!("  --set-profile <quiet|balanced|perf>  Set thermal profile");
+    println!("  -V, --version               Show version");
+    println!("  -h, --help                  Show this help\n");
+    println!("EXAMPLES:");
+    println!("  legion-loq-control --gui");
+    println!("  legion-loq-control --set-profile perf");
+    println!("  legion-loq-control --dry-run --set-conservation-mode on\n");
+    println!("NOTE: Run as Administrator for all features to work.");
+}
+
 fn main() {
     env_logger::init();
     
     let args: Vec<String> = env::args().collect();
+    
+    // Version flag
+    if args.contains(&"--version".to_string()) || args.contains(&"-V".to_string()) {
+        println!("Legion + LOQ Control v0.2.0");
+        println!("A lightweight Lenovo Vantage replacement");
+        return;
+    }
+    
+    // Help flag
+    if args.contains(&"--help".to_string()) || args.contains(&"-h".to_string()) {
+        print_help();
+        return;
+    }
     
     // GUI mode check (early exit)
     if args.contains(&"--gui".to_string()) {
@@ -189,7 +223,7 @@ fn main() {
                 return;
             }
 
-            println!("Legion + LOQ Control (v0.1.0)");
+            println!("Legion + LOQ Control (v0.2.0)");
             println!("-----------------------------");
             
             if !device.supported {
