@@ -17,6 +17,16 @@
 
 ---
 
+## 📸 Screenshot
+
+<div align="center">
+
+![Legion + LOQ Control](screenshot.png)
+
+</div>
+
+---
+
 ## ⚡ Why This Exists
 
 Lenovo Vantage is bloated, collects telemetry, and runs background services 24/7. This tool provides the same essential features in a **single lightweight executable** that only runs when you need it.
