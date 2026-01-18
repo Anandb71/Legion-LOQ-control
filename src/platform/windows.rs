@@ -7,6 +7,7 @@ pub struct WmiQueryHandler {
     con_wmi: WMIConnection, // Connection to root\WMI
 }
 
+#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
 struct Win32ComputerSystemProduct {
@@ -15,6 +16,7 @@ struct Win32ComputerSystemProduct {
     version: String,
 }
 
+#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
 struct Win32Battery {
@@ -22,12 +24,7 @@ struct Win32Battery {
     battery_status: u16, 
 }
 
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "PascalCase")]
-struct LenovoBiosSetting {
-    current_setting: String,
-}
-
+#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 struct Win32Bios {
     #[serde(rename = "SMBIOSBIOSVersion")]

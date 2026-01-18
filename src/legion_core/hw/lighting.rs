@@ -1,11 +1,12 @@
 use hidapi::{HidApi, HidDevice};
 use std::error::Error;
-use log::{info, warn, error};
+use log::{info, warn};
 
 // Constants from LLT
 const VENDOR_ID: u16 = 0x048D;
 const PRODUCT_ID_MASKED: u16 = 0xC900;
 const PRODUCT_ID_MASK: u16 = 0xFF00;
+#[allow(dead_code)]
 const DESCRIPTOR_LENGTH: u16 = 0x21; // 33 bytes
 
 #[repr(C, packed)]
@@ -97,30 +98,9 @@ impl LightingController {
         };
 
         // HIDAPI expects report ID as first byte if numbered reports are used.
-        // LLT sends 33 bytes. It seems report ID is not used or implicit?
-        // HidD_SetFeature in LLT sends the struct directly.
-        // hidapi `send_feature_report` needs Report ID as first byte? 
-        // "The first byte of the data must contain the Report ID. For devices which only support a single report, this must be set to 0x0."
-        
-        let mut report = Vec::with_capacity(34);
-        report.push(0xCC); // WAIT: LLT says Header is 0xCC, 0x16.
-        // Does strict HID require a 0x00 prefix if report ID is not used?
-        // Let's try sending the 33 bytes directly first? No, hidapi docs say first byte is Report ID.
-        // If the device uses Report IDs, 0xCC might be it?
-        // LLT uses `HidD_SetFeature`.
-        // Let's assume we prepend 0 if report ID is not part of the data.
-        // But wait, LLT struct starts with [0xCC, 0x16].
-        
-        // Trial 1: Send [0xCC, 0x16, ...] (33 bytes).
-        // If hidapi requires Report ID, we might need to verify if 0xCC is the report ID.
-        // LLT: `Header = [0xCC, 0x16]`
-        // Maybe Report ID is 0xCC?
-        
-        // Let's try sending exactly what LLT sends.
-        // Note: hidapi `send_feature_report` takes a slice.
-        
-        // IMPORTANT: hidapi on Windows might require the buffer to be effectively ReportID + Data.
-        // If the first byte 0xCC is the Report ID, then we are good.
+        // LLT sends 33 bytes with header [0xCC, 0x16].
+        // hidapi `send_feature_report` needs Report ID as first byte.
+        // The first byte 0xCC may be the Report ID for this device.
         
         match device.send_feature_report(bytes) {
             Ok(_) => Ok(()),
