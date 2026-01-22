@@ -1,12 +1,55 @@
 ﻿<Window x:Class="LegionLoqControl.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:LegionLoqControl"
-        mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
+        Title="Legion + LOQ Control" Height="500" Width="800"
+        Background="#1E1E1E" Foreground="White">
+    <Grid Margin="20">
+        <StackPanel>
+            <TextBlock Text="Legion + LOQ Control" FontSize="24" FontWeight="Bold" Margin="0,0,0,20"/>
 
+            <!-- Device Info -->
+            <Border BorderBrush="#3E3E3E" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,10">
+                <StackPanel>
+                    <TextBlock Text="Device Information" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Model: " Foreground="#AAAAAA"/>
+                        <TextBlock x:Name="TextModel" Text="Detecting..." FontWeight="Bold"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Status: " Foreground="#AAAAAA"/>
+                        <TextBlock x:Name="TextStatus" Text="-" FontWeight="Bold"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Power Controls -->
+            <GroupBox Header="Power Controls" Foreground="White" BorderBrush="#3E3E3E" Margin="0,0,0,10">
+                <StackPanel Margin="10">
+                    <CheckBox x:Name="CheckConservation" Content="Conservation Mode (Limit Charge)" Margin="0,5" Foreground="White" Checked="OnPowerChanged" Unchecked="OnPowerChanged"/>
+                    <CheckBox x:Name="CheckRapidCharge" Content="Rapid Charge" Margin="0,5" Foreground="White" Checked="OnPowerChanged" Unchecked="OnPowerChanged"/>
+                    
+                    <TextBlock Text="Thermal Mode" Margin="0,10,0,5"/>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="Quiet" Width="80" Margin="0,0,10,0" Click="BtnQuiet_Click"/>
+                        <Button Content="Balanced" Width="80" Margin="0,0,10,0" Click="BtnBalanced_Click"/>
+                        <Button Content="Perf" Width="80" Click="BtnPerf_Click"/>
+                    </StackPanel>
+                </StackPanel>
+            </GroupBox>
+
+            <!-- Lighting -->
+            <GroupBox Header="Keyboard Backlight" Foreground="White" BorderBrush="#3E3E3E">
+                <StackPanel Margin="10">
+                    <Button Content="Take Control" Width="120" HorizontalAlignment="Left" Margin="0,0,0,10" Click="BtnTakeControl_Click"/>
+                    
+                    <TextBlock Text="Brightness"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,5">
+                        <Button Content="OFF" Width="60" Margin="0,0,10,0" Click="BtnLightOff_Click"/>
+                        <Button Content="LOW" Width="60" Margin="0,0,10,0" Click="BtnLightLow_Click"/>
+                        <Button Content="HIGH" Width="60" Click="BtnLightHigh_Click"/>
+                    </StackPanel>
+                </StackPanel>
+            </GroupBox>
+        </StackPanel>
     </Grid>
 </Window>
