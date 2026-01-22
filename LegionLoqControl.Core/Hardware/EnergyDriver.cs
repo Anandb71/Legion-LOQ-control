@@ -47,16 +47,9 @@ namespace LegionLoqControl.Core.Hardware
                 if (!Open()) return false;
             }
 
-            // Structure reversed from LLT/Rust:
-            // Input buffer is usually just the value? Or a struct?
-            // Checking Rust implementation...
-            // Rust: DWORD (4 bytes).
-            // LLT: DeviceIoControl(IOCTL_ENERGY_BATTERY_CHARGE_MODE, ref input, ...)
-            // Input is `BatteryChargeModeInput` struct: { int Mode, int Enable }
-
             var input = new byte[8];
-            Array.Copy(BitConverter.GetBytes(featureId), 0, input, 0, 4); // Mode (3=Conservation)
-            Array.Copy(BitConverter.GetBytes(value), 0, input, 4, 4);     // Enable (1/0)
+            Array.Copy(BitConverter.GetBytes((int)featureId), 0, input, 0, 4);
+            Array.Copy(BitConverter.GetBytes(value), 0, input, 4, 4);
 
             uint bytesReturned;
             return NativeMethods.DeviceIoControl(

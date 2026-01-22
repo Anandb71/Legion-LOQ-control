@@ -23,7 +23,10 @@ namespace LegionLoqControl.Core.Hardware
 
                 foreach (ManagementObject obj in collection)
                 {
-                    using var paramsObj = obj.GetMethodParameters("SetSmallData");
+                    // Get parameters from the Class, not the instance
+                    using var mc = new ManagementClass(obj.Scope, new ManagementPath("LENOVO_GAMEZONE_DATA"), null);
+                    ManagementBaseObject paramsObj = mc.GetMethodParameters("SetSmallData");
+                    
                     paramsObj["Data1"] = 1; // 1 = Thermal Mode ID
                     paramsObj["Data2"] = (int)profile;
 

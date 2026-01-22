@@ -33,9 +33,9 @@ namespace LegionLoqControl.Core.Native
         public static extern bool DeviceIoControl(
             SafeFileHandle hDevice,
             uint dwIoControlCode,
-            byte[] lpInBuffer,
+            byte[]? lpInBuffer,
             uint nInBufferSize,
-            byte[] lpOutBuffer,
+            byte[]? lpOutBuffer,
             uint nOutBufferSize,
             out uint lpBytesReturned,
             IntPtr lpOverlapped);

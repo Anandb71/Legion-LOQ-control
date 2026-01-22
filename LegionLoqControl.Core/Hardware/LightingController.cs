@@ -19,7 +19,9 @@ namespace LegionLoqControl.Core.Hardware
                 using var searcher = new ManagementObjectSearcher(@"root\WMI", "SELECT * FROM LENOVO_GAMEZONE_DATA");
                 foreach (ManagementObject obj in searcher.Get())
                 {
-                    using var paramsObj = obj.GetMethodParameters("SetLightControlOwner");
+                    using var mc = new ManagementClass(obj.Scope, new ManagementPath("LENOVO_GAMEZONE_DATA"), null);
+                    ManagementBaseObject paramsObj = mc.GetMethodParameters("SetLightControlOwner");
+                    
                     paramsObj["Data"] = appControl ? 1 : 0;
                     obj.InvokeMethod("SetLightControlOwner", paramsObj, null);
                     return true;
@@ -32,7 +34,7 @@ namespace LegionLoqControl.Core.Hardware
         public bool SetDimensions(byte brightness, byte r, byte g, byte b)
         {
             // Find device
-            var device = DeviceList.Local.GetHidDevices(VENDOR_ID)
+            var device = HidSharp.DeviceList.Local.GetHidDevices(VENDOR_ID)
                 .FirstOrDefault(d => (d.ProductID & PRODUCT_ID_MASK) == PRODUCT_ID_MATCH);
 
             if (device == null) return false;
