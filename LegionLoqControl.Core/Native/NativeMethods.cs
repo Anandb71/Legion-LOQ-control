@@ -1,17 +1,11 @@
-using System;
-using System.Runtime.InteropServices;
+using global::System;
+using global::System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
 
 namespace LegionLoqControl.Core.Native
 {
     public static class NativeMethods
     {
-        // IOCTL Constants
-        // 0x831020F8 for Battery Conservation / Rapid Charge (from LLT)
-        // Control Code format: (DeviceType << 16) | (Access << 14) | (Function << 2) | Method
-        // LLT uses 0x831020F8.
-        public const uint IOCTL_ENERGY_BATTERY_CHARGE_MODE = 0x831020F8;
-
         public const uint GENERIC_READ = 0x80000000;
         public const uint GENERIC_WRITE = 0x40000000;
         public const uint FILE_SHARE_READ = 0x00000001;
@@ -30,15 +24,56 @@ namespace LegionLoqControl.Core.Native
             IntPtr hTemplateFile);
 
         [DllImport("kernel32.dll", SetLastError = true)]
-        public static extern bool DeviceIoControl(
+        private static extern unsafe bool DeviceIoControl(
             SafeFileHandle hDevice,
             uint dwIoControlCode,
-            byte[]? lpInBuffer,
+            void* lpInBuffer,
             uint nInBufferSize,
-            byte[]? lpOutBuffer,
+            void* lpOutBuffer,
             uint nOutBufferSize,
-            out uint lpBytesReturned,
+            uint* lpBytesReturned,
             IntPtr lpOverlapped);
+
+        /// <summary>
+        /// Generic DeviceIoControl matching LLT's PInvokeExtensions pattern.
+        /// </summary>
+        public static unsafe bool DeviceIoControl<TIn, TOut>(SafeFileHandle hDevice, uint dwIoControlCode, TIn inVal, out TOut outVal)
+            where TIn : struct
+            where TOut : struct
+        {
+            var lpInBuffer = IntPtr.Zero;
+            var lpOutBuffer = IntPtr.Zero;
+
+            try
+            {
+                var nInBufferSize = Marshal.SizeOf<TIn>();
+                var nOutBufferSize = Marshal.SizeOf<TOut>();
+
+                lpInBuffer = Marshal.AllocHGlobal(nInBufferSize);
+                lpOutBuffer = Marshal.AllocHGlobal(nOutBufferSize);
+
+                Marshal.StructureToPtr(inVal, lpInBuffer, false);
+
+                var ret = DeviceIoControl(
+                    hDevice,
+                    dwIoControlCode,
+                    lpInBuffer.ToPointer(),
+                    (uint)nInBufferSize,
+                    lpOutBuffer.ToPointer(),
+                    (uint)nOutBufferSize,
+                    null,
+                    IntPtr.Zero);
+
+                outVal = ret ? Marshal.PtrToStructure<TOut>(lpOutBuffer) : default;
+
+                return ret;
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(lpInBuffer);
+                Marshal.FreeHGlobal(lpOutBuffer);
+            }
+        }
 
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern bool CloseHandle(IntPtr hObject);
