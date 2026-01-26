@@ -8,8 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="HidSharp" Version="2.6.4" />
-    <PackageReference Include="System.Management" Version="10.0.2" />
-    <!-- PackageReference for System.Management removed -->
+    <PackageReference Include="System.Management" Version="8.0.0" />
   </ItemGroup>
 
 </Project>

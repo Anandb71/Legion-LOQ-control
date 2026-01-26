@@ -1,5 +1,5 @@
 using System;
-using System.Management;
+using global::System.Management;
 
 namespace LegionLoqControl.Core.Device
 {
@@ -34,7 +34,7 @@ namespace LegionLoqControl.Core.Device
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error querying WMI: {ex.Message}");
+                global::System.Diagnostics.Debug.WriteLine($"Error querying WMI: {ex.Message}");
                 IsSupported = false;
             }
         }

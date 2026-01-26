@@ -1,40 +1,55 @@
-using System;
-using System.Linq;
-using System.Management;
+using global::System;
+using global::System.Linq;
+using global::System.Runtime.InteropServices;
 using HidSharp;
+using LegionLoqControl.Core.System.Management;
+using Task = global::System.Threading.Tasks.Task;
 
 namespace LegionLoqControl.Core.Hardware
 {
+    // Structs mirroring LLT Native.cs
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    internal struct LENOVO_RGB_KEYBOARD_STATE
+    {
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
+        public byte[] Header;
+        public byte Effect;
+        public byte Speed;
+        public byte Brightness;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 3)]
+        public byte[] Zone1Rgb;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 3)]
+        public byte[] Zone2Rgb;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 3)]
+        public byte[] Zone3Rgb;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 3)]
+        public byte[] Zone4Rgb;
+        public byte Padding;
+        public byte WaveLTR;
+        public byte WaveRTL;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 13)]
+        public byte[] Unused;
+    }
+
     public class LightingController
     {
         private const int VENDOR_ID = 0x048D;
-        private const int PRODUCT_ID_MASK = 0xFF00; // Matches Rust mask
+        private const int PRODUCT_ID_MASK = 0xFF00;
         private const int PRODUCT_ID_MATCH = 0xC900;
 
-        public bool SetLightingOwner(bool appControl)
+        public async Task<bool> SetLightingOwnerAsync(bool appControl)
         {
             try
             {
-                // PowerShell: (Get-WmiObject ...).SetLightControlOwner(1)
-                using var searcher = new ManagementObjectSearcher(@"root\WMI", "SELECT * FROM LENOVO_GAMEZONE_DATA");
-                foreach (ManagementObject obj in searcher.Get())
-                {
-                    using var mc = new ManagementClass(obj.Scope, new ManagementPath("LENOVO_GAMEZONE_DATA"), null);
-                    ManagementBaseObject paramsObj = mc.GetMethodParameters("SetLightControlOwner");
-                    
-                    paramsObj["Data"] = appControl ? 1 : 0;
-                    obj.InvokeMethod("SetLightControlOwner", paramsObj, null);
-                    return true;
-                }
+                await WMI.LenovoGameZoneData.SetLightControlOwnerAsync(appControl ? 1 : 0);
+                return true;
             }
-            catch (Exception) { /* Log error */ }
-            return false;
+            catch { return false; }
         }
 
-        public bool SetDimensions(byte brightness, byte r, byte g, byte b)
+        public bool SetValues(byte brightness, byte r, byte g, byte b)
         {
-            // Find device
-            var device = HidSharp.DeviceList.Local.GetHidDevices(VENDOR_ID)
+            var device = DeviceList.Local.GetHidDevices(VENDOR_ID)
                 .FirstOrDefault(d => (d.ProductID & PRODUCT_ID_MASK) == PRODUCT_ID_MATCH);
 
             if (device == null) return false;
@@ -43,30 +58,40 @@ namespace LegionLoqControl.Core.Hardware
 
             using (stream)
             {
-                // Structure: [Header L, Header H, Effect, Speed, Brightness, R, G, B, R, G, B...]
-                // 33 bytes total? Rust struct was 33 bytes.
-                // 0xCC, 0x16 header.
-
-                byte[] report = new byte[33];
-                report[0] = 0xCC;
-                report[1] = 0x16;
-                report[2] = 1; // Static effect
-                report[3] = 1; // Speed
-                report[4] = brightness; // 1=Low, 2=High
-
-                // Zone 1
-                report[5] = r; report[6] = g; report[7] = b;
-                // Zone 2
-                report[8] = r; report[9] = g; report[10] = b;
-                // Zone 3
-                report[11] = r; report[12] = g; report[13] = b;
-                // Zone 4
-                report[14] = r; report[15] = g; report[16] = b;
+                var state = new LENOVO_RGB_KEYBOARD_STATE
+                {
+                    Header = new byte[] { 0xCC, 0x16 },
+                    Effect = 1, // Static
+                    Speed = 1,
+                    Brightness = brightness,
+                    Zone1Rgb = new byte[] { r, g, b },
+                    Zone2Rgb = new byte[] { r, g, b },
+                    Zone3Rgb = new byte[] { r, g, b },
+                    Zone4Rgb = new byte[] { r, g, b },
+                    Padding = 0,
+                    WaveLTR = 0,
+                    WaveRTL = 0,
+                    Unused = new byte[13]
+                };
 
                 try
                 {
-                    // HidSharp SetFeature
-                    stream.SetFeature(report);
+                    // Marshal struct to byte array
+                    int size = Marshal.SizeOf(state);
+                    byte[] arr = new byte[size];
+
+                    IntPtr ptr = Marshal.AllocHGlobal(size);
+                    try
+                    {
+                        Marshal.StructureToPtr(state, ptr, true);
+                        Marshal.Copy(ptr, arr, 0, size);
+                    }
+                    finally
+                    {
+                        Marshal.FreeHGlobal(ptr);
+                    }
+
+                    stream.SetFeature(arr);
                     return true;
                 }
                 catch

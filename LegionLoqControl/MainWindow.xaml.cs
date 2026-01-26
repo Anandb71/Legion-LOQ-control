@@ -7,7 +7,7 @@ namespace LegionLoqControl
     public partial class MainWindow : Window
     {
         private readonly DeviceDetector _detector = new();
-        private readonly EnergyDriver _energy = new();
+        private readonly BatteryController _battery = new();
         private readonly PowerController _power = new();
         private readonly LightingController _lighting = new();
 
@@ -33,30 +33,29 @@ namespace LegionLoqControl
 
         private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            _energy.Dispose();
         }
 
         private void OnPowerChanged(object sender, RoutedEventArgs e)
         {
             if (CheckConservation.IsChecked == true)
-                _energy.SetConservationMode(true);
+                _battery.SetConservationMode(true);
             else
-                _energy.SetConservationMode(false);
+                _battery.SetConservationMode(false);
 
             if (CheckRapidCharge.IsChecked == true)
-                _energy.SetRapidCharge(true);
+                _battery.SetRapidCharge(true);
             else
-                _energy.SetRapidCharge(false);
+                _battery.SetRapidCharge(false);
         }
 
-        private void BtnQuiet_Click(object sender, RoutedEventArgs e) => _power.SetProfile(PowerProfile.Quiet);
-        private void BtnBalanced_Click(object sender, RoutedEventArgs e) => _power.SetProfile(PowerProfile.Balanced);
-        private void BtnPerf_Click(object sender, RoutedEventArgs e) => _power.SetProfile(PowerProfile.Performance);
+        private async void BtnQuiet_Click(object sender, RoutedEventArgs e) => await _power.SetProfileAsync(PowerProfile.Quiet);
+        private async void BtnBalanced_Click(object sender, RoutedEventArgs e) => await _power.SetProfileAsync(PowerProfile.Balanced);
+        private async void BtnPerf_Click(object sender, RoutedEventArgs e) => await _power.SetProfileAsync(PowerProfile.Performance);
 
-        private void BtnTakeControl_Click(object sender, RoutedEventArgs e) => _lighting.SetLightingOwner(true);
+        private async void BtnTakeControl_Click(object sender, RoutedEventArgs e) => await _lighting.SetLightingOwnerAsync(true);
 
-        private void BtnLightOff_Click(object sender, RoutedEventArgs e) => _lighting.SetDimensions(0, 0, 0, 0);
-        private void BtnLightLow_Click(object sender, RoutedEventArgs e) => _lighting.SetDimensions(1, 255, 255, 255);
-        private void BtnLightHigh_Click(object sender, RoutedEventArgs e) => _lighting.SetDimensions(2, 255, 255, 255);
+        private void BtnLightOff_Click(object sender, RoutedEventArgs e) => _lighting.SetValues(0, 0, 0, 0);
+        private void BtnLightLow_Click(object sender, RoutedEventArgs e) => _lighting.SetValues(1, 255, 255, 255);
+        private void BtnLightHigh_Click(object sender, RoutedEventArgs e) => _lighting.SetValues(2, 255, 255, 255);
     }
 }

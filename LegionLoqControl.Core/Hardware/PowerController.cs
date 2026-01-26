@@ -1,5 +1,6 @@
-using System;
-using System.Management;
+using global::System;
+using global::System.Threading.Tasks;
+using LegionLoqControl.Core.System.Management;
 
 namespace LegionLoqControl.Core.Hardware
 {
@@ -13,40 +14,18 @@ namespace LegionLoqControl.Core.Hardware
 
     public class PowerController
     {
-        public bool SetProfile(PowerProfile profile)
+        public async Task<bool> SetProfileAsync(PowerProfile profile)
         {
             try
             {
-                // PowerShell: (Get-WmiObject -Namespace root\WMI -Class LENOVO_GAMEZONE_DATA).SetSmallData(1, <mode>)
-                using var searcher = new ManagementObjectSearcher(@"root\WMI", "SELECT * FROM LENOVO_GAMEZONE_DATA");
-                using var collection = searcher.Get();
-
-                foreach (ManagementObject obj in collection)
-                {
-                    // Get parameters from the Class, not the instance
-                    using var mc = new ManagementClass(obj.Scope, new ManagementPath("LENOVO_GAMEZONE_DATA"), null);
-                    ManagementBaseObject paramsObj = mc.GetMethodParameters("SetSmallData");
-                    
-                    paramsObj["Data1"] = 1; // 1 = Thermal Mode ID
-                    paramsObj["Data2"] = (int)profile;
-
-                    obj.InvokeMethod("SetSmallData", paramsObj, null);
-                    return true;
-                }
+                await WMI.LenovoGameZoneData.SetSmartFanModeAsync((int)profile).ConfigureAwait(false);
+                return true;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Power Profile Set Failed: {ex.Message}");
+                global::System.Diagnostics.Debug.WriteLine($"Power Profile Set Failed: {ex.Message}");
+                return false;
             }
-            return false;
-        }
-
-        public PowerProfile GetProfile()
-        {
-            // Reading usually requires a different method or getting a property from LENOVO_GAMEZONE_DATA
-            // Rust implementation stubbed this or used 'GetSmallData'?
-            // Assuming for now we just return Unknown or implement later.
-            return PowerProfile.Unknown;
         }
     }
 }
