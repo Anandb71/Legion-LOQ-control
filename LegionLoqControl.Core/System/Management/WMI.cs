@@ -73,5 +73,21 @@ namespace LegionLoqControl.Core.System.Management
                 throw new ManagementException($"Call failed: {ex.Message}. [scope={scope}, query={query}, methodName={methodName}]", ex);
             }
         }
+
+        public static async Task<IEnumerable<T>> ReadAsync<T>(string scope, FormattableString query, Func<PropertyDataCollection, T> converter)
+        {
+            try
+            {
+                var mos = new ManagementObjectSearcher(scope, query.ToString());
+                var managementObjects = await mos.GetAsync().ConfigureAwait(false);
+
+                return managementObjects.Cast<ManagementObject>().Select(mo => converter(mo.Properties));
+            }
+            catch (ManagementException ex)
+            {
+                global::System.Diagnostics.Debug.WriteLine($"Read failed: {ex.Message}");
+                return Enumerable.Empty<T>();
+            }
+        }
     }
 }

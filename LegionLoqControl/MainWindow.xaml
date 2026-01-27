@@ -37,6 +37,13 @@
                 </StackPanel>
             </GroupBox>
 
+            <!-- Fan Control -->
+            <GroupBox Header="Custom Mode (Fans)" Foreground="White" BorderBrush="#3E3E3E" Margin="0,0,0,10">
+                <StackPanel Margin="10">
+                    <CheckBox x:Name="CheckFanFullSpeed" Content="Full Speed Fans (Max Performance)" Margin="0,5" Foreground="White" Checked="OnFanControlChanged" Unchecked="OnFanControlChanged"/>
+                </StackPanel>
+            </GroupBox>
+
             <!-- Lighting -->
             <GroupBox Header="Keyboard Backlight" Foreground="White" BorderBrush="#3E3E3E">
                 <StackPanel Margin="10">
