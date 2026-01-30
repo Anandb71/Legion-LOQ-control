@@ -25,7 +25,7 @@ jobs:
       run: dotnet build LegionLoqControl.sln --configuration Release --no-restore
     
     - name: Upload artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: LegionLoqControl-Release
         path: |
