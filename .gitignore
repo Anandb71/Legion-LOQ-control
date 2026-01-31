@@ -116,3 +116,14 @@ ipch/
 
 # Rust (Archived)
 rust_prototype/target/
+
+# Log files
+*.log
+*.txt
+!README*.txt
+!LICENSE*.txt
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
