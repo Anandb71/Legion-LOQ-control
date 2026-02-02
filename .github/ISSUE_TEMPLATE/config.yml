@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Discussions
+    url: https://github.com/Anandb71/Legion-LOQ-control/discussions
+    about: Ask questions and discuss features in GitHub Discussions
+  - name: 📖 Troubleshooting Guide
+    url: https://github.com/Anandb71/Legion-LOQ-control/blob/main/TROUBLESHOOTING.md
+    about: Check the troubleshooting guide before opening an issue
+  - name: 🔧 LenovoLegionToolkit
+    url: https://github.com/BartoszCichworthy/LenovoLegionToolkit
+    about: For advanced features, check out the original LLT project
