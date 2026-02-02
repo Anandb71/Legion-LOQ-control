@@ -1,0 +1,17 @@
+# Code Owners
+# These users will be automatically requested for review on PRs
+
+# Default owners for everything
+* @Anandb71
+
+# Core library
+/LegionLoqControl.Core/ @Anandb71
+
+# WPF Application
+/LegionLoqControl/ @Anandb71
+
+# Documentation
+*.md @Anandb71
+
+# GitHub configuration
+/.github/ @Anandb71
