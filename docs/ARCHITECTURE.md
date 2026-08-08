@@ -1,71 +1,75 @@
-# Architecture Overview
+# Architecture
 
-This document describes the architecture of Legion + LOQ Control.
+## Current dependency graph
 
-## High-Level Architecture
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                    WPF Application                       │
-│                   (LegionLoqControl)                     │
-└────────────────────────┬────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────┐
-│                     Core Library                         │
-│                (LegionLoqControl.Core)                   │
-├─────────────────────────────────────────────────────────┤
-│  ┌─────────────┐  ┌──────────────┐  ┌───────────────┐  │
-│  │   Device    │  │   Hardware   │  │    System     │  │
-│  │  Detection  │  │  Controllers │  │   Drivers     │  │
-│  └─────────────┘  └──────────────┘  └───────────────┘  │
-└────────────────────────┬────────────────────────────────┘
-                         │
-          ┌──────────────┼──────────────┐
-          ▼              ▼              ▼
-    ┌──────────┐  ┌───────────┐  ┌─────────────┐
-    │   WMI    │  │  EnergyDrv│  │  HID (USB)  │
-    │ Classes  │  │   IOCTL   │  │   Devices   │
-    └──────────┘  └───────────┘  └─────────────┘
+```mermaid
+flowchart TD
+    Wpf[Unelevated WPF shell] --> Application
+    Wpf --> WindowsInfrastructure
+    DiagnosticsCli[Redacted diagnostics CLI] --> Application
+    DiagnosticsCli --> WindowsInfrastructure
+    Application[Application use cases] --> Domain
+    WindowsInfrastructure[Windows read adapters] --> Application
+    WindowsInfrastructure --> Domain
+    Contracts[Typed broker contracts] --> Domain
+    LegacyCore[Quarantined legacy Core] --> LegacyTests[Safety tests]
 ```
 
-## Components
+The WPF project does not reference `LegionLoqControl.Core`. That assembly contains the
+pre-rebuild WMI, IOCTL, and HID writers and remains locked by `HardwareWritePolicy` while
+its behavior is replaced feature by feature.
 
-### WPF Application
-- **MainWindow**: Primary UI for user interaction
-- Uses MVVM-lite pattern with code-behind
+## Projects
 
-### Core Library
+- `src/LegionLoqControl.Domain`: platform-neutral observations, capability evidence,
+  hardware states, and bounded value objects.
+- `src/LegionLoqControl.Application`: read-only use cases and ports such as
+  `IMachineIdentitySource` and `ICapabilityProbe`.
+- `src/LegionLoqControl.Infrastructure.Windows`: Windows WMI metadata and HID inventory
+  adapters. It does not invoke Lenovo WMI methods or open HID devices during diagnostics.
+- `src/LegionLoqControl.Contracts`: versioned, typed compare-and-set commands for the
+  future broker. Raw IOCTL values, WMI names, and HID packets are not IPC contracts.
+- `src/LegionLoqControl.Diagnostics`: serial-free JSON evidence collector.
+- `LegionLoqControl`: unelevated WPF composition root and read-only status UI.
+- `LegionLoqControl.Core`: quarantined migration prototype; never reference it from new
+  product projects.
 
-#### Device Detection
-- `DeviceDetector`: Identifies supported Lenovo models via WMI
+## Read-only diagnostics flow
 
-#### Hardware Controllers
-- `BatteryController`: Conservation mode, rapid charge (IOCTL)
-- `PowerController`: Thermal profiles (WMI GameZone)
-- `LightingController`: 4-zone RGB keyboard (HID)
-- `SpectrumKeyboardController`: Per-key RGB (HID)
-- `WhiteKeyboardController`: White backlight (IOCTL)
-- `CustomModeController`: Fan control (WMI)
+1. The composition root creates `MachineDiagnosticsService`.
+2. `WindowsMachineIdentitySource` reads an allowlist of non-sensitive CIM properties.
+3. `WindowsCapabilityProbe` inventories class method names and matching HID product IDs.
+4. Every probe emits evidence. Interface presence remains `Unknown`, not `Supported`.
+5. Probe failures become typed unknown evidence with stable error codes.
+6. The CLI serializes the snapshot without serial numbers, device paths, usernames, or
+   exception messages.
 
-#### System Layer
-- `Drivers`: EnergyDrv handle management
-- `NativeMethods`: P/Invoke definitions
-- `WMI`: WMI query helpers
+Metadata is cached per scan so each WMI class and HID vendor inventory is queried once.
 
-## Communication Protocols
+## Future write flow
 
-| Feature | Protocol | Interface |
-|---------|----------|-----------|
-| Power Profiles | WMI | LENOVO_GAMEZONE_DATA |
-| Fan Control | WMI | LENOVO_FAN_METHOD |
-| Battery | IOCTL | EnergyDrv |
-| 4-Zone RGB | HID | 33-byte feature report |
-| Spectrum RGB | HID | 960-byte feature report |
+```mermaid
+flowchart LR
+    Client[UI or CLI] --> Preview[Dry-run preview]
+    Preview --> Broker[Short-lived elevated broker]
+    Broker --> Validate[Identity and capability validation]
+    Validate --> Compare[Fresh read and expected-state compare]
+    Compare --> Write[Bounded hardware write]
+    Write --> Verify[Readback verification]
+    Verify --> Result[Typed result and redacted journal]
+```
 
-## Security Considerations
+The broker does not exist yet. Hardware writes remain disabled until this entire path,
+including ACLs, serialization, timeouts, machine-wide locking, and crash reconciliation,
+is implemented and reviewed.
 
-- Requires Administrator privileges
-- Direct hardware access via drivers
-- No network communication
-- No data collection
+## Architectural rules
+
+- Domain and Application projects stay platform-neutral.
+- Infrastructure may depend inward; Domain never depends on Windows or transport code.
+- UI and CLI compose interfaces but do not contain hardware protocols.
+- Unknown and failure are first-class states, never `false`, zero, or an arbitrary mode.
+- Read adapters use fixed identifiers; user-controlled WMI queries are forbidden.
+- New dependencies use central package versions and committed lock files.
+- A capability becomes `Supported` only with provenance, fixtures, and exact model/BIOS
+  hardware evidence.

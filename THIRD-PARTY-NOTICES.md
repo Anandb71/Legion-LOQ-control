@@ -24,7 +24,8 @@ Copyright 2010-2025 James F. Bellinger.
 - Source: <https://github.com/IntergatedCircuits/HidSharp>
 - License: Apache License 2.0
 
-HidSharp is currently used for communication with supported HID keyboard devices.
+HidSharp is used by the rebuild for non-opening HID inventory. Legacy HID write code is
+quarantined and disabled.
 
 ## Microsoft .NET and System.Management
 
@@ -34,6 +35,16 @@ Copyright .NET Foundation and contributors.
 - License: MIT
 
 `System.Management` is currently used to access Lenovo and Windows WMI providers.
+
+## xUnit.net
+
+Copyright .NET Foundation and contributors.
+
+- Source: <https://github.com/xunit/xunit>
+- License: Apache License 2.0
+
+xUnit.net is a test-only dependency and is not distributed as an application runtime
+component.
 
 ## Trademarks
 

@@ -1,61 +1,48 @@
-# Supported Models
+# Model Support and Evidence
 
-This document lists Lenovo laptop models supported by Legion + LOQ Control.
+## Current release gate
 
-## Legend
-- ✅ Fully supported
-- ⚠️ Partially supported
-- 🔧 In development
-- ❓ Untested (likely works)
+No model is approved for hardware writes. The rebuild is read-only, and every write
+control remains disabled.
 
-## Legion Series
+Evidence terms:
 
-| Model | Power Profiles | Battery | Fan | Keyboard |
-|-------|---------------|---------|-----|----------|
-| Legion 5 (2022) | ✅ | ✅ | ✅ | ✅ Spectrum |
-| Legion 5i (2022) | ✅ | ✅ | ✅ | ✅ Spectrum |
-| Legion 5 Pro (2022) | ✅ | ✅ | ✅ | ✅ Spectrum |
-| Legion 7 (2022) | ✅ | ✅ | ✅ | ✅ Spectrum |
-| Legion 7i (2022) | ✅ | ✅ | ✅ | ✅ Spectrum |
-| Legion 5 (2023) | ✅ | ✅ | ✅ | ✅ Spectrum |
-| Legion Pro 5 (2023) | ✅ | ✅ | ✅ | ✅ Spectrum |
-| Legion Pro 7 (2023) | ✅ | ✅ | ✅ | ✅ Spectrum |
-| Legion 5 (2024) | ❓ | ❓ | ❓ | ❓ |
-| Legion Pro 5 (2024) | ❓ | ❓ | ❓ | ❓ |
+- **Observed**: a non-sensitive identity value was read.
+- **Candidate**: expected interface metadata exists, but behavior and safety are unverified.
+- **Unsupported**: the expected interface was not found in that scan.
+- **Supported**: protocol behavior and recovery were verified on the exact model/BIOS with
+  approved tests. No feature has reached this level yet.
 
-## LOQ Series
+## Recorded machines
 
-| Model | Power Profiles | Battery | Fan | Keyboard |
-|-------|---------------|---------|-----|----------|
-| LOQ 15IRH8 (2023) | ✅ | ✅ | ⚠️ | 🔧 Spectrum |
-| LOQ 16IRH8 (2023) | ✅ | ✅ | ⚠️ | 🔧 Spectrum |
-| LOQ 15IRX9 (2024) | ✅ | ✅ | ⚠️ | 🔧 Spectrum |
-| LOQ 16IRX9 (2024) | ❓ | ❓ | ❓ | ❓ |
+### LOQ 15IRX9 — machine type 83DV — BIOS NECN50WW
 
-## IdeaPad Gaming
+Captured read-only on 2026-08-08:
 
-| Model | Power Profiles | Battery | Fan | Keyboard |
-|-------|---------------|---------|-----|----------|
-| IdeaPad Gaming 3 | ⚠️ | ✅ | ⚠️ | ⚠️ White |
-| IdeaPad Gaming 3i | ⚠️ | ✅ | ⚠️ | ⚠️ White |
+- manufacturer, model, machine type, and BIOS were observed;
+- battery mode, thermal mode, fan table, white keyboard, display overdrive, hybrid graphics,
+  and GPU mode WMI method sets were present but remain unverified candidates;
+- the fan interface exposes table methods, not the legacy prototype's full-speed methods;
+- known 4-zone and Spectrum HID product IDs were not found;
+- no Lenovo WMI method was invoked and no HID device was opened;
+- no write behavior was tested.
 
-## Older Models (4-Zone RGB)
+The redacted machine record is
+[`hardware-evidence/83DV/NECN50WW.json`](../hardware-evidence/83DV/NECN50WW.json).
 
-| Model | Power Profiles | Battery | Fan | Keyboard |
-|-------|---------------|---------|-----|----------|
-| Legion 5 (2020/2021) | ✅ | ✅ | ✅ | ✅ 4-Zone |
-| Legion 5P (2020/2021) | ✅ | ✅ | ✅ | ✅ 4-Zone |
-| Legion 7 (2020/2021) | ✅ | ✅ | ✅ | ✅ 4-Zone |
+## All other models
 
-## How to Check Your Model
+Unverified. Older documentation that listed broad Legion, LOQ, or IdeaPad support was not
+backed by repository evidence and has been withdrawn.
 
-1. Press `Win + R`
-2. Type `msinfo32` and press Enter
-3. Look for "System Model"
+## Contributing evidence
 
-## Report Your Model
+Run:
 
-If your model isn't listed, please:
-1. Test the application
-2. [Open an issue](https://github.com/Anandb71/Legion-LOQ-control/issues) with your results
-3. Include your model number and what works/doesn't work
+```powershell
+dotnet run --project src/LegionLoqControl.Diagnostics --configuration Release
+```
+
+Before sharing output, confirm it contains no serial number, username, device path, or
+account data. Submit the model, machine type, BIOS version, output, and whether the scan
+completed unelevated. A metadata scan does not authorize hardware-write testing.

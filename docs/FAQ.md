@@ -1,62 +1,59 @@
-# FAQ (Frequently Asked Questions)
+# Frequently Asked Questions
 
-## General Questions
+## What is Legion + LOQ Control?
 
-### What is Legion + LOQ Control?
-A lightweight Windows application for controlling Lenovo Legion and LOQ laptop hardware features without Lenovo Vantage.
+A free and open-source project rebuilding Lenovo Legion and LOQ controls with an
+unelevated UI, explicit hardware state, and a narrow privileged broker instead of a large
+always-running management suite.
 
-### Why use this instead of Lenovo Vantage?
-- **Lightweight**: ~2MB vs 500MB+
-- **Fast**: Instant startup vs 10+ seconds
-- **No telemetry**: No data collection
-- **Open source**: Transparent and auditable
+## Can it replace Lenovo Vantage today?
 
-### Is this safe to use?
-Yes. The app uses the same WMI and driver interfaces as Lenovo Vantage. See [SAFETY.md](../SAFETY.md) for details.
+No. The current `rebuild/v1` application provides read-only diagnostics only. Hardware
+controls, profiles, and automation remain disabled until their safety gates pass.
 
-## Technical Questions
+## Is the current build safe to run?
 
-### Why does it need Administrator privileges?
-The app needs to access:
-- WMI classes (for power profiles and fan control)
-- EnergyDrv driver (for battery settings)
-- HID devices (for keyboard backlight)
+It is designed to send zero hardware writes: the UI has no legacy writer reference, the
+legacy assembly is globally locked, diagnostics only inspect WMI metadata and HID IDs,
+and the process runs as the current user. It is still pre-release software; review
+[SAFETY.md](../SAFETY.md).
 
-### Can I run this alongside Lenovo Vantage?
-Yes, but there may be conflicts with keyboard lighting control. Click "Take Control" to override Vantage's lighting settings.
+## Does it require administrator privileges?
 
-### Why isn't my keyboard backlight working?
-1. Close Lenovo Vantage completely
-2. Click "Take Control" button
-3. Check the Log panel for error messages
-4. See [TROUBLESHOOTING.md](../TROUBLESHOOTING.md)
+No for the current UI, CLI, build, and tests. Do not run them elevated. A future hardware
+write will use a short-lived broker that requests elevation only for a validated command.
 
-### What keyboard types are supported?
-- **Spectrum (Per-Key RGB)**: Full RGB control on newer models
-- **4-Zone RGB**: Zone-based lighting on older Legion models
-- **White**: Simple on/off/brightness on some LOQ/IdeaPad
+## What data does diagnostics collect?
 
-### Does this work on AMD/Intel/Nvidia variants?
-Yes! The app works with all CPU/GPU combinations on supported Lenovo models.
+Manufacturer, product/model, machine type, BIOS version, WMI method-name presence, known
+Lenovo HID product-ID presence, evidence codes, and timestamps. It intentionally excludes
+serial numbers, usernames, device paths, and telemetry.
 
-## Feature Questions
+## Why are detected interfaces marked Unknown?
 
-### Can I customize RGB colors per zone?
-Currently only brightness and basic effects are supported. Per-zone color customization is planned for a future update.
+A class or USB interface existing does not prove that a protocol is safe on a specific
+firmware revision. `Supported` requires fixtures, readback behavior, recovery testing, and
+exact model/BIOS evidence.
 
-### Can I set custom power limits (TDP)?
-This feature is in development. Currently only preset profiles (Quiet/Balanced/Performance) are supported.
+## Can I run it alongside Lenovo Vantage?
 
-### Can I control fan curves?
-Currently only full-speed toggle is available. Custom fan curves are planned for a future update.
+The current read-only build does not take ownership or change settings. Future write
+features will need explicit conflict detection and ownership rules before this answer can
+change.
 
-## Troubleshooting
+## Why is my keyboard listed as unsupported?
 
-### "Device not supported" error
-Your laptop model may not be recognized. Please [open an issue](https://github.com/Anandb71/Legion-LOQ-control/issues) with your model number.
+The current scan only recognizes the documented legacy product IDs in the repository.
+`Unsupported` means that interface was not found during this scan; it does not prove the
+laptop has no keyboard lighting. Submit redacted diagnostics rather than trying random HID
+reports.
 
-### App crashes when clicking a button
-Run the app as Administrator and check that Lenovo drivers are installed.
+## Does it support AMD, Intel, or NVIDIA variants?
 
-### Nothing happens when I change settings
-Check the Log panel at the bottom of the window for error messages.
+No blanket claim is made. Hardware support is tracked per capability, machine type, model,
+and BIOS revision.
+
+## Can I test fan curves or power limits?
+
+Not yet. Arbitrary fan tables and power limits are explicitly prohibited until bounded
+models, validation, serialization, readback, and recovery are implemented.

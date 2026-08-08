@@ -19,8 +19,8 @@ or source of adapted code. An entry in the candidate list is not approval to imp
 | Project | Pin | License | Use | Distribution |
 |---|---|---|---|---|
 | [Lenovo Legion Toolkit](https://github.com/LenovoLegionToolkit-Team/LenovoLegionToolkit) | `6f19ef48095a32afe439474a65e5b95cf8fa1b24` | GPL-3.0 with its repository-specific plugin exception | Reference-only submodule for protocol and behavior comparison | Not compiled or packaged |
-| [HidSharp](https://github.com/IntergatedCircuits/HidSharp) | NuGet `2.6.4` | Apache-2.0 | Existing HID transport | Runtime dependency |
-| [System.Management](https://github.com/dotnet/runtime) | NuGet `10.0.10` | MIT | Existing Windows WMI transport | Runtime dependency |
+| [HidSharp](https://github.com/IntergatedCircuits/HidSharp) | NuGet `2.6.4` | Apache-2.0 | Read-only HID inventory; quarantined legacy transport | Runtime dependency |
+| [System.Management](https://github.com/dotnet/runtime) | NuGet `10.0.10` | MIT | Allowlisted identity reads and WMI metadata inventory | Runtime dependency |
 | [xUnit.net](https://github.com/xunit/xunit) | NuGet `xunit.v3.mtp-v2` `3.2.2` | Apache-2.0 | Core safety and contract tests | Test-only dependency |
 
 The LLT reference points to

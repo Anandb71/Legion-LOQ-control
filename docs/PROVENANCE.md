@@ -47,6 +47,33 @@ reference-only.
 The LLT-specific plugin exception applies to LLT. It is not automatically claimed for
 Legion + LOQ Control.
 
+## Implementation record: read-only machine diagnostics
+
+- **Feature:** Machine identity and capability-interface inventory
+- **Local files:** `src/LegionLoqControl.Infrastructure.Windows/Diagnostics/`,
+  `src/LegionLoqControl.Infrastructure.Windows/Management/`,
+  `src/LegionLoqControl.Infrastructure.Windows/Hid/`
+- **Classification:** Original implementation with protocol cross-check
+- **External project and URL:** Lenovo Legion Toolkit,
+  <https://github.com/LenovoLegionToolkit-Team/LenovoLegionToolkit>
+- **Source commit:** `6f19ef48095a32afe439474a65e5b95cf8fa1b24`
+- **External files examined:** `LenovoLegionToolkit.Lib/System/Management/WMI.Win32.cs`
+  and `LenovoLegionToolkit.Lib/Utils/Compatibility.cs`
+- **License:** GPL-3.0 with LLT-specific plugin exception
+- **Local implementation:** Independently written allowlisted WMI property reads, WMI
+  class metadata inventory, HID product-ID inventory, typed evidence, and redacted JSON
+  output. No LLT source expression was copied.
+- **Protocol facts cross-checked:** `Win32_ComputerSystemProduct` identity mapping and
+  Lenovo interface naming. Legacy HID VID/PID facts remain GPL-governed protocol
+  cross-checks pending independent device captures.
+- **Independent evidence:** Read-only metadata capture on Lenovo LOQ 15IRX9, machine type
+  `83DV`, BIOS `NECN50WW`, on 2026-08-08
+- **Test fixtures:** `hardware-evidence/83DV/NECN50WW.json`
+- **Hardware validation:** Identity and interface presence only. No Lenovo WMI method was
+  invoked, no HID device was opened, and no write behavior was tested.
+- **Reviewer:** Pending
+- **Date:** 2026-08-08
+
 ## Classification
 
 Every implementation record must use one classification:

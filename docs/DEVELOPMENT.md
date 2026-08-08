@@ -1,83 +1,66 @@
-# Development Setup Guide
+# Development Setup
 
-This guide helps you set up your development environment to contribute to Legion + LOQ Control.
+## Requirements
 
-## Prerequisites
+- Windows 10 version 1809 or later
+- .NET SDK `10.0.302` (selected by `global.json`)
+- Git
+- Visual Studio 2022 17.14+ / Visual Studio 2026, Rider, or Cursor with C# tooling
 
-### Required Software
-- **Windows 10/11** (WPF requires Windows)
-- **Visual Studio 2022** or **VS Code** with C# extension
-- **.NET 9 SDK** ([Download](https://dotnet.microsoft.com/download/dotnet/9.0))
-- **Git** for version control
+The .NET CLI is sufficient. Development and diagnostics do not require administrator
+privileges.
 
-### Recommended Extensions (VS Code)
-- C# Dev Kit
-- .NET Install Tool
-- EditorConfig for VS Code
+## Clone and verify
 
-## Getting Started
-
-### 1. Clone the Repository
-```bash
-git clone https://github.com/Anandb71/Legion-LOQ-control.git
+```powershell
+git clone --recurse-submodules https://github.com/Anandb71/Legion-LOQ-control.git
 cd Legion-LOQ-control
+dotnet restore LegionLoqControl.sln --locked-mode
+dotnet build LegionLoqControl.sln --configuration Release --no-restore
+dotnet test LegionLoqControl.sln --configuration Release --no-build --no-restore
 ```
 
-### 2. Restore Dependencies
-```bash
+Run diagnostics:
+
+```powershell
+dotnet run --project src/LegionLoqControl.Diagnostics --configuration Release
+```
+
+Run the read-only desktop shell:
+
+```powershell
+dotnet run --project LegionLoqControl --configuration Release
+```
+
+## Repository layout
+
+- `src/`: new layered platform code
+- `tests/`: safety, domain, contract, diagnostics, and evidence-redaction tests
+- `hardware-evidence/`: redacted exact machine/BIOS observations
+- `LegionLoqControl/`: WPF shell
+- `LegionLoqControl.Core/`: quarantined legacy prototype
+- `LLT_Reference/`: reference-only fork submodule; never compile or package it
+- `rust_prototype/`: archived first prototype
+
+## Dependency updates
+
+Versions are centralized in `Directory.Packages.props`. After an intentional update:
+
+```powershell
 dotnet restore LegionLoqControl.sln
+dotnet restore LegionLoqControl.sln --locked-mode
+dotnet build LegionLoqControl.sln --configuration Release --no-restore
+dotnet test LegionLoqControl.sln --configuration Release --no-build --no-restore
 ```
 
-### 3. Build the Project
-```bash
-dotnet build LegionLoqControl.sln
-```
+Commit all resulting `packages.lock.json` changes with the package update.
 
-### 4. Run the Application
-```bash
-# Must run as Administrator for WMI/driver access
-dotnet run --project LegionLoqControl
-```
+## Hardware evidence
 
-## Project Structure
+Use the diagnostics CLI before proposing model support. Evidence must not contain serial
+numbers, usernames, device paths, account data, or full exception messages. A metadata
+match is only a candidate interface; it does not prove that a write is safe.
 
-```
-├── LegionLoqControl/           # WPF Application (UI)
-│   ├── MainWindow.xaml         # Main window UI
-│   └── MainWindow.xaml.cs      # UI code-behind
-│
-├── LegionLoqControl.Core/      # Core Library
-│   ├── Device/                 # Device detection
-│   ├── Hardware/               # Hardware controllers
-│   ├── Native/                 # P/Invoke definitions
-│   └── System/                 # WMI and driver access
-│
-├── LLT_Reference/              # Reference from LenovoLegionToolkit
-│
-└── rust_prototype/             # Archived Rust prototype
-```
-
-## Testing on Lenovo Hardware
-
-To test the application, you need a Lenovo Legion or LOQ laptop. The app requires:
-- Administrator privileges
-- Lenovo Energy Management driver
-- WMI classes provided by Lenovo ACPI
-
-## Code Style
-
-We use EditorConfig for consistent formatting. Key rules:
-- 4 spaces for indentation
-- Allman brace style
-- `var` when type is apparent
-- Expression-bodied members when single line
-
-## Submitting Changes
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run `dotnet build` to verify
-5. Submit a pull request
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for more details.
+Real write validation is prohibited until the broker milestone defines a reviewed test
+procedure. See [DIAGNOSTICS.md](DIAGNOSTICS.md), [SAFETY.md](../SAFETY.md), and
+[PROVENANCE.md](PROVENANCE.md).

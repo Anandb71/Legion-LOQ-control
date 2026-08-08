@@ -1,112 +1,68 @@
-# API Reference
+# Public API
 
-This document provides reference for the core APIs in Legion + LOQ Control.
+The rebuild API is deliberately small. Legacy types in `LegionLoqControl.Core` are
+quarantined implementation history and are not supported public API.
 
-## Device Detection
+## Domain observations
 
-### DeviceDetector
+`Observation` preserves whether a field was observed, unavailable, or failed:
 
 ```csharp
-public class DeviceDetector
+Observation model = Observation.FromValue("LOQ 15IRX9");
+Observation missing = Observation.Unavailable("wmi_value_missing");
+```
+
+`MachineIdentity` contains manufacturer, product name, model, machine type, and BIOS
+version. It intentionally contains no serial number.
+
+## Capability evidence
+
+`CapabilityEvidence` combines:
+
+- `HardwareCapability`
+- `CapabilitySupport` (`Unknown`, `Unsupported`, `Supported`, or `Degraded`)
+- a stable source and evidence code
+- observation time
+- an optional redacted detail
+
+An interface match is emitted as `Unknown` with
+`wmi_interface_present_unverified` or `hid_interface_present_unverified`. Only validated
+hardware work may emit `Supported`.
+
+## Application ports
+
+```csharp
+public interface IMachineIdentitySource
 {
-    // Properties
-    public string Model { get; }
-    public bool IsSupported { get; }
-    
-    // Methods
-    public void Detect();
+    string SourceName { get; }
+    ValueTask<MachineIdentity> ReadAsync(CancellationToken cancellationToken);
+}
+
+public interface ICapabilityProbe
+{
+    string SourceName { get; }
+    IReadOnlySet<HardwareCapability> Capabilities { get; }
+    ValueTask<IReadOnlyCollection<CapabilityEvidence>> ProbeAsync(
+        MachineIdentity identity,
+        CancellationToken cancellationToken);
 }
 ```
 
-## Hardware Controllers
+`MachineDiagnosticsService` captures identity, runs probes, and converts probe exceptions
+into unknown evidence. Caller cancellation is propagated.
 
-### BatteryController
+## Windows diagnostics
 
-```csharp
-public class BatteryController
-{
-    public bool SetConservationMode(bool enable);
-    public bool GetConservationMode();
-    public bool SetRapidCharge(bool enable);
-    public bool GetRapidCharge();
-}
-```
+- `WindowsMachineIdentitySource` reads an allowlist of CIM properties.
+- `WindowsCapabilityProbe` reads WMI class metadata and enumerates Lenovo HID product IDs.
 
-### PowerController
+Neither type invokes Lenovo WMI methods, opens HID devices, or performs writes.
 
-```csharp
-public enum PowerProfile { Quiet = 1, Balanced = 2, Performance = 3 }
+## Broker contracts
 
-public class PowerController
-{
-    public Task<bool> SetProfileAsync(PowerProfile profile);
-    public Task<PowerProfile> GetProfileAsync();
-}
-```
+Commands require a non-empty `CommandId`, an expected state, and a desired state. Current
+contracts cover battery charge mode, thermal mode, fan mode, and keyboard brightness.
+They are definitions only; no broker executes them yet.
 
-### LightingController (4-Zone RGB)
-
-```csharp
-public class LightingController
-{
-    public bool IsSupported { get; }
-    public Task<bool> SetLightingOwnerAsync(bool appControl);
-    public bool SetValues(byte brightness, byte r, byte g, byte b);
-    public bool SetOff();
-}
-```
-
-### SpectrumKeyboardController (Per-Key RGB)
-
-```csharp
-public class SpectrumKeyboardController : IDisposable
-{
-    public bool IsSupported { get; }
-    public bool SetBrightness(int brightness);  // 0-9
-}
-```
-
-### WhiteKeyboardController
-
-```csharp
-public enum WhiteKeyboardState { Off, Low, High }
-
-public class WhiteKeyboardController
-{
-    public bool IsSupported { get; }
-    public bool SetState(WhiteKeyboardState state);
-    public WhiteKeyboardState GetState();
-}
-```
-
-### CustomModeController
-
-```csharp
-public class CustomModeController
-{
-    public bool IsSupported { get; }
-    public Task<bool> SetFanFullSpeedAsync(bool enabled);
-    public Task<bool> GetFanFullSpeedAsync();
-}
-```
-
-## WMI Classes
-
-### Used WMI Namespaces
-
-| Namespace | Classes |
-|-----------|---------|
-| `root\WMI` | LENOVO_GAMEZONE_DATA, LENOVO_FAN_METHOD |
-
-### Key Methods
-
-- `GetSmartFanMode()` / `SetSmartFanMode(int)`
-- `SetLightControlOwner(int)`
-- `Fan_Set_FullSpeed(int)` / `Fan_Get_FullSpeed()`
-
-## Driver IOCTLs
-
-| IOCTL Code | Purpose |
-|------------|---------|
-| 0x831020F8 | Battery charge mode |
-| 0x83102144 | Keyboard backlight |
+`BrokerCommandStatus` includes `Succeeded`, `Unsupported`, `InvalidRequest`, `Conflict`,
+`Busy`, `Unverified`, and `Failed`.
