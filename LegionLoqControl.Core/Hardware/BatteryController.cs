@@ -1,6 +1,7 @@
 using global::System;
 using global::System.Runtime.InteropServices;
 using LegionLoqControl.Core.Native;
+using LegionLoqControl.Core.Safety;
 using LegionLoqControl.Core.System;
 
 namespace LegionLoqControl.Core.Hardware
@@ -26,6 +27,8 @@ namespace LegionLoqControl.Core.Hardware
 
         private bool SendCode(uint controlCode, uint inBuffer)
         {
+            HardwareWritePolicy.Demand($"Set battery charge mode with IOCTL 0x{controlCode:X8}");
+
             try
             {
                 var handle = Drivers.GetEnergy();

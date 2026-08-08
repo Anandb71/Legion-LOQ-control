@@ -7,6 +7,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LegionLoqControl", "LegionL
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LegionLoqControl.Core", "LegionLoqControl.Core\LegionLoqControl.Core.csproj", "{943F7A73-FC5C-41D5-8340-CD0D460E975D}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LegionLoqControl.Core.Tests", "tests\LegionLoqControl.Core.Tests\LegionLoqControl.Core.Tests.csproj", "{AA8EB957-1A1A-4BDF-893A-232678C63375}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -41,8 +45,23 @@ Global
 		{943F7A73-FC5C-41D5-8340-CD0D460E975D}.Release|x64.Build.0 = Release|Any CPU
 		{943F7A73-FC5C-41D5-8340-CD0D460E975D}.Release|x86.ActiveCfg = Release|Any CPU
 		{943F7A73-FC5C-41D5-8340-CD0D460E975D}.Release|x86.Build.0 = Release|Any CPU
+		{AA8EB957-1A1A-4BDF-893A-232678C63375}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AA8EB957-1A1A-4BDF-893A-232678C63375}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AA8EB957-1A1A-4BDF-893A-232678C63375}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{AA8EB957-1A1A-4BDF-893A-232678C63375}.Debug|x64.Build.0 = Debug|Any CPU
+		{AA8EB957-1A1A-4BDF-893A-232678C63375}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{AA8EB957-1A1A-4BDF-893A-232678C63375}.Debug|x86.Build.0 = Debug|Any CPU
+		{AA8EB957-1A1A-4BDF-893A-232678C63375}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AA8EB957-1A1A-4BDF-893A-232678C63375}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AA8EB957-1A1A-4BDF-893A-232678C63375}.Release|x64.ActiveCfg = Release|Any CPU
+		{AA8EB957-1A1A-4BDF-893A-232678C63375}.Release|x64.Build.0 = Release|Any CPU
+		{AA8EB957-1A1A-4BDF-893A-232678C63375}.Release|x86.ActiveCfg = Release|Any CPU
+		{AA8EB957-1A1A-4BDF-893A-232678C63375}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{AA8EB957-1A1A-4BDF-893A-232678C63375} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 	EndGlobalSection
 EndGlobal

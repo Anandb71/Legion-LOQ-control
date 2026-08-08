@@ -2,6 +2,7 @@ using global::System;
 using global::System.Linq;
 using global::System.Runtime.InteropServices;
 using HidSharp;
+using LegionLoqControl.Core.Safety;
 using LegionLoqControl.Core.System.Management;
 using Task = global::System.Threading.Tasks.Task;
 
@@ -70,6 +71,7 @@ namespace LegionLoqControl.Core.Hardware
         /// </summary>
         public bool SetValues(byte brightness, byte r, byte g, byte b)
         {
+            HardwareWritePolicy.Demand("Set 4-zone keyboard lighting");
             var device = FindDevice();
             if (device == null)
             {
@@ -135,6 +137,7 @@ namespace LegionLoqControl.Core.Hardware
         /// </summary>
         public bool SetOff()
         {
+            HardwareWritePolicy.Demand("Turn off 4-zone keyboard lighting");
             var device = FindDevice();
             if (device == null) return false;
 

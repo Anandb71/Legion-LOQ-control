@@ -1,12 +1,12 @@
 # Security Policy
 
-## Safety Philosophy
+## Safety status
 
-**"SAFETY IS THE FIRST PRIORITY!!"**
+The current rebuild is intentionally read-only. Hardware writes remain disabled until the
+isolated broker, capability validation, serialization, readback, and recovery controls in
+[SAFETY.md](SAFETY.md) pass their release gates.
 
-This tool interacts directly with hardware via WMI and IOCTLs. We take this responsibility seriously.
-*   **Opt-In Writers**: Write operations are protected by a global lock and must be explicitly enabled.
-*   **Validation**: Inputs are rigorously validated against known safe ranges before being sent to the hardware.
+Do not publish a build that bypasses `HardwareWritePolicy`.
 
 ## Reporting a Vulnerability
 
@@ -14,14 +14,17 @@ If you discover a security vulnerability or a safety issue (e.g., a bug that cou
 
 **DO NOT create a public GitHub issue for critical safety exploits.**
 
-Instead, please email the maintainer directly or create a **Private Advisory** on GitHub if enabled.
+Use the repository's **Security** tab to create a private GitHub Security Advisory. If
+private reporting is unavailable, contact a maintainer without including exploit details
+in a public issue.
 
 ## Supported Versions
 
 | Version | Supported |
 | :--- | :--- |
-| 0.2.x | ✅ |
-| 0.1.x | ❌ |
+| `rebuild/v1` | Security fixes only; not a stable release |
+| 0.2.x prototype | Unsupported |
+| 0.1.x | Unsupported |
 
 ## Disclaimer
 

@@ -4,6 +4,7 @@ using System.Linq;
 using global::System.Management;
 using System.Threading.Tasks;
 using LegionLoqControl.Core.Extensions;
+using LegionLoqControl.Core.Safety;
 
 namespace LegionLoqControl.Core.System.Management
 {
@@ -25,6 +26,8 @@ namespace LegionLoqControl.Core.System.Management
 
         private static async Task CallAsync(string scope, FormattableString query, string methodName, Dictionary<string, object> methodParams)
         {
+            HardwareWritePolicy.Demand($"WMI method {methodName}");
+
             try
             {
                 var mos = new ManagementObjectSearcher(scope, query.ToString());

@@ -1,11 +1,16 @@
-﻿<Window x:Class="LegionLoqControl.MainWindow"
+<Window x:Class="LegionLoqControl.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Legion + LOQ Control" Height="500" Width="800"
         Background="#1E1E1E" Foreground="White">
     <Grid Margin="20">
         <StackPanel>
-            <TextBlock Text="Legion + LOQ Control" FontSize="24" FontWeight="Bold" Margin="0,0,0,20"/>
+            <TextBlock Text="Legion + LOQ Control" FontSize="24" FontWeight="Bold" Margin="0,0,0,12"/>
+
+            <Border Background="#3A2F16" BorderBrush="#A97916" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,12">
+                <TextBlock Text="Read-only safety mode: hardware changes are disabled until the isolated write broker is complete."
+                           Foreground="#FFD37A" TextWrapping="Wrap"/>
+            </Border>
 
             <!-- Device Info -->
             <Border BorderBrush="#3E3E3E" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,10">
@@ -23,37 +28,37 @@
             </Border>
 
             <!-- Power Controls -->
-            <GroupBox Header="Power Controls" Foreground="White" BorderBrush="#3E3E3E" Margin="0,0,0,10">
+            <GroupBox Header="Power Controls" Foreground="White" BorderBrush="#3E3E3E" Margin="0,0,0,10" IsEnabled="False" ToolTip="Unavailable in read-only safety mode">
                 <StackPanel Margin="10">
-                    <CheckBox x:Name="CheckConservation" Content="Conservation Mode (Limit Charge)" Margin="0,5" Foreground="White" Checked="OnPowerChanged" Unchecked="OnPowerChanged"/>
-                    <CheckBox x:Name="CheckRapidCharge" Content="Rapid Charge" Margin="0,5" Foreground="White" Checked="OnPowerChanged" Unchecked="OnPowerChanged"/>
+                    <CheckBox x:Name="CheckConservation" IsThreeState="True" Content="Conservation Mode (Limit Charge)" Margin="0,5" Foreground="White"/>
+                    <CheckBox x:Name="CheckRapidCharge" IsThreeState="True" Content="Rapid Charge" Margin="0,5" Foreground="White"/>
                     
                     <TextBlock Text="Thermal Mode" Margin="0,10,0,5"/>
                     <StackPanel Orientation="Horizontal">
-                        <Button Content="Quiet" Width="80" Margin="0,0,10,0" Click="BtnQuiet_Click"/>
-                        <Button Content="Balanced" Width="80" Margin="0,0,10,0" Click="BtnBalanced_Click"/>
-                        <Button Content="Perf" Width="80" Click="BtnPerf_Click"/>
+                        <Button Content="Quiet" Width="80" Margin="0,0,10,0"/>
+                        <Button Content="Balanced" Width="80" Margin="0,0,10,0"/>
+                        <Button Content="Perf" Width="80"/>
                     </StackPanel>
                 </StackPanel>
             </GroupBox>
 
             <!-- Fan Control -->
-            <GroupBox Header="Custom Mode (Fans)" Foreground="White" BorderBrush="#3E3E3E" Margin="0,0,0,10">
+            <GroupBox Header="Custom Mode (Fans)" Foreground="White" BorderBrush="#3E3E3E" Margin="0,0,0,10" IsEnabled="False" ToolTip="Unavailable in read-only safety mode">
                 <StackPanel Margin="10">
-                    <CheckBox x:Name="CheckFanFullSpeed" Content="Full Speed Fans (Max Performance)" Margin="0,5" Foreground="White" Checked="OnFanControlChanged" Unchecked="OnFanControlChanged"/>
+                    <CheckBox x:Name="CheckFanFullSpeed" IsThreeState="True" Content="Full Speed Fans (Max Performance)" Margin="0,5" Foreground="White"/>
                 </StackPanel>
             </GroupBox>
 
             <!-- Lighting -->
-            <GroupBox Header="Keyboard Backlight" Foreground="White" BorderBrush="#3E3E3E">
+            <GroupBox Header="Keyboard Backlight" Foreground="White" BorderBrush="#3E3E3E" IsEnabled="False" ToolTip="Unavailable in read-only safety mode">
                 <StackPanel Margin="10">
-                    <Button Content="Take Control" Width="120" HorizontalAlignment="Left" Margin="0,0,0,10" Click="BtnTakeControl_Click"/>
+                    <Button Content="Take Control" Width="120" HorizontalAlignment="Left" Margin="0,0,0,10"/>
                     
                     <TextBlock Text="Brightness"/>
                     <StackPanel Orientation="Horizontal" Margin="0,5">
-                        <Button Content="OFF" Width="60" Margin="0,0,10,0" Click="BtnLightOff_Click"/>
-                        <Button Content="LOW" Width="60" Margin="0,0,10,0" Click="BtnLightLow_Click"/>
-                        <Button Content="HIGH" Width="60" Click="BtnLightHigh_Click"/>
+                        <Button Content="OFF" Width="60" Margin="0,0,10,0"/>
+                        <Button Content="LOW" Width="60" Margin="0,0,10,0"/>
+                        <Button Content="HIGH" Width="60"/>
                     </StackPanel>
                 </StackPanel>
             </GroupBox>

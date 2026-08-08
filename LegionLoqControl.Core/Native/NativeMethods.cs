@@ -1,5 +1,6 @@
 using global::System;
 using global::System.Runtime.InteropServices;
+using LegionLoqControl.Core.Safety;
 using Microsoft.Win32.SafeHandles;
 
 namespace LegionLoqControl.Core.Native
@@ -41,8 +42,14 @@ namespace LegionLoqControl.Core.Native
             where TIn : struct
             where TOut : struct
         {
+            HardwareWritePolicy.Demand($"EnergyDrv IOCTL 0x{dwIoControlCode:X8}");
+
+            if (hDevice.IsInvalid || hDevice.IsClosed)
+                throw new InvalidOperationException("The EnergyDrv handle is not usable.");
+
             var lpInBuffer = IntPtr.Zero;
             var lpOutBuffer = IntPtr.Zero;
+            outVal = default;
 
             try
             {
@@ -53,7 +60,9 @@ namespace LegionLoqControl.Core.Native
                 lpOutBuffer = Marshal.AllocHGlobal(nOutBufferSize);
 
                 Marshal.StructureToPtr(inVal, lpInBuffer, false);
+                new Span<byte>(lpOutBuffer.ToPointer(), nOutBufferSize).Clear();
 
+                uint bytesReturned = 0;
                 var ret = DeviceIoControl(
                     hDevice,
                     dwIoControlCode,
@@ -61,12 +70,13 @@ namespace LegionLoqControl.Core.Native
                     (uint)nInBufferSize,
                     lpOutBuffer.ToPointer(),
                     (uint)nOutBufferSize,
-                    null,
+                    &bytesReturned,
                     IntPtr.Zero);
 
-                outVal = ret ? Marshal.PtrToStructure<TOut>(lpOutBuffer) : default;
+                if (ret && bytesReturned <= nOutBufferSize)
+                    outVal = Marshal.PtrToStructure<TOut>(lpOutBuffer);
 
-                return ret;
+                return ret && bytesReturned <= nOutBufferSize;
             }
             finally
             {

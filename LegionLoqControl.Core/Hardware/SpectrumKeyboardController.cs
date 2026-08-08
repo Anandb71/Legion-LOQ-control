@@ -2,6 +2,7 @@ using global::System;
 using global::System.Linq;
 using global::System.Runtime.InteropServices;
 using HidSharp;
+using LegionLoqControl.Core.Safety;
 using Task = global::System.Threading.Tasks.Task;
 
 namespace LegionLoqControl.Core.Hardware
@@ -31,6 +32,8 @@ namespace LegionLoqControl.Core.Hardware
         /// </summary>
         public bool SetBrightness(int brightness)
         {
+            HardwareWritePolicy.Demand("Set Spectrum keyboard brightness");
+
             if (brightness < 0 || brightness > 9)
                 return false;
 
@@ -68,6 +71,8 @@ namespace LegionLoqControl.Core.Hardware
         /// </summary>
         public int GetBrightness()
         {
+            HardwareWritePolicy.Demand("Query Spectrum keyboard brightness");
+
             try
             {
                 var device = FindDevice();

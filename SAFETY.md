@@ -1,42 +1,61 @@
-# Safety Philosophy & Mechanisms
+# Safety Policy
 
-Legion + LOQ Control is built on a "Safety First" philosophy. We prioritize hardware integrity over feature availability. This document outlines the mechanisms we use to ensure safety.
+Hardware integrity takes priority over feature availability. Unknown, stale, malformed, or
+failed state is never treated as a usable default.
 
-## Core Principles
+## Current rebuild status
 
-1.  **Read-Only Default**: The application starts in a read-only state. No write operations are possible without explicit user intent.
-2.  **Explicit Intent**: Write operations require specific flags (e.g., `--set-conservation-mode`). There are no "implicit" writes or background auto-tuning.
-3.  **Fail Closed**: If we cannot verify the state of the hardware or the parameters of a request, we do nothing.
+The C# migration prototype is deliberately **read-only**:
 
-## Safety Mechanisms
+- the GUI runs as the current user (`asInvoker`), not as administrator;
+- write controls are disabled and have no event handlers;
+- `HardwareWritePolicy` has no unlock path;
+- EnergyDrv IOCTL, WMI mutation, and HID feature-write entry points reject commands before
+  opening a driver or selecting a device;
+- unit tests verify that battery, thermal, fan, and keyboard commands fail closed.
 
-### 1. Global Write Lock
-We implement a **Global Write Lock** (`src/core/safety/guards.rs`).
--   **State**: The application processes default to `Locked`.
--   **Mechanism**: Code pathways that modify hardware must explicitly request a write token. This check is centralized and atomic.
--   **Enforcement**: Any attempt to call a write function without the lock being unlocked results in an immediate error.
+This is a temporary safety stopgap, not the final broker. Current device detection is only
+a candidate-device heuristic. It does **not** authorize hardware writes or prove feature
+compatibility.
 
-### 2. Dry Run Capability
-Every write feature supports a `--dry-run` flag.
--   **Start**: The process begins.
--   **Read**: The current state is read.
--   **Compare**: The intended change is compared against the current state.
--   **Report**: The tool reports what *would* happen.
--   **Stop**: The process exits before any write instruction is sent to the hardware.
+## Required write architecture
 
-### 3. Read-Before-Write
-We never "blind set" a value.
--   We verify the platform is supported.
--   We read the current value from the hardware/WMI.
--   We validate that the new value is within safe, manufacturer-supported bounds.
+Hardware writes may return only after all of these controls exist and pass review:
 
-### 4. Standard Windows APIs
-we do not use direct memory access (DMA), undocumented EC registers, or kernel-level hacks.
--   **Methods**: We use standard WMI (Windows Management Instrumentation) calls.
--   **Backend**: We use PowerShell or standard Windows APIs, which are auditable and respected by the OS security model.
+1. An unelevated UI and CLI with no direct WMI, EnergyDrv, or HID write access.
+2. A short-lived elevated broker installed under administrator-only filesystem ACLs.
+3. A versioned, local-only, typed command protocol. Raw WMI names, IOCTL values, HID
+   packets, paths, and plugin-defined commands are forbidden at the IPC boundary.
+4. Independent broker-side device and per-feature capability validation.
+5. Machine-wide serialization for each hardware domain.
+6. Fresh read, expected-state comparison, bounded write, and readback verification.
+7. Typed `Unsupported`, `Unknown`, `Busy`, `Conflict`, `Unverified`, and `Failed` results.
+8. A redacted intent/result journal and crash reconciliation that never blindly replays a
+   command.
+9. Fake/replay tests and exact model/BIOS hardware evidence.
 
-## Supported Hardware
-Strict model detection is enforced.
--   **Allowed**: Lenovo "Legion" and "LOQ" series.
--   **Blocked**: IdeaPad, ThinkPad, and non-Lenovo devices.
--   **Mechanism**: If `Manufacturer != Lenovo` OR `Series` is unknown, the app runs in **Read-Only Mode** or exits with a supported error.
+## Explicit intent
+
+- No hardware write runs during startup, refresh, state hydration, shutdown, or migration.
+- UI binding changes are not user intent.
+- Profiles show a dry-run preview before their first application.
+- Ambiguous timeout or readback failure suspends automation; it is not retried blindly.
+- Real-hardware tests require an exact machine/BIOS record and explicit confirmation for
+  each feature.
+
+## Prohibited until validated
+
+- arbitrary fan tables or power-limit values;
+- persistent firmware tuning without a proven OEM-safe reset path;
+- background privileged services;
+- broker-loaded plugins or scripts;
+- unattended BIOS flashing;
+- writes on unsupported or unknown models and BIOS revisions.
+
+## Protocol scope
+
+The project uses Windows WMI, vendor-installed Lenovo drivers, and HID interfaces. These
+interfaces can still trigger firmware behavior and are not safe merely because they are
+accessible through standard Windows APIs. Every protocol implementation must have
+provenance, bounded inputs, fixtures, and hardware evidence as described in
+[`docs/PROVENANCE.md`](docs/PROVENANCE.md).
