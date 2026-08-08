@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <ProjectReference Include="..\LegionLoqControl.Core\LegionLoqControl.Core.csproj" />
+    <ProjectReference Include="..\src\LegionLoqControl.Application\LegionLoqControl.Application.csproj" />
+    <ProjectReference Include="..\src\LegionLoqControl.Domain\LegionLoqControl.Domain.csproj" />
+    <ProjectReference Include="..\src\LegionLoqControl.Infrastructure.Windows\LegionLoqControl.Infrastructure.Windows.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

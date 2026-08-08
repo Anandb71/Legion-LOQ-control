@@ -24,6 +24,8 @@
                         <TextBlock Text="Status: " Foreground="#AAAAAA"/>
                         <TextBlock x:Name="TextStatus" Text="-" FontWeight="Bold"/>
                     </StackPanel>
+                    <TextBlock x:Name="TextEvidence" Text="Reading capability evidence..."
+                               Margin="0,8,0,0" Foreground="#B8B8B8" FontSize="12" TextWrapping="Wrap"/>
                 </StackPanel>
             </Border>
 

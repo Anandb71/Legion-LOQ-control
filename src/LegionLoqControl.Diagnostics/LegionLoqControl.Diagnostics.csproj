@@ -1,15 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <OutputType>Exe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\LegionLoqControl.Application\LegionLoqControl.Application.csproj" />
     <ProjectReference Include="..\LegionLoqControl.Domain\LegionLoqControl.Domain.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="HidSharp" />
-    <PackageReference Include="System.Management" />
+    <ProjectReference Include="..\LegionLoqControl.Infrastructure.Windows\LegionLoqControl.Infrastructure.Windows.csproj" />
   </ItemGroup>
 </Project>

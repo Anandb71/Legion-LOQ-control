@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "capturedAtUtc": "2026-08-08T09:10:04Z",
+  "machine": {
+    "manufacturer": "LENOVO",
+    "machineType": "83DV",
+    "model": "LOQ 15IRX9",
+    "biosVersion": "NECN50WW"
+  },
+  "privacy": {
+    "serialNumberCaptured": false,
+    "devicePathsCaptured": false,
+    "userIdentifiersCaptured": false
+  },
+  "observations": [
+    {
+      "capability": "BatteryConservationMode",
+      "status": "Unknown",
+      "evidenceCode": "wmi_interface_present_unverified"
+    },
+    {
+      "capability": "BatteryRapidCharge",
+      "status": "Unknown",
+      "evidenceCode": "wmi_interface_present_unverified"
+    },
+    {
+      "capability": "ThermalMode",
+      "status": "Unknown",
+      "evidenceCode": "wmi_interface_present_unverified"
+    },
+    {
+      "capability": "FanControl",
+      "status": "Unknown",
+      "evidenceCode": "wmi_interface_present_unverified",
+      "detail": "Fan_Get_Table and Fan_Set_Table are present; legacy full-speed methods are absent."
+    },
+    {
+      "capability": "WhiteKeyboardBacklight",
+      "status": "Unknown",
+      "evidenceCode": "wmi_interface_present_unverified"
+    },
+    {
+      "capability": "FourZoneRgbKeyboard",
+      "status": "Unsupported",
+      "evidenceCode": "hid_interface_not_found"
+    },
+    {
+      "capability": "SpectrumKeyboard",
+      "status": "Unsupported",
+      "evidenceCode": "hid_interface_not_found"
+    },
+    {
+      "capability": "DisplayOverdrive",
+      "status": "Unknown",
+      "evidenceCode": "wmi_interface_present_unverified"
+    },
+    {
+      "capability": "HybridGraphicsMode",
+      "status": "Unknown",
+      "evidenceCode": "wmi_interface_present_unverified"
+    },
+    {
+      "capability": "GpuWorkingMode",
+      "status": "Unknown",
+      "evidenceCode": "wmi_interface_present_unverified"
+    }
+  ]
+}
