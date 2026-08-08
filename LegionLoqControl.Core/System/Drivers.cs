@@ -7,6 +7,7 @@ namespace LegionLoqControl.Core.System
     public static class Drivers
     {
         public const uint IOCTL_ENERGY_BATTERY_CHARGE_MODE = 0x831020F8;
+        public const uint IOCTL_ENERGY_KEYBOARD = 0x83102144;
 
         private static readonly object Lock = new();
         private static SafeFileHandle? _energy;
