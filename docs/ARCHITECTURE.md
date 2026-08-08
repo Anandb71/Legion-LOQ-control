@@ -85,6 +85,11 @@ The broker does not exist yet. Hardware writes remain disabled until this entire
 including executable trust, transport ACLs, serialization, timeouts, machine-wide locking,
 and crash reconciliation, is implemented and reviewed.
 
+The first transport primitive is implemented in `LegionLoqControl.Contracts`: strict,
+length-prefixed JSON frames capped at 64 KiB plus typed hardware-state read
+request/response envelopes. This is framing only; it does not yet launch, authenticate, or
+authorize a privileged process.
+
 ## Architectural rules
 
 - Domain and Application projects stay platform-neutral.

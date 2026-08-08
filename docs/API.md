@@ -86,3 +86,10 @@ They are definitions only; no broker executes them yet.
 
 `BrokerCommandStatus` includes `Succeeded`, `Unsupported`, `InvalidRequest`, `Conflict`,
 `Busy`, `Unverified`, and `Failed`.
+
+The read-only broker protocol uses `HardwareStateReadRequest` and
+`HardwareStateReadResponse`. Every request carries the protocol major version, a non-empty
+request ID, a one-time nonce, and the initiating process ID. Messages use a four-byte
+little-endian length prefix, a 64 KiB maximum payload, strict JSON members, and string-only
+enum values. Transport peers must still validate every semantic field before performing a
+read.
