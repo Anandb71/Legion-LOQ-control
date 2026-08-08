@@ -1,25 +1,26 @@
 <Project>
   <PropertyGroup>
-    <TargetFramework>net9.0-windows</TargetFramework>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
-    <ImplicitUsings>disable</ImplicitUsings>
-    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AnalysisLevel>latest</AnalysisLevel>
-    
-    <!-- Assembly Info -->
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <Deterministic>true</Deterministic>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+
     <Company>Legion + LOQ Control</Company>
     <Product>Legion + LOQ Control</Product>
     <Copyright>Copyright © 2024-2026</Copyright>
-    
-    <!-- Build Configuration -->
+    <RepositoryUrl>https://github.com/Anandb71/Legion-LOQ-control</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
-  
+
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <Optimize>true</Optimize>
-    <DebugType>none</DebugType>
-    <DebugSymbols>false</DebugSymbols>
+    <DebugType>portable</DebugType>
   </PropertyGroup>
 </Project>
