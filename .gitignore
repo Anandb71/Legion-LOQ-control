@@ -127,3 +127,6 @@ rust_prototype/target/
 *.tmp
 *.temp
 *.bak
+
+# Cursor transient agent state
+.cursor/hooks/state/
