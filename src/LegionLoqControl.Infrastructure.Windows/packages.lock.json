@@ -28,6 +28,12 @@
           "LegionLoqControl.Domain": "[1.0.0, )"
         }
       },
+      "legionloqcontrol.contracts": {
+        "type": "Project",
+        "dependencies": {
+          "LegionLoqControl.Domain": "[1.0.0, )"
+        }
+      },
       "legionloqcontrol.domain": {
         "type": "Project"
       }

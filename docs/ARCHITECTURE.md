@@ -8,8 +8,12 @@ flowchart TD
     Wpf --> WindowsInfrastructure
     DiagnosticsCli[Redacted diagnostics CLI] --> Application
     DiagnosticsCli --> WindowsInfrastructure
+    DiagnosticsCli --> ReadBroker[Read-only elevated broker]
+    ReadBroker --> Contracts
+    ReadBroker --> WindowsInfrastructure
     Application[Application use cases] --> Domain
     WindowsInfrastructure[Windows read adapters] --> Application
+    WindowsInfrastructure --> Contracts
     WindowsInfrastructure --> Domain
     Contracts[Typed broker contracts] --> Domain
     LegacyCore[Quarantined legacy Core] --> LegacyTests[Safety tests]
@@ -29,8 +33,12 @@ its behavior is replaced feature by feature.
   adapters. Inventory does not invoke methods; the state adapter invokes only fixed Lenovo
   getters and never exposes WMI names to callers.
 - `src/LegionLoqControl.Contracts`: versioned, typed compare-and-set commands for the
-  future broker. Raw IOCTL values, WMI names, and HID packets are not IPC contracts.
-- `src/LegionLoqControl.Diagnostics`: serial-free JSON inventory and typed state collector.
+  future write path plus the bounded read-only wire protocol. Raw IOCTL values, WMI names,
+  and HID packets are not IPC contracts.
+- `src/LegionLoqControl.Broker`: short-lived `requireAdministrator` process that serves one
+  authenticated, typed hardware-state read and exits. It contains no write dispatcher.
+- `src/LegionLoqControl.Diagnostics`: serial-free JSON inventory, direct state probe, and
+  explicit brokered state-validation client.
 - `LegionLoqControl`: unelevated WPF composition root and read-only status UI.
 - `LegionLoqControl.Core`: quarantined migration prototype; never reference it from new
   product projects.
@@ -58,15 +66,39 @@ flowchart LR
     FixedGetters --> TypedResults[Typed results and stable errors]
 ```
 
-Reads are serialized. The adapter validates the Boolean WMI return status and UInt32 data, rejects unknown enum values,
-and applies a five-second provider timeout. Access denial, unsupported transport, malformed
-output, and timeout remain distinct from real hardware values.
+Reads are serialized. The adapter validates the Boolean WMI return status and UInt32 data,
+rejects unknown enum values, and applies a five-second caller wait bound. Access denial,
+unsupported transport, malformed output, and timeout remain distinct from real hardware
+values.
 
-On the recorded 83DV machine, the Lenovo WMI getters require elevation. The current CLI
-can expose this behavior for manual validation, but the WPF shell does not call them. The
-final product will route privileged reads through the same short-lived broker boundary
-needed by writes. Battery state remains unavailable until the Energy driver read path is
-implemented behind that boundary.
+On the recorded 83DV machine, the Lenovo WMI getters require elevation. The CLI can expose
+the unelevated denial or explicitly launch the read-only broker through UAC. The WPF shell
+does not call either state path yet. Battery state remains unavailable until the Energy
+driver read path is implemented behind the privileged boundary.
+
+## Current brokered read flow
+
+```mermaid
+flowchart LR
+    Client[Unelevated diagnostics client] --> Pipe[Random single-instance pipe]
+    Client --> Uac[UAC launch]
+    Uac --> Broker[Read-only elevated broker]
+    Broker --> Pipe
+    Pipe --> Validate[Version nonce and peer PID checks]
+    Validate --> Getters[Fixed Lenovo getters]
+    Getters --> Wire[Validated wire DTO]
+    Wire --> Client
+```
+
+The unelevated process owns the pipe so the high-integrity broker writes down to a
+medium-integrity object. Its DACL grants only the initiating user SID. Both ends verify the
+other process ID, the request includes a 256-bit one-time nonce, the elevated client uses
+anonymous impersonation, and the frame is strict JSON capped at 64 KiB. The broker accepts
+one request and has a 30-second lifetime.
+
+.NET's `PipeOptions.CurrentUserOnly` is not used because it also enforces equal elevation
+levels, which would reject this split-token connection. Production use still requires a
+signed broker and administrator-protected installation directory.
 
 ## Future privileged flow
 
@@ -81,14 +113,10 @@ flowchart LR
     Verify --> Result[Typed result and redacted journal]
 ```
 
-The broker does not exist yet. Hardware writes remain disabled until this entire path,
-including executable trust, transport ACLs, serialization, timeouts, machine-wide locking,
-and crash reconciliation, is implemented and reviewed.
-
-The first transport primitive is implemented in `LegionLoqControl.Contracts`: strict,
-length-prefixed JSON frames capped at 64 KiB plus typed hardware-state read
-request/response envelopes. This is framing only; it does not yet launch, authenticate, or
-authorize a privileged process.
+The current broker accepts reads only. Hardware writes remain disabled until write-specific
+authorization, executable signing and installation ACLs, capability validation,
+machine-wide locking, readback, journaling, and crash reconciliation are implemented and
+reviewed.
 
 ## Architectural rules
 

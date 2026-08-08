@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\LegionLoqControl.Application\LegionLoqControl.Application.csproj" />
+    <ProjectReference Include="..\..\src\LegionLoqControl.Broker\LegionLoqControl.Broker.csproj" />
     <ProjectReference Include="..\..\src\LegionLoqControl.Contracts\LegionLoqControl.Contracts.csproj" />
     <ProjectReference Include="..\..\src\LegionLoqControl.Domain\LegionLoqControl.Domain.csproj" />
     <ProjectReference Include="..\..\src\LegionLoqControl.Infrastructure.Windows\LegionLoqControl.Infrastructure.Windows.csproj" />
@@ -20,6 +21,10 @@
   <ItemGroup>
     <Content Include="..\..\hardware-evidence\**\*.json">
       <Link>hardware-evidence\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\src\LegionLoqControl.Broker\app.manifest">
+      <Link>broker-app.manifest</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

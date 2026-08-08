@@ -10,7 +10,7 @@ A safety-first, free and open-source Lenovo Vantage alternative for Legion and L
 ## Current status
 
 The next-generation rebuild lives on `rebuild/v1`. It is intentionally **read-only** while
-the isolated hardware-write broker and per-model verification system are built.
+the privileged boundary and per-model verification system are built.
 
 Working today:
 
@@ -20,19 +20,25 @@ Working today:
 - typed hardware-read results that preserve access denied, unsupported, malformed, and
   timeout states;
 - strict allowlisted getters for thermal mode, display overdrive, and integrated-GPU mode;
-- a redacted JSON diagnostics CLI with separate `inventory` and `state` commands;
+- a redacted JSON diagnostics CLI with inventory, direct-state, and brokered-state commands;
+- a short-lived, read-only UAC broker with strict framing, a one-time nonce, peer-process
+  checks, a current-user pipe ACL, and no write dispatcher;
 - an unelevated WPF status view with no reference to legacy hardware writers;
 - locked dependencies and automated safety, contract, mapping, and redaction tests.
 
 On the recorded LOQ 15IRX9, the Lenovo provider denies the instance access needed by
 the state getters in an unelevated process. The probe reports `AccessDenied` rather than
-inventing values. Battery charge mode remains unavailable until its Energy driver read
-transport is isolated and validated.
+inventing values. The read-only broker successfully validated Performance thermal mode,
+disabled display overdrive, and integrated-only GPU mode on the same machine/BIOS with an
+experimental MI adapter. That adapter was removed because its runtime license is limited
+to PowerShell use; the distributable reader remains fail-closed until an acceptable typed
+transport is implemented. Battery charge mode also remains unavailable until its Energy
+driver read transport is isolated and validated.
 
 Not enabled today:
 
 - battery, thermal, fan, GPU, display, or keyboard writes;
-- a product-facing privileged broker;
+- production broker signing, installer ACLs, or UI integration;
 - profiles and automation;
 - any claim of production-ready model support.
 
@@ -64,15 +70,21 @@ Probe typed hardware state without writing:
 dotnet run --project src/LegionLoqControl.Diagnostics --configuration Release -- state
 ```
 
+Explicitly request the same reads through the short-lived UAC broker:
+
+```powershell
+dotnet run --project src/LegionLoqControl.Diagnostics --configuration Release -- state-elevated
+```
+
 Run the read-only WPF shell:
 
 ```powershell
 dotnet run --project LegionLoqControl --configuration Release
 ```
 
-Run the inventory and WPF shell unelevated. The optional `state` command is also safe to
-run unelevated and reports access denial explicitly; an elevated run is a manual protocol
-validation step, not the product's final privilege architecture.
+Run the inventory, direct state probe, and WPF shell unelevated. `state-elevated` is an
+explicit development-only validation command: it prompts through UAC, serves one typed
+read request, and exits. It cannot execute hardware writes.
 
 ## Project goals
 

@@ -7,6 +7,10 @@ isolated broker, capability validation, serialization, readback, and recovery co
 [SAFETY.md](SAFETY.md) pass their release gates.
 
 Do not publish a build that bypasses `HardwareWritePolicy`.
+Do not publish the elevated broker until it is signed and installed in an
+administrator-protected directory. The current broker is a read-only development
+validation path and must not gain a write dispatcher before the gates in
+[SAFETY.md](SAFETY.md) pass review.
 
 ## Reporting a Vulnerability
 

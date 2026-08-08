@@ -15,11 +15,18 @@ The C# migration prototype is deliberately **read-only**:
 - default inventory invokes no Lenovo methods and opens no HID devices;
 - the optional state diagnostic invokes only `GetSmartFanMode`, `GetODStatus`, and
   `GetIGPUModeStatus`, with fixed identifiers, bounded WMI options, and typed failures;
+- the optional elevated state path uses a one-request, 30-second broker with strict framing,
+  current-user ACL, mutual process-ID checks, a one-time nonce, and anonymous client
+  impersonation;
+- the elevated broker has no write message type, write dispatcher, legacy Core reference,
+  EnergyDrv access, or HID access;
 - unit tests verify that battery, thermal, fan, and keyboard commands fail closed.
 
-This is a temporary safety stopgap, not the final broker. Current device detection is only
-a candidate-device heuristic. It does **not** authorize hardware writes or prove feature
-compatibility. A getter name is not assumed harmless without allowlisting and provenance.
+The read-only broker is a validation milestone, not authorization for writes. It is not
+production-ready until the executable is signed and installed under administrator-only
+filesystem ACLs. Current device detection is only a candidate-device heuristic. It does
+**not** authorize hardware writes or prove feature compatibility. A getter name is not
+assumed harmless without allowlisting and provenance.
 
 ## Required privileged architecture
 

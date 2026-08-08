@@ -74,8 +74,11 @@ internal sealed class SystemLenovoWmiReadInvoker : ILenovoWmiReadInvoker
         if (instance is null)
             throw new LenovoWmiNoInstanceException();
 
-        var options = new InvokeMethodOptions { Timeout = OperationTimeout };
-        using ManagementBaseObject? output = instance.InvokeMethod(methodName, null, options);
+        using ManagementBaseObject? input = instance.GetMethodParameters(methodName);
+        using ManagementBaseObject? output = instance.InvokeMethod(
+            methodName,
+            input,
+            new InvokeMethodOptions());
         if (output is null)
             throw new InvalidDataException("Lenovo WMI getter returned no output object.");
 

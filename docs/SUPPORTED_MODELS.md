@@ -39,10 +39,18 @@ A separate unelevated typed-state probe on the same machine found:
 - battery charge mode stayed `Unavailable` because no Energy driver read adapter exists;
 - no setter, IOCTL, or HID report was sent.
 
+An explicit UAC-assisted broker validation observed Boolean-success/UInt32-data responses
+for Performance thermal mode (raw `3`), disabled overdrive (raw `0`), and integrated-only
+GPU mode (raw `1`). The experimental MI adapter used for that run was not retained because
+its runtime license is limited to PowerShell use. The current distributable adapter stays
+fail-closed, and this single observation does not promote the capabilities to `Supported`.
+
 The redacted inventory record is
 [`hardware-evidence/83DV/NECN50WW.json`](../hardware-evidence/83DV/NECN50WW.json).
 The redacted state-read record is
 [`hardware-evidence/83DV/NECN50WW-state-unelevated.json`](../hardware-evidence/83DV/NECN50WW-state-unelevated.json).
+The redacted elevated validation record is
+[`hardware-evidence/83DV/NECN50WW-state-elevated.json`](../hardware-evidence/83DV/NECN50WW-state-elevated.json).
 The access-denied result is evidence about privilege behavior, not a successful feature
 validation.
 

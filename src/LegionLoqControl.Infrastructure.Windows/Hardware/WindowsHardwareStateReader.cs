@@ -118,11 +118,25 @@ public sealed class WindowsHardwareStateReader : IHardwareStateReader
             return HardwareReadResult<T>.Failure(HardwareReadStatus.TimedOut, "wmi_getter_timed_out");
         }
         catch (ManagementException exception) when (
-            exception.ErrorCode is ManagementStatus.InvalidClass or
-                ManagementStatus.InvalidMethod or
-                ManagementStatus.NotFound)
+            exception.ErrorCode == ManagementStatus.InvalidClass)
         {
-            return HardwareReadResult<T>.Failure(HardwareReadStatus.Unsupported, "wmi_getter_not_available");
+            return HardwareReadResult<T>.Failure(
+                HardwareReadStatus.Unsupported,
+                "wmi_class_not_available");
+        }
+        catch (ManagementException exception) when (
+            exception.ErrorCode == ManagementStatus.InvalidMethod)
+        {
+            return HardwareReadResult<T>.Failure(
+                HardwareReadStatus.Unsupported,
+                "wmi_getter_not_available");
+        }
+        catch (ManagementException exception) when (
+            exception.ErrorCode == ManagementStatus.NotFound)
+        {
+            return HardwareReadResult<T>.Failure(
+                HardwareReadStatus.Unavailable,
+                "wmi_provider_object_not_found");
         }
         catch (LenovoWmiNoInstanceException)
         {
@@ -141,4 +155,5 @@ public sealed class WindowsHardwareStateReader : IHardwareStateReader
             return HardwareReadResult<T>.Failure(HardwareReadStatus.Failed, "wmi_getter_failed");
         }
     }
+
 }

@@ -93,24 +93,69 @@ Legion + LOQ Control.
   `LenovoLegionToolkit.Lib/System/Power.cs`
 - **License:** GPL-3.0 with LLT-specific plugin exception
 - **Local implementation:** Independently written typed result contracts, sequential state
-  service, fixed getter allowlist, bounded WMI options, Boolean-status/UInt32-data validation, and
-  stable error mapping. No LLT source expression was copied.
+  service, fixed getter allowlist, bounded WMI query/caller waits,
+  Boolean-status/UInt32-data validation, and stable error mapping. The retained
+  `System.Management` adapter fails closed when the provider cannot expose the complete
+  typed output. No LLT source expression was copied.
 - **Protocol facts cross-checked:** `GetSmartFanMode` uses a one-value offset for quiet,
   balanced, performance, extreme, and custom modes; overdrive and integrated-GPU getters
   use direct enum values. `GetPowerChargeMode` was confirmed to be unrelated to battery
   conservation/rapid-charge state and was deliberately excluded.
 - **Independent evidence:** Local CIM metadata confirms a Boolean method return plus one
   UInt32 `Data` output; the state-read pipeline produced unelevated `AccessDenied` during
-  the prerequisite instance query on LOQ 15IRX9, machine type `83DV`, BIOS `NECN50WW`, on
-  2026-08-08
+  the prerequisite instance query and validated three elevated getter responses on LOQ
+  15IRX9, machine type `83DV`, BIOS `NECN50WW`, on 2026-08-08
 - **Test fixtures:** Stubbed raw-value mappings, malformed values, access denial, false
   battery-mapping guard, and serialized read ordering in
   `tests/LegionLoqControl.Platform.Tests/HardwareStateReaderTests.cs`; redacted privilege
-  evidence in `hardware-evidence/83DV/NECN50WW-state-unelevated.json`
-- **Hardware validation:** No successful state value has been captured yet. No setter,
-  Energy driver IOCTL, or HID report was sent.
+  evidence in `hardware-evidence/83DV/NECN50WW-state-unelevated.json` and
+  `hardware-evidence/83DV/NECN50WW-state-elevated.json`
+- **Hardware validation:** The broker observed Performance thermal mode (raw `3`), disabled
+  overdrive (raw `0`), and integrated-only GPU mode (raw `1`), each with Boolean `true`
+  status and UInt32 data through an experimental MI adapter. That adapter was removed
+  because its Windows runtime license permits PowerShell use only; these values remain
+  evidence, not current product output. No setter, Energy driver IOCTL, or HID report was
+  sent.
 - **Reviewer:** Pending
 - **Date:** 2026-08-08
+
+## Implementation record: read-only elevated broker
+
+- **Feature:** One-request privileged hardware-state read boundary
+- **Local files:** `src/LegionLoqControl.Broker/`,
+  `src/LegionLoqControl.Contracts/Broker/`,
+  `src/LegionLoqControl.Infrastructure.Windows/Broker/`
+- **Classification:** Original implementation from Windows/.NET platform documentation
+- **External documentation:**
+  [PipeOptions](https://learn.microsoft.com/dotnet/api/system.io.pipes.pipeoptions),
+  [NamedPipeServerStreamAcl](https://learn.microsoft.com/dotnet/api/system.io.pipes.namedpipeserverstreamacl),
+  [named-pipe security](https://learn.microsoft.com/windows/win32/ipc/named-pipe-security-and-access-rights),
+  [GetNamedPipeClientProcessId](https://learn.microsoft.com/windows/win32/api/winbase/nf-winbase-getnamedpipeclientprocessid),
+  [GetNamedPipeServerProcessId](https://learn.microsoft.com/windows/win32/api/winbase/nf-winbase-getnamedpipeserverprocessid),
+  and [mandatory integrity control](https://learn.microsoft.com/windows/win32/secauthz/mandatory-integrity-control)
+- **Local implementation:** Explicit current-user pipe DACL, random first-instance pipe,
+  mutual peer-process checks, 256-bit one-time nonce, anonymous impersonation level,
+  strict 64 KiB length-prefixed JSON, explicit wire DTO validation, UAC launch, and bounded
+  broker lifetime
+- **Security boundary:** The broker accepts only one hardware-state read request. It has no
+  hardware-write request, dispatcher, legacy Core reference, EnergyDrv access, or HID
+  access.
+- **Independent evidence:** Same-process named-pipe integration tests verify ACL creation,
+  server/client process-ID APIs, framing, request binding, and response validation on
+  Windows 10. An explicit UAC-assisted run verified the cross-integrity pipe and one-shot
+  process lifecycle on the recorded 83DV machine.
+- **Test fixtures:** `tests/LegionLoqControl.Platform.Tests/BrokerWireProtocolTests.cs` and
+  `tests/LegionLoqControl.Platform.Tests/BrokerSecurityTests.cs`
+- **Hardware validation:** The elevated broker returned the successful typed state values
+  recorded in `hardware-evidence/83DV/NECN50WW-state-elevated.json` with the subsequently
+  removed MI validation adapter. The retained reader currently reports the provider result
+  as unavailable rather than dropping its Boolean status. No write behavior was implemented
+  or tested.
+- **Release gate:** Authenticode signing and administrator-protected installation ACLs are
+  required before production broker use.
+- **Reviewer:** Pending
+- **Date:** 2026-08-08
+
 ## Classification
 
 Every implementation record must use one classification:

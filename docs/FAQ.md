@@ -15,15 +15,17 @@ controls, profiles, and automation remain disabled until their safety gates pass
 
 It is designed to send zero hardware writes: the UI has no legacy writer reference, the
 legacy assembly is globally locked, inventory only inspects WMI metadata and HID IDs, and
-the optional state command invokes a fixed allowlist of Lenovo getters. It is still
-pre-release software; review [SAFETY.md](../SAFETY.md).
+the optional state commands invoke a fixed allowlist of Lenovo getters. The elevated broker
+accepts one read request and contains no writer. It is still pre-release software; review
+[SAFETY.md](../SAFETY.md).
 
 ## Does it require administrator privileges?
 
 No for builds, tests, inventory diagnostics, or the WPF shell. Keep the UI and inventory
 unelevated. The optional `state` command also runs unelevated, but some Lenovo providers
-return `AccessDenied`; an explicitly elevated run is only a manual read-only validation
-step. The final app will use a short-lived broker for privileged reads and validated writes.
+return `AccessDenied`. `state-elevated` explicitly prompts through UAC and uses the
+short-lived read-only broker. This is a development validation path; production broker use
+is blocked on signing and protected installation, and hardware writes remain disabled.
 
 ## What data does diagnostics collect?
 

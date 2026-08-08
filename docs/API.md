@@ -73,16 +73,18 @@ Those inventory types do not invoke Lenovo WMI methods, open HID devices, or per
 writes.
 
 `WindowsHardwareStateReader` is a separate adapter. It invokes only the fixed
-`GetSmartFanMode`, `GetODStatus`, and `GetIGPUModeStatus` methods, imposes a five-second WMI
-timeout, validates the Boolean return status and UInt32 data, and maps access denial
-explicitly. Its battery result is intentionally `Unavailable` until the Energy driver read
-transport exists.
+`GetSmartFanMode`, `GetODStatus`, and `GetIGPUModeStatus` methods, applies a five-second
+caller wait bound, validates the Boolean return status and UInt32 data, and maps access
+denial explicitly. It fails closed when the provider does not expose that complete output.
+Its battery result is intentionally `Unavailable` until the Energy driver read transport
+exists.
 
 ## Broker contracts
 
 Commands require a non-empty `CommandId`, an expected state, and a desired state. Current
 contracts cover battery charge mode, thermal mode, fan mode, and keyboard brightness.
-They are definitions only; no broker executes them yet.
+They are definitions only; the current broker has no command dispatcher and cannot execute
+them.
 
 `BrokerCommandStatus` includes `Succeeded`, `Unsupported`, `InvalidRequest`, `Conflict`,
 `Busy`, `Unverified`, and `Failed`.
@@ -93,3 +95,12 @@ request ID, a one-time nonce, and the initiating process ID. Messages use a four
 little-endian length prefix, a 64 KiB maximum payload, strict JSON members, and string-only
 enum values. Transport peers must still validate every semantic field before performing a
 read.
+
+`HardwareStateReadPayload` and `HardwareReadValue<T>` are explicit wire DTOs. They convert
+to domain snapshots only after validating success/failure shape, enum values, and stable
+error-code syntax; domain constructors are not exposed for deserialization.
+
+`ElevatedHardwareStateBrokerClient` launches only a sibling executable named
+`LegionLoqControl.Broker.exe`, performs the one-request exchange, validates the response,
+and maps cancellation, timeout, elevation rejection, peer mismatch, and malformed response
+to stable transport error codes.

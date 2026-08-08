@@ -8,6 +8,23 @@ namespace LegionLoqControl.Platform.Tests;
 public sealed class BrokerWireProtocolTests
 {
     [Fact]
+    public void Transport_identifiers_are_random_and_strictly_validated()
+    {
+        string firstNonce = BrokerProtocol.CreateNonce();
+        string secondNonce = BrokerProtocol.CreateNonce();
+        string pipeName = BrokerProtocol.CreatePipeName();
+
+        Assert.True(BrokerProtocol.IsValidNonce(firstNonce));
+        Assert.True(BrokerProtocol.IsValidNonce(secondNonce));
+        Assert.NotEqual(firstNonce, secondNonce);
+        Assert.True(BrokerProtocol.NoncesEqual(firstNonce, firstNonce));
+        Assert.False(BrokerProtocol.NoncesEqual(firstNonce, secondNonce));
+        Assert.False(BrokerProtocol.IsValidNonce(firstNonce.ToLowerInvariant()));
+        Assert.True(BrokerProtocol.IsValidPipeName(pipeName));
+        Assert.False(BrokerProtocol.IsValidPipeName("llc-known-name"));
+    }
+
+    [Fact]
     public async Task Request_round_trips_through_a_length_bounded_frame()
     {
         var expected = new HardwareStateReadRequest(

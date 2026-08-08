@@ -6,7 +6,21 @@
 
   <ItemGroup>
     <ProjectReference Include="..\LegionLoqControl.Application\LegionLoqControl.Application.csproj" />
+    <ProjectReference Include="..\LegionLoqControl.Broker\LegionLoqControl.Broker.csproj"
+                      ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\LegionLoqControl.Domain\LegionLoqControl.Domain.csproj" />
     <ProjectReference Include="..\LegionLoqControl.Infrastructure.Windows\LegionLoqControl.Infrastructure.Windows.csproj" />
   </ItemGroup>
+
+  <Target Name="CopyBrokerArtifacts" AfterTargets="Build">
+    <ItemGroup>
+      <BrokerArtifact Include="$(MSBuildProjectDirectory)\..\LegionLoqControl.Broker\bin\$(Configuration)\$(TargetFramework)\LegionLoqControl.Broker.exe" />
+      <BrokerArtifact Include="$(MSBuildProjectDirectory)\..\LegionLoqControl.Broker\bin\$(Configuration)\$(TargetFramework)\LegionLoqControl.Broker.dll" />
+      <BrokerArtifact Include="$(MSBuildProjectDirectory)\..\LegionLoqControl.Broker\bin\$(Configuration)\$(TargetFramework)\LegionLoqControl.Broker.deps.json" />
+      <BrokerArtifact Include="$(MSBuildProjectDirectory)\..\LegionLoqControl.Broker\bin\$(Configuration)\$(TargetFramework)\LegionLoqControl.Broker.runtimeconfig.json" />
+    </ItemGroup>
+    <Copy SourceFiles="@(BrokerArtifact)"
+          DestinationFolder="$(OutDir)"
+          SkipUnchangedFiles="true" />
+  </Target>
 </Project>

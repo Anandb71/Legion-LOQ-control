@@ -32,9 +32,16 @@ Run typed state diagnostics:
 dotnet run --project src/LegionLoqControl.Diagnostics --configuration Release -- state
 ```
 
-The state command can run unelevated and preserves `AccessDenied`. An elevated execution is
-reserved for explicit, read-only protocol validation on recorded hardware; it is not the
-runtime architecture for the desktop app.
+The state command can run unelevated and preserves `AccessDenied`. To validate the
+privileged boundary explicitly:
+
+```powershell
+dotnet run --project src/LegionLoqControl.Diagnostics --configuration Release -- state-elevated
+```
+
+This displays UAC and runs the copied sibling broker for one read request. Do not automate
+the prompt or use the development broker for writes. Release use remains blocked on code
+signing and administrator-protected installation ACLs.
 
 Run the read-only desktop shell:
 
@@ -45,6 +52,7 @@ dotnet run --project LegionLoqControl --configuration Release
 ## Repository layout
 
 - `src/`: new layered platform code
+- `src/LegionLoqControl.Broker/`: short-lived read-only elevated process
 - `tests/`: safety, domain, contract, diagnostics, and evidence-redaction tests
 - `hardware-evidence/`: redacted exact machine/BIOS observations
 - `LegionLoqControl/`: WPF shell

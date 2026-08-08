@@ -1,4 +1,3 @@
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("LegionLoqControl.Platform.Tests")]
-[assembly: InternalsVisibleTo("LegionLoqControl.Broker")]
