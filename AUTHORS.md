@@ -9,7 +9,8 @@ Thanks to everyone who has contributed to this project!
 <!-- Contributors will be listed here as they join -->
 
 ## Acknowledgments
-- [LenovoLegionToolkit](https://github.com/BartoszCichworthy/LenovoLegionToolkit) - Reference implementation and inspiration
+- [Lenovo Legion Toolkit contributors](https://github.com/LenovoLegionToolkit-Team/LenovoLegionToolkit) - Hardware protocol research and behavioral reference
+- [Bartosz Cichecki](https://github.com/BartoszCichecki/LenovoLegionToolkit) - Original Lenovo Legion Toolkit author
 - The Lenovo Legion/LOQ community for testing and feedback
 
 ---

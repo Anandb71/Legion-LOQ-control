@@ -1,0 +1,90 @@
+# Source and Protocol Provenance
+
+This document tracks where hardware behavior, protocol constants, and source code came
+from. It is part of the release gate: a hardware feature cannot become supported until
+its provenance and validation evidence are recorded.
+
+## Baseline audit: 2026-08-08
+
+The pre-rebuild C# prototype was published under MIT while several files explicitly
+described themselves as matching or deriving from Lenovo Legion Toolkit (LLT), which is
+GPL-3.0. The project is being relicensed to GPL-3.0 to correct that mismatch.
+
+The original worktree, including unfinished white-keyboard support, is preserved on
+`archive/pre-rebuild` at commit `f6a7d28`.
+
+### Legacy files requiring replacement or explicit adaptation notices
+
+| Local file | Existing provenance statement | Rebuild disposition |
+|---|---|---|
+| `LegionLoqControl.Core/Hardware/BatteryController.cs` | LLT battery command logic and IOCTL behavior | Quarantine; replace behind a typed battery state machine and record any adapted source |
+| `LegionLoqControl.Core/Native/NativeMethods.cs` | LLT P/Invoke extension pattern | Replace with reviewed interop and contract tests |
+| `LegionLoqControl.Core/Hardware/LightingController.cs` | LLT 4-zone structure and controller behavior | Rebuild behind a HID adapter with packet fixtures |
+| `LegionLoqControl.Core/Hardware/SpectrumKeyboardController.cs` | LLT Spectrum protocol operations | Rebuild behind a HID adapter with per-device capability evidence |
+| `LegionLoqControl.Core/Hardware/WhiteKeyboardController.cs` | LLT white-keyboard feature logic | Preserved only on the archive branch; reintroduce after state/error modeling |
+| `LegionLoqControl.Core/System/Management/WMI.LenovoOtherMethod.cs` | LLT capability identifiers | Verify every identifier against independent observations or retain an explicit GPL adaptation notice |
+| `LegionLoqControl.Core/System/Management/WMI.LenovoFanTableData.cs` | LLT-inspired parsing | Replace with typed validation and malformed-response fixtures |
+
+No source from the active LLT team fork was copied into product code while repairing the
+`LLT_Reference` submodule. The submodule update from `63c1730` to `6f19ef4` is
+reference-only.
+
+## Reference repositories
+
+### Lenovo Legion Toolkit
+
+- Historical repository:
+  <https://github.com/BartoszCichecki/LenovoLegionToolkit>
+- Active repository:
+  <https://github.com/LenovoLegionToolkit-Team/LenovoLegionToolkit>
+- Local fork:
+  <https://github.com/Anandb71/LenovoLegionToolkit>
+- License: GPL-3.0 with an LLT-specific plugin exception.
+- Current reference commit: `6f19ef48095a32afe439474a65e5b95cf8fa1b24`.
+- Use: protocol comparison, behavioral regression research, compatibility evidence, and
+  identification of model-specific edge cases.
+
+The LLT-specific plugin exception applies to LLT. It is not automatically claimed for
+Legion + LOQ Control.
+
+## Classification
+
+Every implementation record must use one classification:
+
+- **Original**: implemented from vendor documentation, observed device behavior, or
+  independently designed interfaces without copying source expression.
+- **Adapted**: source expression or structure was modified from an external project.
+  Preserve its copyright/license notices and identify the exact source commit and file.
+- **Protocol cross-check**: only factual behavior, packet captures, IDs, or public
+  protocol observations were compared. Record all references and independent validation.
+- **Dependency**: an external package is consumed through its public API. Record its
+  package version and notices in `OSS-SOURCES.md`.
+
+## Required record for each hardware feature
+
+Add a section before merging the feature:
+
+```text
+Feature:
+Local files:
+Classification:
+External project and URL:
+Source commit/tag:
+External files examined or adapted:
+License:
+Local modifications:
+Independent evidence:
+Test fixtures:
+Hardware validation:
+Reviewer:
+Date:
+```
+
+## Attribution policy
+
+- Give accurate, visible credit wherever code or protocol research materially enabled a
+  feature.
+- Do not imply that Lenovo or another open-source project endorses this application.
+- Do not remove upstream copyright notices.
+- Mark modified upstream files and modification dates as required by GPL-3.0.
+- Keep the About/Credits view and distributed third-party notices in sync with this file.

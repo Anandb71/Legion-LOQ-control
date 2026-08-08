@@ -2,13 +2,13 @@
 
 <div align="center">
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows-0078D6.svg)
 ![.NET](https://img.shields.io/badge/.NET-9.0-purple.svg)
 ![WPF](https://img.shields.io/badge/UI-WPF-blue.svg)
 
 **A lightweight, open-source replacement for Lenovo Vantage**
-*Built with .NET 9 and WPF, inspired by LenovoLegionToolkit*
+*Safety-first hardware control with a modern Windows interface*
 
 </div>
 
@@ -18,6 +18,10 @@
 
 **This project has migrated from Rust to C# (.NET 9 WPF).**
 The previous Rust prototype has been archived in `rust_prototype/`.
+
+The next-generation .NET 10 rebuild is being developed on `rebuild/v1`. The current
+application is an experimental prototype and must not be treated as production-safe.
+See [SAFETY.md](SAFETY.md) and [source provenance](docs/PROVENANCE.md).
 
 ## 🚀 Features (Planned)
 
@@ -42,4 +46,9 @@ Open `LegionLoqControl.sln` in Visual Studio and build/run.
 ---
 
 ## 📄 License
-MIT License
+
+GNU General Public License version 3. See [LICENSE](LICENSE) and
+[third-party notices](THIRD-PARTY-NOTICES.md).
+
+Lenovo, Legion, LOQ, and Vantage are trademarks of their respective owners. This
+project is independent and is not affiliated with or endorsed by Lenovo.
