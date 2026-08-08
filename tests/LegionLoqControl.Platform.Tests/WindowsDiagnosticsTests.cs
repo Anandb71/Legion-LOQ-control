@@ -48,7 +48,6 @@ public sealed class WindowsDiagnosticsTests
         DateTimeOffset now = new(2026, 8, 8, 12, 0, 0, TimeSpan.Zero);
         var reader = new StubManagementReader();
         reader.Metadata["LENOVO_GAMEZONE_DATA"] = Metadata(
-            "GetPowerChargeMode",
             "GetSmartFanMode", "SetSmartFanMode",
             "GetKeyboardLight", "SetKeyboardLight",
             "IsSupportOD", "GetODStatus", "SetODStatus",
@@ -66,6 +65,16 @@ public sealed class WindowsDiagnosticsTests
             TestContext.Current.CancellationToken);
 
         Assert.All(evidence, item => Assert.NotEqual(CapabilitySupport.Supported, item.Support));
+        AssertEvidence(
+            evidence,
+            HardwareCapability.BatteryConservationMode,
+            CapabilitySupport.Unknown,
+            "energy_driver_transport_unverified");
+        AssertEvidence(
+            evidence,
+            HardwareCapability.BatteryRapidCharge,
+            CapabilitySupport.Unknown,
+            "energy_driver_transport_unverified");
         AssertEvidence(evidence, HardwareCapability.ThermalMode, CapabilitySupport.Unknown, "wmi_interface_present_unverified");
         AssertEvidence(evidence, HardwareCapability.FanControl, CapabilitySupport.Unknown, "wmi_interface_present_unverified");
         AssertEvidence(evidence, HardwareCapability.FourZoneRgbKeyboard, CapabilitySupport.Unknown, "hid_interface_present_unverified");

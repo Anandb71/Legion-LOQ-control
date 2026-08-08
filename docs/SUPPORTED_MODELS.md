@@ -5,30 +5,46 @@
 No model is approved for hardware writes. The rebuild is read-only, and every write
 control remains disabled.
 
-Evidence terms:
+Capability evidence terms:
 
 - **Observed**: a non-sensitive identity value was read.
 - **Candidate**: expected interface metadata exists, but behavior and safety are unverified.
-- **Unsupported**: the expected interface was not found in that scan.
+- **Unsupported**: the expected interface was not found in that inventory scan.
 - **Supported**: protocol behavior and recovery were verified on the exact model/BIOS with
   approved tests. No feature has reached this level yet.
+
+Typed state-read statuses are separate from capability evidence. For example,
+`AccessDenied` means the provider rejected that execution context; it does not mean the
+feature is unsupported.
 
 ## Recorded machines
 
 ### LOQ 15IRX9 — machine type 83DV — BIOS NECN50WW
 
-Captured read-only on 2026-08-08:
+Inventory captured read-only on 2026-08-08:
 
 - manufacturer, model, machine type, and BIOS were observed;
-- battery mode, thermal mode, fan table, white keyboard, display overdrive, hybrid graphics,
-  and GPU mode WMI method sets were present but remain unverified candidates;
+- battery mode's Energy driver transport remains unverified;
+- thermal mode, fan table, white keyboard, display overdrive, hybrid graphics, and GPU mode
+  WMI method sets were present but remain unverified candidates;
 - the fan interface exposes table methods, not the legacy prototype's full-speed methods;
 - known 4-zone and Spectrum HID product IDs were not found;
-- no Lenovo WMI method was invoked and no HID device was opened;
+- no Lenovo WMI method was invoked and no HID device was opened during inventory;
 - no write behavior was tested.
 
-The redacted machine record is
+A separate unelevated typed-state probe on the same machine found:
+
+- the WMI instance query needed by `GetSmartFanMode`, `GetODStatus`, and
+  `GetIGPUModeStatus` failed with access denied before method invocation;
+- battery charge mode stayed `Unavailable` because no Energy driver read adapter exists;
+- no setter, IOCTL, or HID report was sent.
+
+The redacted inventory record is
 [`hardware-evidence/83DV/NECN50WW.json`](../hardware-evidence/83DV/NECN50WW.json).
+The redacted state-read record is
+[`hardware-evidence/83DV/NECN50WW-state-unelevated.json`](../hardware-evidence/83DV/NECN50WW-state-unelevated.json).
+The access-denied result is evidence about privilege behavior, not a successful feature
+validation.
 
 ## All other models
 
@@ -40,7 +56,7 @@ backed by repository evidence and has been withdrawn.
 Run:
 
 ```powershell
-dotnet run --project src/LegionLoqControl.Diagnostics --configuration Release
+dotnet run --project src/LegionLoqControl.Diagnostics --configuration Release -- inventory
 ```
 
 Before sharing output, confirm it contains no serial number, username, device path, or

@@ -7,8 +7,8 @@
 - Git
 - Visual Studio 2022 17.14+ / Visual Studio 2026, Rider, or Cursor with C# tooling
 
-The .NET CLI is sufficient. Development and diagnostics do not require administrator
-privileges.
+The .NET CLI is sufficient. Builds, tests, inventory diagnostics, and the WPF shell do not
+require administrator privileges.
 
 ## Clone and verify
 
@@ -20,11 +20,21 @@ dotnet build LegionLoqControl.sln --configuration Release --no-restore
 dotnet test LegionLoqControl.sln --configuration Release --no-build --no-restore
 ```
 
-Run diagnostics:
+Run serial-free inventory diagnostics:
 
 ```powershell
-dotnet run --project src/LegionLoqControl.Diagnostics --configuration Release
+dotnet run --project src/LegionLoqControl.Diagnostics --configuration Release -- inventory
 ```
+
+Run typed state diagnostics:
+
+```powershell
+dotnet run --project src/LegionLoqControl.Diagnostics --configuration Release -- state
+```
+
+The state command can run unelevated and preserves `AccessDenied`. An elevated execution is
+reserved for explicit, read-only protocol validation on recorded hardware; it is not the
+runtime architecture for the desktop app.
 
 Run the read-only desktop shell:
 
@@ -57,10 +67,12 @@ Commit all resulting `packages.lock.json` changes with the package update.
 
 ## Hardware evidence
 
-Use the diagnostics CLI before proposing model support. Evidence must not contain serial
-numbers, usernames, device paths, account data, or full exception messages. A metadata
-match is only a candidate interface; it does not prove that a write is safe.
+Use the `inventory` command before proposing model support. Evidence must not contain
+serial numbers, usernames, device paths, account data, or full exception messages. A
+metadata match is only a candidate interface; it does not prove that a write is safe.
 
-Real write validation is prohibited until the broker milestone defines a reviewed test
-procedure. See [DIAGNOSTICS.md](DIAGNOSTICS.md), [SAFETY.md](../SAFETY.md), and
+Read-only getter validation must record exact model/BIOS, execution privilege, raw value,
+typed interpretation, and failure status. Real write validation is prohibited until the
+broker milestone defines a reviewed test procedure. See
+[DIAGNOSTICS.md](DIAGNOSTICS.md), [SAFETY.md](../SAFETY.md), and
 [PROVENANCE.md](PROVENANCE.md).

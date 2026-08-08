@@ -12,7 +12,8 @@ public enum ThermalMode
     Quiet = 0,
     Balanced = 1,
     Performance = 2,
-    Custom = 3,
+    Extreme = 3,
+    Custom = 4,
 }
 
 public enum FanMode
@@ -33,4 +34,17 @@ public readonly record struct KeyboardBrightness
     }
 
     public byte Level { get; }
+}
+
+public enum ToggleState
+{
+    Disabled = 0,
+    Enabled = 1,
+}
+
+public enum IntegratedGpuMode
+{
+    Default = 0,
+    IntegratedOnly = 1,
+    Automatic = 2,
 }

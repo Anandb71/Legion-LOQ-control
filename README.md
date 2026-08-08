@@ -17,14 +17,22 @@ Working today:
 - serial-free machine identity capture;
 - non-invoking Lenovo WMI method inventory;
 - non-opening HID device inventory;
-- typed `Unknown`, `Unsupported`, and evidence results;
-- a redacted JSON diagnostics CLI;
+- typed hardware-read results that preserve access denied, unsupported, malformed, and
+  timeout states;
+- strict allowlisted getters for thermal mode, display overdrive, and integrated-GPU mode;
+- a redacted JSON diagnostics CLI with separate `inventory` and `state` commands;
 - an unelevated WPF status view with no reference to legacy hardware writers;
-- locked dependencies and 12 automated safety/contract tests.
+- locked dependencies and automated safety, contract, mapping, and redaction tests.
+
+On the recorded LOQ 15IRX9, the Lenovo provider denies the instance access needed by
+the state getters in an unelevated process. The probe reports `AccessDenied` rather than
+inventing values. Battery charge mode remains unavailable until its Energy driver read
+transport is isolated and validated.
 
 Not enabled today:
 
 - battery, thermal, fan, GPU, display, or keyboard writes;
+- a product-facing privileged broker;
 - profiles and automation;
 - any claim of production-ready model support.
 
@@ -44,10 +52,16 @@ dotnet build LegionLoqControl.sln --configuration Release --no-restore
 dotnet test LegionLoqControl.sln --configuration Release --no-build --no-restore
 ```
 
-Run the read-only diagnostics collector:
+Run the default serial-free inventory:
 
 ```powershell
-dotnet run --project src/LegionLoqControl.Diagnostics --configuration Release
+dotnet run --project src/LegionLoqControl.Diagnostics --configuration Release -- inventory
+```
+
+Probe typed hardware state without writing:
+
+```powershell
+dotnet run --project src/LegionLoqControl.Diagnostics --configuration Release -- state
 ```
 
 Run the read-only WPF shell:
@@ -56,7 +70,9 @@ Run the read-only WPF shell:
 dotnet run --project LegionLoqControl --configuration Release
 ```
 
-Neither command should be run as administrator.
+Run the inventory and WPF shell unelevated. The optional `state` command is also safe to
+run unelevated and reports access denial explicitly; an elevated run is a manual protocol
+validation step, not the product's final privilege architecture.
 
 ## Project goals
 

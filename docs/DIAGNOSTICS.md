@@ -1,20 +1,22 @@
 # Read-only Diagnostics
 
-The diagnostics collector creates a redacted capability snapshot without invoking Lenovo
-WMI methods, opening HID devices, or sending hardware writes.
+The diagnostics CLI has two deliberately separate read-only paths:
 
-## Run
+- `inventory` (default) creates a redacted capability snapshot without invoking Lenovo WMI
+  methods, opening HID devices, or sending hardware writes;
+- `state` invokes only three fixed Lenovo `Get*` methods and returns typed results. It has no
+  setter names, caller-provided WMI identifiers, Energy driver access, or HID access.
+
+## Run inventory
 
 ```powershell
-dotnet run --project src/LegionLoqControl.Diagnostics --configuration Release
+dotnet run --project src/LegionLoqControl.Diagnostics --configuration Release -- inventory
 ```
 
-Run it as a normal user. JSON is written to standard output; stable failures are written to
-standard error. Press Ctrl+C to cancel.
+Run inventory as a normal user. Omitting the command selects `inventory`. JSON is written
+to standard output; stable failures are written to standard error. Press Ctrl+C to cancel.
 
-## Output
-
-The snapshot contains:
+The inventory contains:
 
 - manufacturer, product name, model, machine type, and BIOS version observations;
 - capability, support state, source, timestamp, and stable evidence code;
@@ -23,7 +25,35 @@ The snapshot contains:
 It does not query or serialize serial numbers, usernames, device paths, or account data.
 Evidence fixture tests reject those fields.
 
-## Interpreting results
+## Probe typed state
+
+```powershell
+dotnet run --project src/LegionLoqControl.Diagnostics --configuration Release -- state
+```
+
+The state probe reads, sequentially:
+
+- battery charge mode: currently `Unavailable` because the Energy driver read adapter has
+  not been implemented;
+- thermal mode: `GetSmartFanMode`;
+- display overdrive: `GetODStatus`;
+- integrated-GPU mode: `GetIGPUModeStatus`.
+
+Each result is `Success`, `Unsupported`, `AccessDenied`, `Unavailable`, `InvalidData`,
+`Failed`, or `TimedOut`. A failed read never becomes `Off`, zero, or a default mode.
+Unexpected firmware values are rejected instead of cast into an enum.
+
+On LOQ 15IRX9 machine type `83DV`, BIOS `NECN50WW`, the Lenovo WMI provider rejects
+the instance query needed by these getters in a normal-user process, before method
+invocation. This is emitted as `AccessDenied`. An elevated run may be used as an explicit
+manual read-only validation step. The production UI remains unelevated; this command is
+not a substitute for the planned short-lived broker.
+
+`GetPowerChargeMode` is intentionally not used for battery mode. Protocol cross-checking
+showed that it represents charging/power suitability, while conservation and rapid-charge
+state use a separate Energy driver protocol.
+
+## Interpreting inventory results
 
 - `Unknown` plus `*_present_unverified`: a candidate interface exists; do not infer support.
 - `Unsupported` plus `*_not_found` or `*_missing`: the expected interface was absent in the
@@ -33,13 +63,14 @@ Evidence fixture tests reject those fields.
 
 ## Design limits
 
-WMI metadata can vary by BIOS and Lenovo driver package. HID product IDs do not identify
-all keyboard implementations. A successful scan proves only that inventory was readable.
-It does not prove that Lenovo Vantage behavior can be reproduced or that writes are safe.
+WMI metadata and getter behavior can vary by BIOS and Lenovo driver package. HID product
+IDs do not identify all keyboard implementations. A successful inventory proves only that
+inventory was readable. A successful state getter proves only that one read returned a
+recognized value; it does not authorize a write or establish full model support.
 
-## Submitting a fixture
+## Submitting an inventory fixture
 
-1. Run the collector unelevated.
+1. Run the `inventory` command unelevated.
 2. Review every field for personal information.
 3. Record the exact machine type, model, and BIOS.
 4. Keep candidate states as `Unknown`; do not promote them manually.

@@ -63,18 +63,18 @@ public sealed class WindowsCapabilityProbe : ICapabilityProbe
         var metadata = new Dictionary<string, MetadataAttempt>(StringComparer.OrdinalIgnoreCase);
         var evidence = new List<CapabilityEvidence>(ProbedCapabilities.Count)
         {
-            ProbeWmi(
-                metadata,
+            Evidence(
                 HardwareCapability.BatteryConservationMode,
-                "LENOVO_GAMEZONE_DATA",
+                CapabilitySupport.Unknown,
+                "windows.energy-driver",
                 observedAt,
-                ["GetPowerChargeMode"]),
-            ProbeWmi(
-                metadata,
+                "energy_driver_transport_unverified"),
+            Evidence(
                 HardwareCapability.BatteryRapidCharge,
-                "LENOVO_GAMEZONE_DATA",
+                CapabilitySupport.Unknown,
+                "windows.energy-driver",
                 observedAt,
-                ["GetPowerChargeMode"]),
+                "energy_driver_transport_unverified"),
             ProbeWmi(
                 metadata,
                 HardwareCapability.ThermalMode,

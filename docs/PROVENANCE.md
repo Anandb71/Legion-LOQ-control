@@ -74,6 +74,43 @@ Legion + LOQ Control.
 - **Reviewer:** Pending
 - **Date:** 2026-08-08
 
+## Implementation record: typed Lenovo WMI state getters
+
+- **Feature:** Read-only thermal mode, display overdrive, and integrated-GPU mode state
+- **Local files:** `src/LegionLoqControl.Domain/Results/HardwareReadResult.cs`,
+  `src/LegionLoqControl.Domain/Diagnostics/HardwareStateSnapshot.cs`,
+  `src/LegionLoqControl.Application/Hardware/`,
+  `src/LegionLoqControl.Infrastructure.Windows/Hardware/`
+- **Classification:** Original implementation with protocol cross-check
+- **External project and URL:** Lenovo Legion Toolkit,
+  <https://github.com/LenovoLegionToolkit-Team/LenovoLegionToolkit>
+- **Source commit:** `6f19ef48095a32afe439474a65e5b95cf8fa1b24`
+- **External files examined:**
+  `LenovoLegionToolkit.Lib/System/Management/WMI.LenovoGameZoneData.cs`,
+  `LenovoLegionToolkit.Lib/Features/AbstractWmiFeature.cs`,
+  `LenovoLegionToolkit.Lib/Enums.cs`,
+  `LenovoLegionToolkit.Lib/Features/BatteryFeature.cs`, and
+  `LenovoLegionToolkit.Lib/System/Power.cs`
+- **License:** GPL-3.0 with LLT-specific plugin exception
+- **Local implementation:** Independently written typed result contracts, sequential state
+  service, fixed getter allowlist, bounded WMI options, Boolean-status/UInt32-data validation, and
+  stable error mapping. No LLT source expression was copied.
+- **Protocol facts cross-checked:** `GetSmartFanMode` uses a one-value offset for quiet,
+  balanced, performance, extreme, and custom modes; overdrive and integrated-GPU getters
+  use direct enum values. `GetPowerChargeMode` was confirmed to be unrelated to battery
+  conservation/rapid-charge state and was deliberately excluded.
+- **Independent evidence:** Local CIM metadata confirms a Boolean method return plus one
+  UInt32 `Data` output; the state-read pipeline produced unelevated `AccessDenied` during
+  the prerequisite instance query on LOQ 15IRX9, machine type `83DV`, BIOS `NECN50WW`, on
+  2026-08-08
+- **Test fixtures:** Stubbed raw-value mappings, malformed values, access denial, false
+  battery-mapping guard, and serialized read ordering in
+  `tests/LegionLoqControl.Platform.Tests/HardwareStateReaderTests.cs`; redacted privilege
+  evidence in `hardware-evidence/83DV/NECN50WW-state-unelevated.json`
+- **Hardware validation:** No successful state value has been captured yet. No setter,
+  Energy driver IOCTL, or HID report was sent.
+- **Reviewer:** Pending
+- **Date:** 2026-08-08
 ## Classification
 
 Every implementation record must use one classification:

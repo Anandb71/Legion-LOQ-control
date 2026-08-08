@@ -12,18 +12,22 @@ The C# migration prototype is deliberately **read-only**:
 - `HardwareWritePolicy` has no unlock path;
 - EnergyDrv IOCTL, WMI mutation, and HID feature-write entry points reject commands before
   opening a driver or selecting a device;
+- default inventory invokes no Lenovo methods and opens no HID devices;
+- the optional state diagnostic invokes only `GetSmartFanMode`, `GetODStatus`, and
+  `GetIGPUModeStatus`, with fixed identifiers, bounded WMI options, and typed failures;
 - unit tests verify that battery, thermal, fan, and keyboard commands fail closed.
 
 This is a temporary safety stopgap, not the final broker. Current device detection is only
 a candidate-device heuristic. It does **not** authorize hardware writes or prove feature
-compatibility.
+compatibility. A getter name is not assumed harmless without allowlisting and provenance.
 
-## Required write architecture
+## Required privileged architecture
 
 Hardware writes may return only after all of these controls exist and pass review:
 
-1. An unelevated UI and CLI with no direct WMI, EnergyDrv, or HID write access.
-2. A short-lived elevated broker installed under administrator-only filesystem ACLs.
+1. An unelevated UI and CLI with no direct privileged WMI, EnergyDrv, or HID access.
+2. A short-lived elevated broker installed under administrator-only filesystem ACLs for
+   privileged reads and validated writes.
 3. A versioned, local-only, typed command protocol. Raw WMI names, IOCTL values, HID
    packets, paths, and plugin-defined commands are forbidden at the IPC boundary.
 4. Independent broker-side device and per-feature capability validation.

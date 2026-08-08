@@ -16,12 +16,12 @@
     {
       "capability": "BatteryConservationMode",
       "status": "Unknown",
-      "evidenceCode": "wmi_interface_present_unverified"
+      "evidenceCode": "energy_driver_transport_unverified"
     },
     {
       "capability": "BatteryRapidCharge",
       "status": "Unknown",
-      "evidenceCode": "wmi_interface_present_unverified"
+      "evidenceCode": "energy_driver_transport_unverified"
     },
     {
       "capability": "ThermalMode",

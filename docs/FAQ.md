@@ -14,26 +14,36 @@ controls, profiles, and automation remain disabled until their safety gates pass
 ## Is the current build safe to run?
 
 It is designed to send zero hardware writes: the UI has no legacy writer reference, the
-legacy assembly is globally locked, diagnostics only inspect WMI metadata and HID IDs,
-and the process runs as the current user. It is still pre-release software; review
-[SAFETY.md](../SAFETY.md).
+legacy assembly is globally locked, inventory only inspects WMI metadata and HID IDs, and
+the optional state command invokes a fixed allowlist of Lenovo getters. It is still
+pre-release software; review [SAFETY.md](../SAFETY.md).
 
 ## Does it require administrator privileges?
 
-No for the current UI, CLI, build, and tests. Do not run them elevated. A future hardware
-write will use a short-lived broker that requests elevation only for a validated command.
+No for builds, tests, inventory diagnostics, or the WPF shell. Keep the UI and inventory
+unelevated. The optional `state` command also runs unelevated, but some Lenovo providers
+return `AccessDenied`; an explicitly elevated run is only a manual read-only validation
+step. The final app will use a short-lived broker for privileged reads and validated writes.
 
 ## What data does diagnostics collect?
 
-Manufacturer, product/model, machine type, BIOS version, WMI method-name presence, known
-Lenovo HID product-ID presence, evidence codes, and timestamps. It intentionally excludes
-serial numbers, usernames, device paths, and telemetry.
+Inventory collects manufacturer, product/model, machine type, BIOS version, WMI
+method-name presence, known Lenovo HID product-ID presence, evidence codes, and
+timestamps. The state command emits typed state/read outcomes and stable error codes. Both
+exclude serial numbers, usernames, device paths, and telemetry.
 
 ## Why are detected interfaces marked Unknown?
 
 A class or USB interface existing does not prove that a protocol is safe on a specific
 firmware revision. `Supported` requires fixtures, readback behavior, recovery testing, and
 exact model/BIOS evidence.
+
+## Why is battery mode unavailable while other states have getters?
+
+Lenovo's `GetPowerChargeMode` is not the conservation/rapid-charge mode getter; it reports
+a charging or power-suitability condition. Battery mode uses a separate Energy driver
+protocol. The rebuild refuses to infer the wrong state and will add that read only after an
+isolated, validated driver adapter exists.
 
 ## Can I run it alongside Lenovo Vantage?
 

@@ -29,6 +29,15 @@ An interface match is emitted as `Unknown` with
 `wmi_interface_present_unverified` or `hid_interface_present_unverified`. Only validated
 hardware work may emit `Supported`.
 
+## Hardware read results
+
+`HardwareReadResult<T>` separates a real value from failure states. Its status is one of
+`Success`, `Unsupported`, `AccessDenied`, `Unavailable`, `InvalidData`, `Failed`, or
+`TimedOut`. Only `Success` has a value; failures carry a stable, non-sensitive error code.
+
+`HardwareStateSnapshot` currently groups battery charge mode, thermal mode, display
+overdrive, and integrated-GPU mode results under one observation timestamp.
+
 ## Application ports
 
 ```csharp
@@ -51,12 +60,23 @@ public interface ICapabilityProbe
 `MachineDiagnosticsService` captures identity, runs probes, and converts probe exceptions
 into unknown evidence. Caller cancellation is propagated.
 
+`IHardwareStateReader` exposes one typed method per state. `HardwareStateService` invokes
+those methods sequentially to avoid concurrent access to Lenovo providers and retains each
+individual outcome in the snapshot.
+
 ## Windows diagnostics
 
 - `WindowsMachineIdentitySource` reads an allowlist of CIM properties.
 - `WindowsCapabilityProbe` reads WMI class metadata and enumerates Lenovo HID product IDs.
 
-Neither type invokes Lenovo WMI methods, opens HID devices, or performs writes.
+Those inventory types do not invoke Lenovo WMI methods, open HID devices, or perform
+writes.
+
+`WindowsHardwareStateReader` is a separate adapter. It invokes only the fixed
+`GetSmartFanMode`, `GetODStatus`, and `GetIGPUModeStatus` methods, imposes a five-second WMI
+timeout, validates the Boolean return status and UInt32 data, and maps access denial
+explicitly. Its battery result is intentionally `Unavailable` until the Energy driver read
+transport exists.
 
 ## Broker contracts
 
