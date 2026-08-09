@@ -41,5 +41,9 @@ jobs:
       - name: Build
         run: dotnet build LegionLoqControl.sln --configuration Release --no-restore
 
+      - name: Verify accessibility and UI safety contracts
+        shell: pwsh
+        run: ./scripts/test-accessibility-contracts.ps1
+
       - name: Test
         run: dotnet test LegionLoqControl.sln --configuration Release --no-build --no-restore

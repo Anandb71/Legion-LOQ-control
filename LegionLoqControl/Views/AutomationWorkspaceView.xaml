@@ -314,6 +314,7 @@
                         </Grid>
                         <ListBox Grid.Row="1"
                                  MinHeight="240"
+                                 automation:AutomationProperties.Name="Saved local automation rules"
                                  ItemTemplate="{StaticResource AutomationRuleListItemTemplate}"
                                  ItemsSource="{Binding Rules}"
                                  SelectedItem="{Binding SelectedRule, Mode=TwoWay}" />

@@ -211,7 +211,8 @@
         </DataTemplate>
     </Window.Resources>
 
-    <TabControl Background="{StaticResource CanvasBrush}"
+    <TabControl automation:AutomationProperties.Name="Primary application navigation"
+                Background="{StaticResource CanvasBrush}"
                 BorderThickness="0">
         <TabItem Margin="32,0,0,0"
                  Header="DASHBOARD"
@@ -535,6 +536,7 @@
                                 </Grid>
                                 <ListBox Grid.Row="1"
                                          MinHeight="220"
+                                         automation:AutomationProperties.Name="Saved local profile drafts"
                                          ItemsSource="{Binding Profiles}"
                                          SelectedItem="{Binding SelectedProfile, Mode=TwoWay}"
                                          DisplayMemberPath="Name" />
