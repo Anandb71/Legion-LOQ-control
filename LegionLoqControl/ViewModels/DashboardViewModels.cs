@@ -1,0 +1,384 @@
+using System.Collections.ObjectModel;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using LegionLoqControl.Application.Diagnostics;
+using LegionLoqControl.Contracts.Broker;
+using LegionLoqControl.Domain.Capabilities;
+using LegionLoqControl.Domain.Controls;
+using LegionLoqControl.Domain.Diagnostics;
+using LegionLoqControl.Domain.Results;
+using LegionLoqControl.Infrastructure.Windows.Broker;
+using LegionLoqControl.Infrastructure.Windows.Diagnostics;
+
+namespace LegionLoqControl.ViewModels;
+
+public enum DashboardStateKind
+{
+    Pending = 0,
+    Success = 1,
+    Warning = 2,
+    Error = 3,
+    Unavailable = 4,
+}
+
+public sealed partial class HardwareStateCardViewModel : ObservableObject
+{
+    [ObservableProperty]
+    private string _value = "Not read";
+
+    [ObservableProperty]
+    private string _detail;
+
+    [ObservableProperty]
+    private DashboardStateKind _state = DashboardStateKind.Pending;
+
+    public HardwareStateCardViewModel(
+        string label,
+        string description,
+        string pendingDetail)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(label);
+        ArgumentException.ThrowIfNullOrWhiteSpace(description);
+        ArgumentException.ThrowIfNullOrWhiteSpace(pendingDetail);
+
+        Label = label;
+        Description = description;
+        _detail = pendingDetail;
+    }
+
+    public string Label { get; }
+
+    public string Description { get; }
+
+    public void Apply<T>(
+        HardwareReadResult<T> result,
+        Func<T, string> formatter)
+        where T : struct
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        ArgumentNullException.ThrowIfNull(formatter);
+
+        if (result.Status == HardwareReadStatus.Success && result.Value.HasValue)
+        {
+            Value = formatter(result.Value.Value);
+            Detail = "Verified by the elevated read broker";
+            State = DashboardStateKind.Success;
+            return;
+        }
+
+        (Value, Detail, State) = result.Status switch
+        {
+            HardwareReadStatus.AccessDenied =>
+                ("Access denied", "The provider rejected this execution context", DashboardStateKind.Warning),
+            HardwareReadStatus.Unsupported =>
+                ("Unsupported", "The required getter is not available", DashboardStateKind.Unavailable),
+            HardwareReadStatus.Unavailable =>
+                ("Unavailable", "The required device or provider was not found", DashboardStateKind.Unavailable),
+            HardwareReadStatus.InvalidData =>
+                ("Invalid response", "Firmware returned a value outside the validated contract", DashboardStateKind.Error),
+            HardwareReadStatus.TimedOut =>
+                ("Timed out", "The bounded hardware read did not finish", DashboardStateKind.Error),
+            _ => ("Read failed", "The hardware state could not be verified", DashboardStateKind.Error),
+        };
+    }
+}
+
+public sealed record CapabilityItemViewModel(
+    string Name,
+    string Support,
+    string EvidenceCode,
+    DashboardStateKind State);
+
+public sealed partial class MainWindowViewModel : ObservableObject
+{
+    private readonly MachineDiagnosticsService _diagnostics;
+    private readonly ElevatedHardwareStateBrokerClient _broker;
+    private readonly CancellationTokenSource _lifetime = new();
+    private bool _initialized;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(RefreshHardwareStateCommand))]
+    private bool _isBusy;
+
+    [ObservableProperty]
+    private string _deviceName = "Detecting machine";
+
+    [ObservableProperty]
+    private string _deviceMetadata = "Reading serial-free identity and interface evidence";
+
+    [ObservableProperty]
+    private string _inventoryStatus = "Inventory pending";
+
+    [ObservableProperty]
+    private string _bannerTitle = "Read-only safety mode";
+
+    [ObservableProperty]
+    private string _bannerMessage =
+        "Inventory runs without elevation. Hardware state is read only after you approve Windows elevation.";
+
+    [ObservableProperty]
+    private DashboardStateKind _bannerState = DashboardStateKind.Warning;
+
+    [ObservableProperty]
+    private string _refreshButtonText = "Read hardware state";
+
+    [ObservableProperty]
+    private string _lastUpdated = "Not read";
+
+    public MainWindowViewModel()
+        : this(
+            new MachineDiagnosticsService(
+                new WindowsMachineIdentitySource(),
+                [new WindowsCapabilityProbe()]),
+            new ElevatedHardwareStateBrokerClient())
+    {
+    }
+
+    internal MainWindowViewModel(
+        MachineDiagnosticsService diagnostics,
+        ElevatedHardwareStateBrokerClient broker)
+    {
+        _diagnostics = diagnostics ?? throw new ArgumentNullException(nameof(diagnostics));
+        _broker = broker ?? throw new ArgumentNullException(nameof(broker));
+
+        Battery = new HardwareStateCardViewModel(
+            "BATTERY",
+            "Charge behavior",
+            "Broker-only EnergyDrv read");
+        Thermal = new HardwareStateCardViewModel(
+            "THERMAL",
+            "Firmware performance profile",
+            "Elevation required by Lenovo WMI");
+        DisplayOverdrive = new HardwareStateCardViewModel(
+            "DISPLAY",
+            "Panel overdrive",
+            "Elevation required by Lenovo WMI");
+        IntegratedGpu = new HardwareStateCardViewModel(
+            "GPU MODE",
+            "Current graphics topology",
+            "Elevation required by Lenovo WMI");
+    }
+
+    public HardwareStateCardViewModel Battery { get; }
+
+    public HardwareStateCardViewModel Thermal { get; }
+
+    public HardwareStateCardViewModel DisplayOverdrive { get; }
+
+    public HardwareStateCardViewModel IntegratedGpu { get; }
+
+    public ObservableCollection<CapabilityItemViewModel> Capabilities { get; } = [];
+
+    public async Task InitializeAsync()
+    {
+        if (_initialized)
+            return;
+
+        _initialized = true;
+        IsBusy = true;
+        try
+        {
+            MachineSnapshot snapshot = await _diagnostics
+                .CaptureAsync(_lifetime.Token)
+                .ConfigureAwait(true);
+            ApplyIdentity(snapshot.Identity);
+            ApplyCapabilities(snapshot.Capabilities);
+
+            int candidateCount = snapshot.Capabilities.Count(static evidence =>
+                evidence.Support is CapabilitySupport.Unknown or CapabilitySupport.Supported);
+            InventoryStatus = $"Inventory complete · {candidateCount} candidate interfaces";
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (Exception)
+        {
+            DeviceName = "Machine identity unavailable";
+            DeviceMetadata = "The serial-free inventory could not be completed";
+            InventoryStatus = "Inventory failed · no hardware writes attempted";
+            BannerTitle = "Inventory unavailable";
+            BannerMessage = "The app stayed read-only. Restart to retry the local inventory.";
+            BannerState = DashboardStateKind.Error;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    public void Cancel() => _lifetime.Cancel();
+
+    [RelayCommand(CanExecute = nameof(CanRefreshHardwareState))]
+    private async Task RefreshHardwareStateAsync()
+    {
+        IsBusy = true;
+        RefreshButtonText = "Waiting for Windows approval…";
+        BannerTitle = "Privileged read requested";
+        BannerMessage =
+            "Windows will ask for approval. The broker accepts one read request and cannot change hardware.";
+        BannerState = DashboardStateKind.Warning;
+
+        try
+        {
+            HardwareStateReadResponse response = await _broker
+                .ReadAsync(_lifetime.Token)
+                .ConfigureAwait(true);
+            if (response.Status != BrokerReadStatus.Succeeded || response.Snapshot is null)
+            {
+                ApplyBrokerFailure(response.ErrorCode ?? "broker_read_failed");
+                return;
+            }
+
+            HardwareStateSnapshot snapshot = response.Snapshot.ToSnapshot();
+            Battery.Apply(snapshot.BatteryChargeMode, FormatBatteryMode);
+            Thermal.Apply(snapshot.ThermalMode, FormatThermalMode);
+            DisplayOverdrive.Apply(snapshot.DisplayOverdrive, FormatToggle);
+            IntegratedGpu.Apply(snapshot.IntegratedGpuMode, FormatGpuMode);
+
+            HardwareReadStatus[] statuses =
+            [
+                snapshot.BatteryChargeMode.Status,
+                snapshot.ThermalMode.Status,
+                snapshot.DisplayOverdrive.Status,
+                snapshot.IntegratedGpuMode.Status,
+            ];
+            int successCount = statuses.Count(static status => status == HardwareReadStatus.Success);
+            LastUpdated = snapshot.ObservedAt.ToLocalTime().ToString("HH:mm:ss");
+            BannerTitle = successCount == statuses.Length
+                ? "Hardware state verified"
+                : "Hardware state partially verified";
+            BannerMessage =
+                $"{successCount}/{statuses.Length} reads succeeded · observed at {LastUpdated} · no writes attempted";
+            BannerState = successCount == statuses.Length
+                ? DashboardStateKind.Success
+                : DashboardStateKind.Warning;
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (BrokerTransportException exception)
+        {
+            ApplyBrokerFailure(exception.ErrorCode);
+        }
+        catch (Exception)
+        {
+            ApplyBrokerFailure("broker_read_failed");
+        }
+        finally
+        {
+            RefreshButtonText = "Read hardware state";
+            IsBusy = false;
+        }
+    }
+
+    private bool CanRefreshHardwareState() => !IsBusy && _initialized;
+
+    private void ApplyIdentity(MachineIdentity identity)
+    {
+        string model = Display(identity.Model);
+        string machineType = Display(identity.MachineType);
+        string bios = Display(identity.BiosVersion);
+        DeviceName = model;
+        DeviceMetadata = $"Machine type {machineType} · BIOS {bios}";
+    }
+
+    private void ApplyCapabilities(IReadOnlyList<CapabilityEvidence> evidence)
+    {
+        Capabilities.Clear();
+        foreach (CapabilityEvidence item in evidence.OrderBy(static item => item.Capability))
+        {
+            Capabilities.Add(new CapabilityItemViewModel(
+                FormatCapability(item.Capability),
+                FormatSupport(item.Support),
+                item.EvidenceCode,
+                item.Support switch
+                {
+                    CapabilitySupport.Supported => DashboardStateKind.Success,
+                    CapabilitySupport.Degraded => DashboardStateKind.Warning,
+                    CapabilitySupport.Unsupported => DashboardStateKind.Unavailable,
+                    _ => DashboardStateKind.Pending,
+                }));
+        }
+    }
+
+    private void ApplyBrokerFailure(string errorCode)
+    {
+        BannerTitle = errorCode == "broker_elevation_cancelled"
+            ? "Elevation cancelled"
+            : "Hardware state unavailable";
+        BannerMessage = errorCode switch
+        {
+            "broker_elevation_cancelled" =>
+                "Windows approval was cancelled. No privileged hardware read ran.",
+            "broker_not_found" =>
+                "The signed read broker is missing from the application directory.",
+            "broker_timeout" or "broker_lifetime_timeout" =>
+                "The broker reached its time limit and stopped without changing hardware.",
+            "broker_peer_mismatch" or "broker_authorization_failed" =>
+                "The broker rejected the connection because its security checks did not match.",
+            _ => "The read broker could not verify hardware state. No write was attempted.",
+        };
+        BannerState = errorCode == "broker_elevation_cancelled"
+            ? DashboardStateKind.Warning
+            : DashboardStateKind.Error;
+    }
+
+    private static string Display(Observation observation) =>
+        observation.State == ObservationState.Observed ? observation.Value! : "Unknown";
+
+    private static string FormatBatteryMode(BatteryChargeMode value) =>
+        value switch
+        {
+            BatteryChargeMode.RapidCharge => "Rapid charge",
+            BatteryChargeMode.Conservation => "Conservation",
+            _ => "Normal",
+        };
+
+    private static string FormatThermalMode(ThermalMode value) =>
+        value switch
+        {
+            ThermalMode.Quiet => "Quiet",
+            ThermalMode.Balanced => "Balanced",
+            ThermalMode.Performance => "Performance",
+            ThermalMode.Extreme => "Extreme",
+            ThermalMode.Custom => "Custom",
+            _ => value.ToString(),
+        };
+
+    private static string FormatToggle(ToggleState value) =>
+        value == ToggleState.Enabled ? "Enabled" : "Disabled";
+
+    private static string FormatGpuMode(IntegratedGpuMode value) =>
+        value switch
+        {
+            IntegratedGpuMode.Default => "Default",
+            IntegratedGpuMode.IntegratedOnly => "Integrated only",
+            IntegratedGpuMode.Automatic => "Automatic",
+            _ => value.ToString(),
+        };
+
+    private static string FormatCapability(HardwareCapability value) =>
+        value switch
+        {
+            HardwareCapability.BatteryConservationMode => "Battery conservation",
+            HardwareCapability.BatteryRapidCharge => "Battery rapid charge",
+            HardwareCapability.ThermalMode => "Thermal mode",
+            HardwareCapability.FanControl => "Fan control",
+            HardwareCapability.WhiteKeyboardBacklight => "White keyboard backlight",
+            HardwareCapability.FourZoneRgbKeyboard => "Four-zone RGB keyboard",
+            HardwareCapability.SpectrumKeyboard => "Spectrum keyboard",
+            HardwareCapability.DisplayOverdrive => "Display overdrive",
+            HardwareCapability.HybridGraphicsMode => "Hybrid graphics",
+            HardwareCapability.GpuWorkingMode => "GPU working mode",
+            _ => value.ToString(),
+        };
+
+    private static string FormatSupport(CapabilitySupport value) =>
+        value switch
+        {
+            CapabilitySupport.Supported => "VERIFIED",
+            CapabilitySupport.Unsupported => "NOT FOUND",
+            CapabilitySupport.Degraded => "DEGRADED",
+            _ => "CANDIDATE",
+        };
+}
