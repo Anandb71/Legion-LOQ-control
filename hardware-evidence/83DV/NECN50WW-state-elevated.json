@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "capturedAtUtc": "2026-08-08T23:42:00.8835105Z",
+  "capturedAtUtc": "2026-08-09T08:01:40.4489263Z",
   "machine": {
     "manufacturer": "LENOVO",
     "machineType": "83DV",
@@ -10,7 +10,10 @@
   "execution": {
     "elevated": true,
     "boundary": "ShortLivedReadBroker",
-    "adapter": "BuiltInWindowsPowerShellCimCmdlets",
+    "adapters": [
+      "ExactEnergyDrvBatteryRead",
+      "BuiltInWindowsPowerShellCimCmdlets"
+    ],
     "productAdapterRetained": true,
     "writesAttempted": false
   },
@@ -23,8 +26,13 @@
     {
       "capability": "BatteryChargeMode",
       "transport": "EnergyDriver",
-      "status": "Unavailable",
-      "evidenceCode": "battery_read_transport_not_implemented"
+      "api": "Kernel32.DeviceIoControl",
+      "operation": "0x831020F8",
+      "readSelector": 255,
+      "desiredAccess": 0,
+      "status": "Success",
+      "chargeModeBits": 0,
+      "value": "Normal"
     },
     {
       "capability": "ThermalMode",

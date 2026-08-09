@@ -41,8 +41,9 @@ A separate unelevated typed-state probe on the same machine found:
 
 An explicit UAC-assisted broker validation observed Boolean-success/UInt32-data responses
 for Performance thermal mode (raw `3`), disabled overdrive (raw `0`), and integrated-only
-GPU mode (raw `1`) through the retained built-in Windows PowerShell/CIM adapter. This
-single observation does not promote the capabilities to `Supported`.
+GPU mode (raw `1`) through the retained built-in Windows PowerShell/CIM adapter. It also
+observed Normal battery mode through the fixed zero-access EnergyDrv read. This single
+observation does not promote the capabilities to `Supported`.
 
 The redacted inventory record is
 [`hardware-evidence/83DV/NECN50WW.json`](../hardware-evidence/83DV/NECN50WW.json).

@@ -77,8 +77,9 @@ writes.
 batches them through one static, profile-free built-in Windows PowerShell/CIM invocation,
 caches the batch for the snapshot, validates Boolean return status and UInt32 data, caps
 output, and applies a 12-second process timeout. It fails closed when the provider does not
-expose that complete output. Its battery result is intentionally `Unavailable` until the
-Energy driver read transport exists.
+expose that complete output. The default unelevated reader reports battery mode as
+`Unavailable`; the broker-only factory adds the fixed, parameterless EnergyDrv reader with
+zero requested device access.
 
 ## Broker contracts
 

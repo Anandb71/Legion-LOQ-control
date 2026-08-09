@@ -10,8 +10,8 @@ The C# migration prototype is deliberately **read-only**:
 - the GUI runs as the current user (`asInvoker`), not as administrator;
 - write controls are disabled and have no event handlers;
 - `HardwareWritePolicy` has no unlock path;
-- EnergyDrv IOCTL, WMI mutation, and HID feature-write entry points reject commands before
-  opening a driver or selecting a device;
+- legacy or write-capable EnergyDrv, WMI mutation, and HID feature-write entry points
+  reject commands before opening a driver or selecting a device;
 - default inventory invokes no Lenovo methods and opens no HID devices;
 - the optional state diagnostic invokes only `GetSmartFanMode`, `GetODStatus`, and
   `GetIGPUModeStatus`, with fixed identifiers, bounded execution, and typed failures;
@@ -21,8 +21,10 @@ The C# migration prototype is deliberately **read-only**:
 - the optional elevated state path uses a one-request, 30-second broker with strict framing,
   current-user ACL, mutual process-ID checks, a one-time nonce, and anonymous client
   impersonation;
+- the elevated broker has one fixed EnergyDrv battery read (`0x831020F8`, selector `0xFF`,
+  zero requested device access) and no caller-controlled or generic driver operation;
 - the elevated broker has no write message type, write dispatcher, legacy Core reference,
-  EnergyDrv access, or HID access;
+  writable EnergyDrv handle, or HID access;
 - unit tests verify that battery, thermal, fan, and keyboard commands fail closed.
 
 The read-only broker is a validation milestone, not authorization for writes. It is not

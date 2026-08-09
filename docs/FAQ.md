@@ -40,12 +40,13 @@ A class or USB interface existing does not prove that a protocol is safe on a sp
 firmware revision. `Supported` requires fixtures, readback behavior, recovery testing, and
 exact model/BIOS evidence.
 
-## Why is battery mode unavailable while other states have getters?
+## Why is battery mode unavailable in the unelevated `state` command?
 
 Lenovo's `GetPowerChargeMode` is not the conservation/rapid-charge mode getter; it reports
 a charging or power-suitability condition. Battery mode uses a separate Energy driver
-protocol. The rebuild refuses to infer the wrong state and will add that read only after an
-isolated, validated driver adapter exists.
+protocol. The rebuild refuses to infer the wrong state. The `state-elevated` broker now has
+one isolated, validated, zero-access EnergyDrv reader; the unelevated path deliberately
+does not open that device.
 
 ## Can I run it alongside Lenovo Vantage?
 

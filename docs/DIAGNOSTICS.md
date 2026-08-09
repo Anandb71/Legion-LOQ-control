@@ -6,7 +6,8 @@ The diagnostics CLI has three deliberately separate read-only paths:
   methods, opening HID devices, or sending hardware writes;
 - `state` invokes only three fixed Lenovo `Get*` methods and returns typed results. It has no
   setter names, caller-provided WMI identifiers, Energy driver access, or HID access;
-- `state-elevated` sends the same typed request to a short-lived UAC broker.
+- `state-elevated` sends the same typed request to a short-lived UAC broker, which adds one
+  fixed EnergyDrv battery read with zero requested device access.
 
 ## Run inventory
 
@@ -34,8 +35,8 @@ dotnet run --project src/LegionLoqControl.Diagnostics --configuration Release --
 
 The state probe reads, sequentially:
 
-- battery charge mode: currently `Unavailable` because the Energy driver read adapter has
-  not been implemented;
+- battery charge mode: `Unavailable` in the unelevated path; the broker uses only IOCTL
+  `0x831020F8` with selector `0xFF` and maps bits `0x20`/`0x04`;
 - thermal mode: `GetSmartFanMode`;
 - display overdrive: `GetODStatus`;
 - integrated-GPU mode: `GetIGPUModeStatus`.
@@ -73,8 +74,9 @@ installation ACLs. It has no write request type or write dispatcher.
 
 On LOQ 15IRX9 `83DV`, BIOS `NECN50WW`, the broker validated Boolean-success/UInt32-data
 responses for Performance thermal mode (raw `3`), disabled display overdrive (raw `0`),
-and integrated-only GPU mode (raw `1`). This is one exact machine/BIOS observation, not a
-general support claim. The redacted record is
+and integrated-only GPU mode (raw `1`). It also observed Normal battery mode from the two
+documented charge-mode bits using the exact EnergyDrv read contract. This is one exact
+machine/BIOS observation, not a general support claim. The redacted record is
 [`hardware-evidence/83DV/NECN50WW-state-elevated.json`](../hardware-evidence/83DV/NECN50WW-state-elevated.json).
 The retained adapter starts the exact system `powershell.exe` with profiles disabled,
 restricts module lookup to the system Windows PowerShell modules directory, runs one static

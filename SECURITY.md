@@ -17,6 +17,11 @@ with profiles disabled, a system-only module path, and the repository's static e
 script. Caller-provided PowerShell, WMI identifiers, arguments, modules, or paths are
 security violations.
 
+The broker's battery adapter may issue only IOCTL `0x831020F8` with selector `0xFF` through
+an EnergyDrv handle opened with zero requested access. A generic driver API, caller-provided
+control code/input, writable handle, or use outside the elevated read broker is a security
+violation.
+
 ## Reporting a Vulnerability
 
 If you discover a security vulnerability or a safety issue (e.g., a bug that could cause hardware damage), please report it immediately.

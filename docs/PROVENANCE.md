@@ -116,10 +116,42 @@ Legion + LOQ Control.
   `hardware-evidence/83DV/NECN50WW-state-elevated.json`
 - **Hardware validation:** The broker observed Performance thermal mode (raw `3`), disabled
   overdrive (raw `0`), and integrated-only GPU mode (raw `1`), each with Boolean `true`
-  status and UInt32 data through the retained built-in PowerShell/CIM adapter. No setter,
-  Energy driver IOCTL, or HID report was sent.
+  status and UInt32 data through the retained built-in PowerShell/CIM adapter. No setter or
+  HID report was sent.
 - **Reviewer:** Pending
 - **Date:** 2026-08-08
+
+## Implementation record: EnergyDrv battery-mode read
+
+- **Feature:** Read-only Normal, Conservation, and Rapid Charge state
+- **Local files:**
+  `src/LegionLoqControl.Infrastructure.Windows/Hardware/EnergyDriverBatteryReader.cs`
+  and `src/LegionLoqControl.Broker/BrokerHost.cs`
+- **Classification:** Original implementation with protocol cross-check
+- **External project and URL:** Lenovo Legion Toolkit,
+  <https://github.com/LenovoLegionToolkit-Team/LenovoLegionToolkit>
+- **Source commit:** `6f19ef48095a32afe439474a65e5b95cf8fa1b24`
+- **External files examined:** `LenovoLegionToolkit.Lib/System/Drivers.cs`,
+  `LenovoLegionToolkit.Lib/Features/AbstractDriverFeature.cs`, and
+  `LenovoLegionToolkit.Lib/Features/BatteryFeature.cs`
+- **License:** GPL-3.0 with LLT-specific plugin exception
+- **Local implementation:** Independently written, parameterless adapter for one fixed
+  buffered IOCTL. It requests zero device access, requires exactly four output bytes,
+  applies a five-second caller wait, maps stable Win32 failures, and is instantiated only
+  by the elevated read-only broker.
+- **Protocol facts cross-checked:** Control code `0x831020F8`, read selector `0xFF`,
+  Conservation bit `0x20`, and Rapid Charge bit `0x04`. Conflicting mode bits are rejected.
+- **Independent evidence:** One explicitly approved broker run on LOQ 15IRX9, machine type
+  `83DV`, BIOS `NECN50WW`, returned Normal mode on 2026-08-09.
+- **Test fixtures:** Mapping, conflicting-bit, broker delegation, and exact
+  control-code/selector/access invariants in
+  `tests/LegionLoqControl.Platform.Tests/HardwareStateReaderTests.cs`; redacted result in
+  `hardware-evidence/83DV/NECN50WW-state-elevated.json`
+- **Hardware validation:** One read-only IOCTL was sent with selector `0xFF` through a handle
+  opened with zero requested access. It returned a payload whose charge-mode bits mapped to
+  Normal. No setter code, generic IOCTL entry point, or caller-controlled value exists.
+- **Reviewer:** Pending
+- **Date:** 2026-08-09
 
 ## Implementation record: read-only elevated broker
 
@@ -140,8 +172,9 @@ Legion + LOQ Control.
   strict 64 KiB length-prefixed JSON, explicit wire DTO validation, UAC launch, and bounded
   broker lifetime
 - **Security boundary:** The broker accepts only one hardware-state read request. It has no
-  hardware-write request, dispatcher, legacy Core reference, EnergyDrv access, or HID
-  access.
+  hardware-write request, dispatcher, legacy Core reference, generic/writable EnergyDrv
+  access, or HID access. Its only driver operation is the exact battery read documented
+  above.
 - **Independent evidence:** Same-process named-pipe integration tests verify ACL creation,
   server/client process-ID APIs, framing, request binding, and response validation on
   Windows 10. An explicit UAC-assisted run verified the cross-integrity pipe and one-shot

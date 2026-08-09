@@ -74,8 +74,8 @@ malformed output, and timeout remain distinct from real hardware values.
 
 On the recorded 83DV machine, the Lenovo WMI getters require elevation. The CLI can expose
 the unelevated denial or explicitly launch the read-only broker through UAC. The WPF shell
-does not call either state path yet. Battery state remains unavailable until the Energy
-driver read path is implemented behind the privileged boundary.
+does not call either state path yet. Battery mode remains unavailable in the unelevated
+reader; the broker adds one exact zero-access EnergyDrv read.
 
 ## Current brokered read flow
 
@@ -87,8 +87,10 @@ flowchart LR
     Broker --> Pipe
     Pipe --> Validate[Version nonce and peer PID checks]
     Validate --> CimBatch[Static built-in PowerShell CIM batch]
+    Validate --> EnergyRead[Exact zero-access EnergyDrv battery read]
     CimBatch --> Getters[Fixed Lenovo getters]
     Getters --> Wire[Validated wire DTO]
+    EnergyRead --> Wire
     Wire --> Client
 ```
 
