@@ -15,6 +15,7 @@ The artifact:
 - contains no installer, service, updater, background watcher, or automation runner;
 - performs no hardware writes and has no profile Apply path;
 - is framework-dependent and unsigned;
+- carries the restored runtime packages' exact license and notice files;
 - includes `BUILD-INFO.json` plus `SHA256SUMS.txt` for provenance and integrity checks; and
 - is retained by CI for seven days only.
 

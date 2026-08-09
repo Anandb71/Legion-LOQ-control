@@ -1,8 +1,9 @@
 # Third-Party Notices
 
 Legion + LOQ Control uses and studies open-source software. This file summarizes the
-notices that apply to the current repository. Release packaging must regenerate and
-verify this list from the locked dependency graph.
+notices that apply to the current repository. Preview packaging verifies that every locked
+runtime package is represented here and copies each package's exact license and notice files
+into `THIRD-PARTY-LICENSES`.
 
 ## Lenovo Legion Toolkit
 
@@ -16,6 +17,16 @@ Copyright belongs to the Lenovo Legion Toolkit contributors.
 LLT is retained as a reference-only git submodule and is not compiled into release
 artifacts. Legacy prototype files that state they derive from LLT are being replaced or
 will retain explicit GPL attribution and modification notices.
+
+## CommunityToolkit.Mvvm
+
+Copyright .NET Foundation and contributors.
+
+- Source: <https://github.com/CommunityToolkit/dotnet>
+- License: MIT
+
+CommunityToolkit.Mvvm supplies the active WPF presentation layer's observable properties
+and commands and is distributed in application artifacts.
 
 ## HidSharp
 

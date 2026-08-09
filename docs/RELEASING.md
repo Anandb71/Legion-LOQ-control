@@ -22,14 +22,16 @@ Run the `Read-only Preview Artifact` workflow manually from GitHub Actions. It:
 3. enforces static accessibility and UI safety contracts;
 4. publishes the framework-dependent WPF shell with
    `IncludeBrokerArtifacts=false`;
-5. adds the GPL license, third-party notices, safety policy, security policy, and preview
-   boundary notice;
-6. records the source commit, SDK, version, and enforced safety flags in `BUILD-INFO.json`;
-7. generates `SHA256SUMS.txt`;
-8. fails if a required file is absent, debug symbols are present, or any
+5. adds the GPL license, exact runtime-package license and notice files, safety policy,
+   security policy, and preview boundary notice;
+6. verifies the published version and requires notice coverage for every runtime package;
+7. records the source commit, dirty state, SDK, version, runtime package versions, and
+   enforced safety flags in `BUILD-INFO.json`;
+8. generates `SHA256SUMS.txt`;
+9. fails if a required file is absent, debug symbols are present, or any
    `LegionLoqControl.Broker*` file is present;
-9. launches the packaged executable and requires a responsive main window; and
-10. uploads a private workflow artifact retained for seven days.
+10. launches the packaged executable and requires a responsive main window; and
+11. uploads a private workflow artifact retained for seven days.
 
 The preview requires the .NET 10 Desktop Runtime. It is unsigned and is not an installer.
 See [`READ_ONLY_PREVIEW.md`](READ_ONLY_PREVIEW.md) for the user-facing boundary.
