@@ -1,11 +1,14 @@
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using LegionLoqControl.Application.Automation;
 using LegionLoqControl.Application.Profiles;
 using LegionLoqControl.Domain.Capabilities;
 using LegionLoqControl.Domain.Controls;
 using LegionLoqControl.Domain.Diagnostics;
 using LegionLoqControl.Domain.Results;
+using LegionLoqControl.Infrastructure.Windows.Automation;
 using LegionLoqControl.Infrastructure.Windows.Profiles;
 using LegionLoqControl.Services;
 
@@ -126,22 +129,32 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public MainWindowViewModel()
         : this(
             new DashboardDataSource(),
-            new MachineSessionViewModel(),
-            JsonProfileStore.CreateDefault())
+            new MachineSessionViewModel())
     {
     }
 
     internal MainWindowViewModel(
         IDashboardDataSource dataSource,
         MachineSessionViewModel? session = null,
-        IProfileStore? profileStore = null)
+        IProfileStore? profileStore = null,
+        IAutomationRuleStore? automationRuleStore = null,
+        PowerSourceService? powerSourceService = null,
+        AutomationPreviewService? automationPreviewService = null)
     {
         _dataSource = dataSource ?? throw new ArgumentNullException(nameof(dataSource));
         Session = session ?? new MachineSessionViewModel();
+        IProfileStore sharedProfileStore =
+            profileStore ?? JsonProfileStore.CreateDefault();
         ProfileWorkspace = new ProfileWorkspaceViewModel(
-            profileStore ?? JsonProfileStore.CreateDefault(),
+            sharedProfileStore,
             new ProfilePreviewService(),
             Session);
+        AutomationWorkspace = new AutomationWorkspaceViewModel(
+            automationRuleStore ?? JsonAutomationRuleStore.CreateDefault(),
+            sharedProfileStore,
+            powerSourceService ?? new PowerSourceService(new WindowsPowerSourceReader()),
+            automationPreviewService ?? new AutomationPreviewService());
+        ProfileWorkspace.Profiles.CollectionChanged += Profiles_CollectionChanged;
 
         Battery = new HardwareStateCardViewModel(
             "BATTERY",
@@ -172,6 +185,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public MachineSessionViewModel Session { get; }
 
     public ProfileWorkspaceViewModel ProfileWorkspace { get; }
+
+    public AutomationWorkspaceViewModel AutomationWorkspace { get; }
 
     public ObservableCollection<CapabilityItemViewModel> Capabilities { get; } = [];
 
@@ -216,7 +231,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public void Cancel()
     {
         _lifetime.Cancel();
+        ProfileWorkspace.Profiles.CollectionChanged -= Profiles_CollectionChanged;
         ProfileWorkspace.Dispose();
+        AutomationWorkspace.Dispose();
     }
 
     [RelayCommand(CanExecute = nameof(CanRefreshHardwareState))]
@@ -277,6 +294,11 @@ public sealed partial class MainWindowViewModel : ObservableObject
     }
 
     private bool CanRefreshHardwareState() => !IsBusy && _initialized;
+
+    private void Profiles_CollectionChanged(
+        object? sender,
+        NotifyCollectionChangedEventArgs e) =>
+        AutomationWorkspace.SynchronizeProfiles(ProfileWorkspace.Profiles);
 
     private void ApplyIdentity(MachineIdentity identity)
     {

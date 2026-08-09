@@ -1,0 +1,465 @@
+<UserControl x:Class="LegionLoqControl.Views.AutomationWorkspaceView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:automation="clr-namespace:System.Windows.Automation;assembly=PresentationCore"
+             xmlns:vm="clr-namespace:LegionLoqControl.ViewModels">
+    <UserControl.Resources>
+        <DataTemplate x:Key="AutomationRuleListItemTemplate">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                    <TextBlock FontWeight="SemiBold"
+                               Text="{Binding Name}" />
+                    <TextBlock Margin="0,3,12,0"
+                               FontSize="10"
+                               Foreground="{StaticResource MutedTextBrush}"
+                               Text="{Binding RequiredPowerSource}" />
+                </StackPanel>
+                <TextBlock Grid.Column="1"
+                           VerticalAlignment="Center"
+                           Style="{StaticResource EyebrowTextStyle}"
+                           Text="{Binding Priority, StringFormat=PRIORITY {0}}" />
+            </Grid>
+        </DataTemplate>
+
+        <Style x:Key="PowerSourceStateMarkerStyle" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource MutedTextBrush}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding PowerSourceState}"
+                             Value="{x:Static vm:DashboardStateKind.Success}">
+                    <Setter Property="Background"
+                            Value="{StaticResource SuccessBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding PowerSourceState}"
+                             Value="{x:Static vm:DashboardStateKind.Error}">
+                    <Setter Property="Background"
+                            Value="{StaticResource FailureBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding PowerSourceState}"
+                             Value="{x:Static vm:DashboardStateKind.Unavailable}">
+                    <Setter Property="Background"
+                            Value="{StaticResource BorderBrush}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="AutomationPreviewMarkerStyle" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource MutedTextBrush}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding PreviewState}"
+                             Value="{x:Static vm:DashboardStateKind.Success}">
+                    <Setter Property="Background"
+                            Value="{StaticResource SuccessBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding PreviewState}"
+                             Value="{x:Static vm:DashboardStateKind.Warning}">
+                    <Setter Property="Background"
+                            Value="{StaticResource WarningBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding PreviewState}"
+                             Value="{x:Static vm:DashboardStateKind.Error}">
+                    <Setter Property="Background"
+                            Value="{StaticResource FailureBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding PreviewState}"
+                             Value="{x:Static vm:DashboardStateKind.Unavailable}">
+                    <Setter Property="Background"
+                            Value="{StaticResource BorderBrush}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="AutomationPreviewStatusStyle"
+               TargetType="TextBlock"
+               BasedOn="{StaticResource EyebrowTextStyle}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding PreviewState}"
+                             Value="{x:Static vm:DashboardStateKind.Warning}">
+                    <Setter Property="Foreground"
+                            Value="{StaticResource WarningBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding PreviewState}"
+                             Value="{x:Static vm:DashboardStateKind.Error}">
+                    <Setter Property="Foreground"
+                            Value="{StaticResource FailureBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding PreviewState}"
+                             Value="{x:Static vm:DashboardStateKind.Success}">
+                    <Setter Property="Foreground"
+                            Value="{StaticResource SuccessBrush}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <ScrollViewer Background="{StaticResource CanvasBrush}"
+                  HorizontalScrollBarVisibility="Disabled"
+                  VerticalScrollBarVisibility="Auto">
+        <Grid Margin="32,24,32,28"
+              Background="{StaticResource CanvasBrush}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" Margin="0,0,0,24">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                    <TextBlock Style="{StaticResource EyebrowTextStyle}"
+                               Text="AUTOMATION PREVIEW / OBSERVE · EVALUATE · NEVER APPLY" />
+                    <TextBlock Margin="0,6,0,0"
+                               FontFamily="{StaticResource DisplayFont}"
+                               FontSize="28"
+                               FontWeight="SemiBold"
+                               Text="{Binding DataContext.DeviceName, RelativeSource={RelativeSource AncestorType=Window}}" />
+                    <TextBlock Margin="0,5,0,0"
+                               Foreground="{StaticResource SecondaryTextBrush}"
+                               Text="{Binding DataContext.DeviceMetadata, RelativeSource={RelativeSource AncestorType=Window}}" />
+                </StackPanel>
+                <StackPanel Grid.Column="1"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center">
+                    <TextBlock HorizontalAlignment="Right"
+                               Style="{StaticResource EyebrowTextStyle}"
+                               Text="LOCAL RULES · NO RUNNER" />
+                    <TextBlock Margin="0,6,0,0"
+                               HorizontalAlignment="Right"
+                               Foreground="{StaticResource MutedTextBrush}"
+                               Text="No background watcher or profile execution" />
+                </StackPanel>
+            </Grid>
+
+            <Border Grid.Row="1"
+                    Margin="0,0,0,20"
+                    Style="{StaticResource SurfaceBorderStyle}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="4" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0" CornerRadius="6,0,0,6">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background"
+                                        Value="{StaticResource WarningBrush}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding WorkspaceState}"
+                                                 Value="{x:Static vm:DashboardStateKind.Success}">
+                                        <Setter Property="Background"
+                                                Value="{StaticResource SuccessBrush}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding WorkspaceState}"
+                                                 Value="{x:Static vm:DashboardStateKind.Error}">
+                                        <Setter Property="Background"
+                                                Value="{StaticResource FailureBrush}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding WorkspaceState}"
+                                                 Value="{x:Static vm:DashboardStateKind.Unavailable}">
+                                        <Setter Property="Background"
+                                                Value="{StaticResource BorderBrush}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                    </Border>
+                    <StackPanel Grid.Column="1" Margin="20,16">
+                        <TextBlock FontWeight="SemiBold"
+                                   Text="{Binding WorkspaceTitle}" />
+                        <TextBlock Margin="0,4,0,0"
+                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                   Text="{Binding WorkspaceMessage}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="2" Margin="0,0,0,20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="12" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0"
+                        Padding="20"
+                        Style="{StaticResource SurfaceBorderStyle}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="4" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border x:Name="PowerSourceMarker"
+                                Grid.Column="0"
+                                Margin="0,1,0,1"
+                                CornerRadius="2"
+                                Style="{StaticResource PowerSourceStateMarkerStyle}" />
+                        <Grid Grid.Column="1" Margin="16,0,0,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0"
+                                       Style="{StaticResource EyebrowTextStyle}"
+                                       Text="OBSERVED POWER SOURCE" />
+                            <TextBlock Grid.Row="1"
+                                       Margin="0,8,0,0"
+                                       FontFamily="{StaticResource DisplayFont}"
+                                       FontSize="24"
+                                       FontWeight="SemiBold"
+                                       Text="{Binding PowerSourceValue}" />
+                            <TextBlock Grid.Row="2"
+                                       Margin="0,5,0,12"
+                                       Foreground="{StaticResource MutedTextBrush}"
+                                       Text="{Binding PowerSourceDetail}" />
+                            <Button Grid.Row="3"
+                                    HorizontalAlignment="Left"
+                                    automation:AutomationProperties.Name="Refresh local AC or battery observation"
+                                    Command="{Binding RefreshPowerSourceCommand}"
+                                    Content="Refresh observation"
+                                    Style="{StaticResource BaseButtonStyle}"
+                                    ToolTip="Uses the local Windows power-status API without elevation" />
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Column="2"
+                        Padding="20"
+                        Style="{StaticResource SurfaceBorderStyle}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="4" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border x:Name="AutomationPreviewMarker"
+                                Grid.Column="0"
+                                Margin="0,1,0,1"
+                                CornerRadius="2"
+                                Style="{StaticResource AutomationPreviewMarkerStyle}" />
+                        <Grid Grid.Column="1" Margin="16,0,0,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock x:Name="AutomationPreviewStatus"
+                                       Grid.Row="0"
+                                       Style="{StaticResource AutomationPreviewStatusStyle}"
+                                       Text="{Binding PreviewStatus}" />
+                            <TextBlock Grid.Row="1"
+                                       Margin="0,8,0,0"
+                                       FontFamily="{StaticResource DisplayFont}"
+                                       FontSize="20"
+                                       FontWeight="SemiBold"
+                                       Text="{Binding PreviewRuleName}" />
+                            <TextBlock Grid.Row="2"
+                                       Margin="0,4,0,0"
+                                       Foreground="{StaticResource SecondaryTextBrush}"
+                                       Text="{Binding PreviewProfileName, StringFormat=Target profile · {0}}" />
+                            <TextBlock Grid.Row="3"
+                                       Margin="0,8,0,0"
+                                       FontSize="10"
+                                       Foreground="{StaticResource MutedTextBrush}"
+                                       Text="{Binding PreviewDetail}" />
+                        </Grid>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <Grid Grid.Row="3" Margin="0,0,0,20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="280" />
+                    <ColumnDefinition Width="12" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0"
+                        Padding="16"
+                        Style="{StaticResource SurfaceBorderStyle}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid Grid.Row="0" Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Style="{StaticResource SectionTitleStyle}"
+                                           Text="Local rules" />
+                                <TextBlock Margin="0,3,0,0"
+                                           FontSize="10"
+                                           Foreground="{StaticResource MutedTextBrush}"
+                                           Text="{Binding Rules.Count, StringFormat={}{0} SAVED}" />
+                            </StackPanel>
+                            <Button Grid.Column="1"
+                                    Padding="12,6"
+                                    automation:AutomationProperties.Name="Create a new local automation rule"
+                                    Command="{Binding NewRuleCommand}"
+                                    Content="New"
+                                    Style="{StaticResource BaseButtonStyle}" />
+                        </Grid>
+                        <ListBox Grid.Row="1"
+                                 MinHeight="240"
+                                 ItemTemplate="{StaticResource AutomationRuleListItemTemplate}"
+                                 ItemsSource="{Binding Rules}"
+                                 SelectedItem="{Binding SelectedRule, Mode=TwoWay}" />
+                        <TextBlock Grid.Row="2"
+                                   Margin="0,12,0,0"
+                                   FontSize="10"
+                                   Foreground="{StaticResource MutedTextBrush}"
+                                   Text="Current-user JSON · strict schema · bounded size" />
+                    </Grid>
+                </Border>
+
+                <Border Grid.Column="2"
+                        Padding="20"
+                        Style="{StaticResource SurfaceBorderStyle}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <StackPanel Grid.Row="0" Margin="0,0,0,18">
+                            <TextBlock Style="{StaticResource SectionTitleStyle}"
+                                       Text="Rule definition" />
+                            <TextBlock Margin="0,4,0,0"
+                                       Foreground="{StaticResource MutedTextBrush}"
+                                       Text="A rule can select a local profile in preview; it cannot execute it." />
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="1" Margin="0,0,0,16">
+                            <TextBlock Margin="0,0,0,6"
+                                       Style="{StaticResource EyebrowTextStyle}"
+                                       Text="RULE NAME" />
+                            <TextBox automation:AutomationProperties.Name="Automation rule name"
+                                     MaxLength="64"
+                                     Text="{Binding DraftName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+
+                        <Grid Grid.Row="2" Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Margin="0,0,0,6"
+                                           Style="{StaticResource EyebrowTextStyle}"
+                                           Text="TARGET PROFILE" />
+                                <ComboBox automation:AutomationProperties.Name="Automation target profile"
+                                          DisplayMemberPath="Name"
+                                          ItemsSource="{Binding Profiles}"
+                                          SelectedItem="{Binding SelectedProfile, Mode=TwoWay}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Margin="0,0,0,6"
+                                           Style="{StaticResource EyebrowTextStyle}"
+                                           Text="WHEN" />
+                                <ComboBox automation:AutomationProperties.Name="Required power source"
+                                          DisplayMemberPath="Label"
+                                          ItemsSource="{Binding PowerSourceOptions}"
+                                          SelectedValue="{Binding SelectedPowerSource, Mode=TwoWay}"
+                                          SelectedValuePath="Value" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="4">
+                                <TextBlock Margin="0,0,0,6"
+                                           Style="{StaticResource EyebrowTextStyle}"
+                                           Text="PRIORITY" />
+                                <TextBox automation:AutomationProperties.Name="Automation rule priority"
+                                         MaxLength="4"
+                                         Text="{Binding DraftPriority, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="0–1000; a unique highest matching priority wins" />
+                            </StackPanel>
+                        </Grid>
+
+                        <Border Grid.Row="3"
+                                Margin="0,0,0,18"
+                                Padding="14,12"
+                                Background="{StaticResource RaisedSurfaceBrush}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="2">
+                            <CheckBox automation:AutomationProperties.Name="Include this rule in automation previews"
+                                      Content="Enabled for deterministic preview selection"
+                                      IsChecked="{Binding DraftIsEnabled, Mode=TwoWay}" />
+                        </Border>
+
+                        <Grid Grid.Row="4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       Margin="0,0,16,0"
+                                       VerticalAlignment="Center"
+                                       FontSize="10"
+                                       Foreground="{StaticResource MutedTextBrush}"
+                                       Text="No Apply command, scheduler, or background runner exists." />
+                            <Button Grid.Column="1"
+                                    Margin="0,0,8,0"
+                                    automation:AutomationProperties.Name="Preview deterministic rule selection"
+                                    Command="{Binding PreviewRuleCommand}"
+                                    Content="Preview rule"
+                                    Style="{StaticResource PrimaryButtonStyle}" />
+                            <Button Grid.Column="2"
+                                    Margin="0,0,8,0"
+                                    automation:AutomationProperties.Name="Save automation rule locally"
+                                    Command="{Binding SaveRuleCommand}"
+                                    Content="Save"
+                                    Style="{StaticResource BaseButtonStyle}" />
+                            <Button Grid.Column="3"
+                                    automation:AutomationProperties.Name="Delete selected local automation rule"
+                                    Command="{Binding DeleteRuleCommand}"
+                                    Content="Delete"
+                                    Style="{StaticResource BaseButtonStyle}" />
+                        </Grid>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <Border Grid.Row="4"
+                    Padding="16,14"
+                    Background="{StaticResource RaisedSurfaceBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="2">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0"
+                               Margin="0,0,16,0"
+                               VerticalAlignment="Center"
+                               Foreground="{StaticResource WarningBrush}"
+                               Style="{StaticResource EyebrowTextStyle}"
+                               Text="SAFETY BOUNDARY" />
+                    <TextBlock Grid.Column="1"
+                               Foreground="{StaticResource SecondaryTextBrush}"
+                               Text="The app observes AC/battery state, evaluates local rules, and stops. It does not watch, schedule, elevate, apply profiles, or write hardware." />
+                </Grid>
+            </Border>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

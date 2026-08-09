@@ -175,6 +175,30 @@ public sealed partial class AutomationWorkspaceViewModel : ObservableObject, IDi
         }
     }
 
+    internal void SynchronizeProfiles(IEnumerable<HardwareProfile> profiles)
+    {
+        ArgumentNullException.ThrowIfNull(profiles);
+
+        ProfileId? preferredProfileId =
+            SelectedProfile?.Id ?? SelectedRule?.ProfileId;
+        ReplaceProfiles(profiles);
+
+        _isHydratingDraft = true;
+        try
+        {
+            SelectedProfile = preferredProfileId.HasValue
+                ? Profiles.FirstOrDefault(profile => profile.Id == preferredProfileId.Value)
+                : Profiles.FirstOrDefault();
+        }
+        finally
+        {
+            _isHydratingDraft = false;
+        }
+
+        if (_initialized)
+            PreviewCurrentDraft();
+    }
+
     public void Dispose()
     {
         if (_disposed)

@@ -179,6 +179,33 @@ public sealed class AutomationWorkspaceViewModelTests
     }
 
     [Fact]
+    public async Task Profile_catalog_changes_recalculate_saved_rule_targets()
+    {
+        ProfileId profileId = ProfileId.New();
+        AutomationRule rule = CreateRule(
+            "Waiting for profile",
+            profileId,
+            PowerSourceKind.Ac,
+            priority: 100);
+        using var viewModel = CreateViewModel(
+            new StubRuleStore(rule),
+            new StubProfileStore(),
+            new StubPowerSourceReader(PowerSourceKind.Ac));
+        await viewModel.InitializeAsync();
+        Assert.Equal(AutomationPreviewStatus.ProfileMissing, viewModel.LastPreview?.Status);
+        var profile = new HardwareProfile(
+            profileId,
+            "Arrived",
+            new HardwareProfileTargets(thermalMode: ThermalMode.Balanced));
+
+        viewModel.SynchronizeProfiles([profile]);
+
+        Assert.Equal(profile, viewModel.SelectedProfile);
+        Assert.Equal(AutomationPreviewStatus.WouldSelect, viewModel.LastPreview?.Status);
+        Assert.Equal("Arrived", viewModel.PreviewProfileName);
+    }
+
+    [Fact]
     public async Task Corrupt_rule_store_is_reported_without_overwriting_it()
     {
         var ruleStore = new StubRuleStore
