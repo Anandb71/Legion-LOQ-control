@@ -14,7 +14,8 @@ The artifact:
 - requires the .NET 10 Desktop Runtime on Windows;
 - contains no installer, service, updater, background watcher, or automation runner;
 - performs no hardware writes and has no profile Apply path;
-- is framework-dependent and unsigned; and
+- is framework-dependent and unsigned;
+- includes `BUILD-INFO.json` plus `SHA256SUMS.txt` for provenance and integrity checks; and
 - is retained by CI for seven days only.
 
 Do not redistribute it as a production release. Public release packaging remains blocked on

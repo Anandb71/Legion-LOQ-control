@@ -37,56 +37,12 @@ jobs:
         shell: pwsh
         run: ./scripts/test-accessibility-contracts.ps1
 
-      - name: Publish
+      - name: Build and verify broker-free preview
         shell: pwsh
-        run: |
-          $version = "0.0.0-preview.${{ github.run_number }}"
-          dotnet publish LegionLoqControl/LegionLoqControl.csproj `
-            --configuration Release `
-            --output preview `
-            --no-restore `
-            --self-contained false `
-            -p:Version=$version `
-            -p:DebugType=None `
-            -p:DebugSymbols=false `
-            -p:IncludeBrokerArtifacts=false
-
-          if ($LASTEXITCODE -ne 0) {
-            exit $LASTEXITCODE
-          }
-
-      - name: Add license and safety documents
-        shell: pwsh
-        run: |
-          Copy-Item LICENSE preview/
-          Copy-Item THIRD-PARTY-NOTICES.md preview/
-          Copy-Item README.md preview/
-          Copy-Item SAFETY.md preview/
-          Copy-Item SECURITY.md preview/
-          Copy-Item docs/READ_ONLY_PREVIEW.md preview/
-
-      - name: Verify unelevated preview boundary
-        shell: pwsh
-        run: |
-          $required = @(
-            "LegionLoqControl.exe",
-            "LegionLoqControl.dll",
-            "LICENSE",
-            "THIRD-PARTY-NOTICES.md",
-            "READ_ONLY_PREVIEW.md",
-            "SAFETY.md"
-          )
-
-          foreach ($name in $required) {
-            if (-not (Test-Path (Join-Path preview $name) -PathType Leaf)) {
-              throw "Missing required preview artifact: $name"
-            }
-          }
-
-          $brokerArtifacts = @(Get-ChildItem preview -File -Filter "LegionLoqControl.Broker*")
-          if ($brokerArtifacts.Count -ne 0) {
-            throw "Unsigned elevated broker artifacts must not enter preview packages."
-          }
+        run: >
+          ./scripts/build-read-only-preview.ps1
+          -OutputPath preview
+          -Version "0.0.0-preview.${{ github.run_number }}"
 
       - name: Upload short-lived preview
         uses: actions/upload-artifact@v4

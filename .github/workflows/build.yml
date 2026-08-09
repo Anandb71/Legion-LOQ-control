@@ -47,3 +47,10 @@ jobs:
 
       - name: Test
         run: dotnet test LegionLoqControl.sln --configuration Release --no-build --no-restore
+
+      - name: Verify broker-free preview package
+        shell: pwsh
+        run: >
+          ./scripts/build-read-only-preview.ps1
+          -OutputPath "$env:RUNNER_TEMP/LegionLoqControl-read-only-preview-${{ github.run_attempt }}"
+          -Version "0.0.0-ci.${{ github.run_number }}.${{ github.run_attempt }}"
