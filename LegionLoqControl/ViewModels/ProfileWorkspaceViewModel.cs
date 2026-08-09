@@ -16,6 +16,11 @@ public sealed record ProfilePreviewItemViewModel(
     string Detail,
     DashboardStateKind State);
 
+public sealed record ProfileModeOption<T>(T Value, string Label) where T : struct
+{
+    public override string ToString() => Label;
+}
+
 public sealed partial class ProfileWorkspaceViewModel : ObservableObject, IDisposable
 {
     private readonly IProfileStore _store;
@@ -85,11 +90,21 @@ public sealed partial class ProfileWorkspaceViewModel : ObservableObject, IDispo
 
     public ObservableCollection<ProfilePreviewItemViewModel> PreviewItems { get; } = [];
 
-    public IReadOnlyList<BatteryChargeMode> BatteryModes { get; } =
-        Array.AsReadOnly(Enum.GetValues<BatteryChargeMode>());
+    public IReadOnlyList<ProfileModeOption<BatteryChargeMode>> BatteryModeOptions { get; } =
+    [
+        new(BatteryChargeMode.Normal, "Normal"),
+        new(BatteryChargeMode.Conservation, "Conservation"),
+        new(BatteryChargeMode.RapidCharge, "Rapid charge"),
+    ];
 
-    public IReadOnlyList<ThermalMode> ThermalModes { get; } =
-        Array.AsReadOnly(Enum.GetValues<ThermalMode>());
+    public IReadOnlyList<ProfileModeOption<ThermalMode>> ThermalModeOptions { get; } =
+    [
+        new(ThermalMode.Quiet, "Quiet"),
+        new(ThermalMode.Balanced, "Balanced"),
+        new(ThermalMode.Performance, "Performance"),
+        new(ThermalMode.Extreme, "Extreme"),
+        new(ThermalMode.Custom, "Custom"),
+    ];
 
     public async Task InitializeAsync()
     {

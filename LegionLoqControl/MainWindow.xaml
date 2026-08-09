@@ -117,11 +117,107 @@
                 </DataTrigger>
             </DataTemplate.Triggers>
         </DataTemplate>
+
+        <DataTemplate x:Key="ProfilePreviewItemTemplate"
+                      DataType="{x:Type vm:ProfilePreviewItemViewModel}">
+            <Border Margin="0,0,0,8"
+                    Padding="16,14"
+                    Style="{StaticResource SurfaceBorderStyle}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="4" />
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border x:Name="PreviewMarker"
+                            Grid.Column="0"
+                            Margin="0,1,0,1"
+                            Background="{StaticResource MutedTextBrush}"
+                            CornerRadius="2" />
+                    <StackPanel Grid.Column="1" Margin="14,0,20,0">
+                        <TextBlock FontWeight="SemiBold" Text="{Binding Feature}" />
+                        <TextBlock Margin="0,3,0,0"
+                                   FontSize="10"
+                                   Foreground="{StaticResource MutedTextBrush}"
+                                   Text="{Binding Detail}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                        <TextBlock Style="{StaticResource EyebrowTextStyle}"
+                                   Text="CURRENT" />
+                        <TextBlock Margin="0,3,0,0"
+                                   FontWeight="SemiBold"
+                                   Text="{Binding Current}" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="3"
+                               Margin="16,0"
+                               VerticalAlignment="Center"
+                               Foreground="{StaticResource MutedTextBrush}"
+                               Text="→" />
+                    <StackPanel Grid.Column="4" VerticalAlignment="Center">
+                        <TextBlock Style="{StaticResource EyebrowTextStyle}"
+                                   Text="DRAFT" />
+                        <TextBlock Margin="0,3,0,0"
+                                   FontWeight="SemiBold"
+                                   Text="{Binding Desired}" />
+                    </StackPanel>
+                    <TextBlock x:Name="PreviewStatus"
+                               Grid.Column="5"
+                               Margin="20,0,0,0"
+                               VerticalAlignment="Center"
+                               Style="{StaticResource EyebrowTextStyle}"
+                               Text="{Binding Status}" />
+                </Grid>
+            </Border>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding State}"
+                             Value="{x:Static vm:DashboardStateKind.Success}">
+                    <Setter TargetName="PreviewMarker"
+                            Property="Background"
+                            Value="{StaticResource SuccessBrush}" />
+                    <Setter TargetName="PreviewStatus"
+                            Property="Foreground"
+                            Value="{StaticResource SuccessBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding State}"
+                             Value="{x:Static vm:DashboardStateKind.Warning}">
+                    <Setter TargetName="PreviewMarker"
+                            Property="Background"
+                            Value="{StaticResource WarningBrush}" />
+                    <Setter TargetName="PreviewStatus"
+                            Property="Foreground"
+                            Value="{StaticResource WarningBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding State}"
+                             Value="{x:Static vm:DashboardStateKind.Error}">
+                    <Setter TargetName="PreviewMarker"
+                            Property="Background"
+                            Value="{StaticResource FailureBrush}" />
+                    <Setter TargetName="PreviewStatus"
+                            Property="Foreground"
+                            Value="{StaticResource FailureBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding State}"
+                             Value="{x:Static vm:DashboardStateKind.Unavailable}">
+                    <Setter TargetName="PreviewMarker"
+                            Property="Background"
+                            Value="{StaticResource BorderBrush}" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
     </Window.Resources>
 
-    <ScrollViewer Background="{StaticResource CanvasBrush}"
-                  VerticalScrollBarVisibility="Auto"
-                  HorizontalScrollBarVisibility="Disabled">
+    <TabControl Background="{StaticResource CanvasBrush}"
+                BorderThickness="0">
+        <TabItem Margin="32,0,0,0"
+                 Header="DASHBOARD"
+                 Style="{StaticResource NavigationTabItemStyle}">
+            <ScrollViewer Background="{StaticResource CanvasBrush}"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled">
         <Grid Margin="32,24,32,28"
               Background="{StaticResource CanvasBrush}">
             <Grid.RowDefinitions>
@@ -306,5 +402,289 @@
                 </StackPanel>
             </Border>
         </Grid>
-    </ScrollViewer>
+            </ScrollViewer>
+        </TabItem>
+
+        <TabItem Header="PROFILE PREVIEW"
+                 Style="{StaticResource NavigationTabItemStyle}">
+            <ScrollViewer Background="{StaticResource CanvasBrush}"
+                          DataContext="{Binding ProfileWorkspace}"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled">
+                <Grid Margin="32,24,32,28"
+                      Background="{StaticResource CanvasBrush}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="0,0,0,24">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Style="{StaticResource EyebrowTextStyle}"
+                                       Text="PROFILE PREVIEW / READ-ONLY PLANNING" />
+                            <TextBlock Margin="0,6,0,0"
+                                       FontFamily="{StaticResource DisplayFont}"
+                                       FontSize="28"
+                                       FontWeight="SemiBold"
+                                       Text="{Binding DataContext.DeviceName, RelativeSource={RelativeSource AncestorType=Window}}" />
+                            <TextBlock Margin="0,5,0,0"
+                                       Foreground="{StaticResource SecondaryTextBrush}"
+                                       Text="{Binding DataContext.DeviceMetadata, RelativeSource={RelativeSource AncestorType=Window}}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Center">
+                            <TextBlock HorizontalAlignment="Right"
+                                       Style="{StaticResource EyebrowTextStyle}"
+                                       Text="LOCAL DRAFTS · NO APPLY PATH" />
+                            <TextBlock Margin="0,6,0,0"
+                                       HorizontalAlignment="Right"
+                                       Foreground="{StaticResource MutedTextBrush}"
+                                       Text="No profile action requests elevation" />
+                        </StackPanel>
+                    </Grid>
+
+                    <Border Grid.Row="1"
+                            Margin="0,0,0,28"
+                            Style="{StaticResource SurfaceBorderStyle}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="4" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border x:Name="ProfileBannerMarker"
+                                    Grid.Column="0"
+                                    CornerRadius="6,0,0,6">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background"
+                                                Value="{StaticResource WarningBrush}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding WorkspaceState}"
+                                                         Value="{x:Static vm:DashboardStateKind.Success}">
+                                                <Setter Property="Background"
+                                                        Value="{StaticResource SuccessBrush}" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding WorkspaceState}"
+                                                         Value="{x:Static vm:DashboardStateKind.Error}">
+                                                <Setter Property="Background"
+                                                        Value="{StaticResource FailureBrush}" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding WorkspaceState}"
+                                                         Value="{x:Static vm:DashboardStateKind.Unavailable}">
+                                                <Setter Property="Background"
+                                                        Value="{StaticResource BorderBrush}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                            </Border>
+                            <StackPanel Grid.Column="1" Margin="20,16">
+                                <TextBlock FontWeight="SemiBold"
+                                           Text="{Binding WorkspaceTitle}" />
+                                <TextBlock Margin="0,4,0,0"
+                                           Foreground="{StaticResource SecondaryTextBrush}"
+                                           Text="{Binding WorkspaceMessage}" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <Grid Grid.Row="2" Margin="0,0,0,28">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="280" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0"
+                                Padding="16"
+                                Style="{StaticResource SurfaceBorderStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Grid Grid.Row="0" Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Style="{StaticResource SectionTitleStyle}"
+                                                   Text="Local drafts" />
+                                        <TextBlock Margin="0,3,0,0"
+                                                   FontSize="10"
+                                                   Foreground="{StaticResource MutedTextBrush}"
+                                                   Text="{Binding Profiles.Count, StringFormat={}{0} SAVED}" />
+                                    </StackPanel>
+                                    <Button Grid.Column="1"
+                                            Padding="12,6"
+                                            automation:AutomationProperties.Name="Create a new local profile draft"
+                                            Command="{Binding NewDraftCommand}"
+                                            Content="New"
+                                            Style="{StaticResource BaseButtonStyle}" />
+                                </Grid>
+                                <ListBox Grid.Row="1"
+                                         MinHeight="220"
+                                         ItemsSource="{Binding Profiles}"
+                                         SelectedItem="{Binding SelectedProfile, Mode=TwoWay}"
+                                         DisplayMemberPath="Name" />
+                                <TextBlock Grid.Row="2"
+                                           Margin="0,12,0,0"
+                                           FontSize="10"
+                                           Foreground="{StaticResource MutedTextBrush}"
+                                           Text="Stored for the current Windows user · strict versioned JSON" />
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Column="2"
+                                Padding="20"
+                                Style="{StaticResource SurfaceBorderStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <StackPanel Grid.Row="0" Margin="0,0,0,18">
+                                    <TextBlock Style="{StaticResource SectionTitleStyle}"
+                                               Text="Draft definition" />
+                                    <TextBlock Margin="0,4,0,0"
+                                               Foreground="{StaticResource MutedTextBrush}"
+                                               Text="These values are comparison targets, not controls." />
+                                </StackPanel>
+
+                                <StackPanel Grid.Row="1" Margin="0,0,0,18">
+                                    <TextBlock Margin="0,0,0,6"
+                                               Style="{StaticResource EyebrowTextStyle}"
+                                               Text="PROFILE NAME" />
+                                    <TextBox automation:AutomationProperties.Name="Profile draft name"
+                                             MaxLength="64"
+                                             Text="{Binding DraftName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                </StackPanel>
+
+                                <Grid Grid.Row="2" Margin="0,0,0,20">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="12" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <Border Grid.Column="0"
+                                            Padding="16"
+                                            Background="{StaticResource RaisedSurfaceBrush}"
+                                            BorderBrush="{StaticResource BorderBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="2">
+                                        <StackPanel>
+                                            <CheckBox automation:AutomationProperties.Name="Include battery charge mode in this draft"
+                                                      Content="Include battery charge mode"
+                                                      IsChecked="{Binding IncludeBattery, Mode=TwoWay}" />
+                                            <TextBlock Margin="0,6,0,10"
+                                                       FontSize="10"
+                                                       Foreground="{StaticResource MutedTextBrush}"
+                                                       Text="Normal, conservation, or rapid charge" />
+                                            <ComboBox automation:AutomationProperties.Name="Battery charge mode target"
+                                                      DisplayMemberPath="Label"
+                                                      IsEnabled="{Binding IncludeBattery}"
+                                                      ItemsSource="{Binding BatteryModeOptions}"
+                                                      SelectedValue="{Binding SelectedBatteryMode, Mode=TwoWay}"
+                                                      SelectedValuePath="Value" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Border Grid.Column="2"
+                                            Padding="16"
+                                            Background="{StaticResource RaisedSurfaceBrush}"
+                                            BorderBrush="{StaticResource BorderBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="2">
+                                        <StackPanel>
+                                            <CheckBox automation:AutomationProperties.Name="Include thermal mode in this draft"
+                                                      Content="Include thermal mode"
+                                                      IsChecked="{Binding IncludeThermal, Mode=TwoWay}" />
+                                            <TextBlock Margin="0,6,0,10"
+                                                       FontSize="10"
+                                                       Foreground="{StaticResource MutedTextBrush}"
+                                                       Text="Quiet through custom firmware profiles" />
+                                            <ComboBox automation:AutomationProperties.Name="Thermal mode target"
+                                                      DisplayMemberPath="Label"
+                                                      IsEnabled="{Binding IncludeThermal}"
+                                                      ItemsSource="{Binding ThermalModeOptions}"
+                                                      SelectedValue="{Binding SelectedThermalMode, Mode=TwoWay}"
+                                                      SelectedValuePath="Value" />
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+
+                                <Grid Grid.Row="3">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0"
+                                               Margin="0,0,16,0"
+                                               VerticalAlignment="Center"
+                                               FontSize="10"
+                                               Foreground="{StaticResource MutedTextBrush}"
+                                               Text="No Apply command exists in this build." />
+                                    <Button Grid.Column="1"
+                                            Margin="0,0,8,0"
+                                            automation:AutomationProperties.Name="Preview draft against typed hardware state"
+                                            Command="{Binding PreviewDraftCommand}"
+                                            Content="Preview draft"
+                                            Style="{StaticResource PrimaryButtonStyle}" />
+                                    <Button Grid.Column="2"
+                                            Margin="0,0,8,0"
+                                            automation:AutomationProperties.Name="Save profile draft locally"
+                                            Command="{Binding SaveDraftCommand}"
+                                            Content="Save"
+                                            Style="{StaticResource BaseButtonStyle}" />
+                                    <Button Grid.Column="3"
+                                            automation:AutomationProperties.Name="Delete selected local profile draft"
+                                            Command="{Binding DeleteDraftCommand}"
+                                            Content="Delete"
+                                            Style="{StaticResource BaseButtonStyle}" />
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <Grid Grid.Row="3" Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Style="{StaticResource SectionTitleStyle}"
+                                       Text="Typed comparison" />
+                            <TextBlock Margin="0,4,0,0"
+                                       Foreground="{StaticResource MutedTextBrush}"
+                                       Text="Current values come only from the latest brokered read snapshot." />
+                        </StackPanel>
+                        <TextBlock Grid.Column="1"
+                                   VerticalAlignment="Bottom"
+                                   Style="{StaticResource EyebrowTextStyle}"
+                                   Text="PREVIEW · NEVER EXECUTE" />
+                    </Grid>
+
+                    <ItemsControl Grid.Row="4"
+                                  ItemsSource="{Binding PreviewItems}"
+                                  ItemTemplate="{StaticResource ProfilePreviewItemTemplate}" />
+                </Grid>
+            </ScrollViewer>
+        </TabItem>
+    </TabControl>
 </Window>
