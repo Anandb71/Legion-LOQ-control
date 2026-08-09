@@ -8,8 +8,15 @@ always-running management suite.
 
 ## Can it replace Lenovo Vantage today?
 
-No. The current `rebuild/v1` application provides read-only diagnostics only. Hardware
-controls, profiles, and automation remain disabled until their safety gates pass.
+No. The current `rebuild/v1` application provides serial-free diagnostics and an explicit
+read-only hardware-state dashboard. Hardware controls, profile application, and automation
+execution remain disabled until their safety gates pass.
+
+## What is being built next?
+
+A local profile-preview workspace will compare bounded battery and thermal drafts with the
+latest typed state. Saving or previewing a draft will not elevate, write hardware, or run
+automation. See the [rebuild roadmap](ROADMAP.md).
 
 ## Is the current build safe to run?
 

@@ -1,0 +1,62 @@
+# Rebuild Roadmap
+
+The rebuild advances in small, testable slices. Safety gates are release criteria, not
+optional follow-up work.
+
+## Completed foundation
+
+- .NET 10 layered solution with locked dependencies
+- serial-free identity and capability evidence
+- typed battery, thermal, display-overdrive, and integrated-GPU reads
+- short-lived authenticated read-only elevation broker
+- exact zero-access EnergyDrv battery-mode read
+- unelevated precision dashboard with an explicit brokered refresh
+- protocol provenance, redacted hardware fixtures, and fail-closed tests
+
+## Current milestone: profile preview
+
+Profiles begin as local, read-only plans. The first profile workspace will:
+
+1. model bounded battery and thermal targets;
+2. compare a draft with the latest typed hardware snapshot;
+3. distinguish matching, would-change, unavailable, stale, and unverified states;
+4. persist versioned local drafts with strict validation; and
+5. expose save, delete, and preview actions only.
+
+There is no Apply action, profile-triggered elevation, hardware write, or background
+automation in this milestone.
+
+## Next: automation preview
+
+Automation starts as deterministic rule evaluation against read-only observations. The
+first source will be AC/DC power state. The UI may report which profile a rule would select,
+but it will not apply that profile.
+
+Process, temperature, time, resume, and hotkey sources follow only after the rule model,
+precedence, cooldown, stale-data handling, and audit output are tested.
+
+## Write-path gate
+
+A hardware control becomes eligible for implementation only when all requirements in
+[`SAFETY.md`](../SAFETY.md) are satisfied, including:
+
+- a signed broker installed under administrator-only ACLs;
+- a versioned typed command with no raw protocol fields;
+- exact model/BIOS capability evidence;
+- fresh read and expected-state comparison;
+- machine-wide serialization;
+- bounded execution and readback verification;
+- redacted intent/result journaling; and
+- crash reconciliation that never blindly replays a command.
+
+The first writable feature will be selected from the best-evidenced bounded protocols. No
+feature is authorized merely because a legacy implementation exists.
+
+## Expansion and release
+
+After a write slice passes its gate, later milestones can add additional validated controls,
+profile application, opt-in automation execution, packaging, updates, accessibility tests,
+and model support. Fan curves, power limits, firmware flashing, and unattended privileged
+services remain out of scope until they have their own stronger recovery and validation
+designs.
+

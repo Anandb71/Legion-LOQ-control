@@ -54,6 +54,7 @@ Hardware writes may return only after all of these controls exist and pass revie
 
 - No hardware write runs during startup, refresh, state hydration, shutdown, or migration.
 - UI binding changes are not user intent.
+- Creating, editing, saving, deleting, or previewing a profile never launches the broker.
 - Profiles show a dry-run preview before their first application.
 - Ambiguous timeout or readback failure suspends automation; it is not retried blindly.
 - Real-hardware tests require an exact machine/BIOS record and explicit confirmation for
@@ -75,3 +76,6 @@ interfaces can still trigger firmware behavior and are not safe merely because t
 accessible through standard Windows APIs. Every protocol implementation must have
 provenance, bounded inputs, fixtures, and hardware evidence as described in
 [`docs/PROVENANCE.md`](docs/PROVENANCE.md).
+
+The delivery order for profile preview, automation preview, and the write-path gate is
+defined in [`docs/ROADMAP.md`](docs/ROADMAP.md).

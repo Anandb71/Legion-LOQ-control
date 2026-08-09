@@ -39,7 +39,7 @@ its behavior is replaced feature by feature.
   authenticated, typed hardware-state read and exits. It contains no write dispatcher.
 - `src/LegionLoqControl.Diagnostics`: serial-free JSON inventory, direct state probe, and
   explicit brokered state-validation client.
-- `LegionLoqControl`: unelevated WPF composition root and read-only status UI.
+- `LegionLoqControl`: unelevated WPF composition root and read-only precision dashboard.
 - `LegionLoqControl.Core`: quarantined migration prototype; never reference it from new
   product projects.
 
@@ -73,15 +73,16 @@ Boolean WMI return status and UInt32 data, rejects unknown enum values, caps out
 malformed output, and timeout remain distinct from real hardware values.
 
 On the recorded 83DV machine, the Lenovo WMI getters require elevation. The CLI can expose
-the unelevated denial or explicitly launch the read-only broker through UAC. The WPF shell
-does not call either state path yet. Battery mode remains unavailable in the unelevated
-reader; the broker adds one exact zero-access EnergyDrv read.
+the unelevated denial, while the CLI and WPF dashboard can explicitly launch the read-only
+broker through UAC. The dashboard never elevates at startup; its hardware-state refresh is
+a direct user action. Battery mode remains unavailable in the unelevated reader; the broker
+adds one exact zero-access EnergyDrv read.
 
 ## Current brokered read flow
 
 ```mermaid
 flowchart LR
-    Client[Unelevated diagnostics client] --> Pipe[Random single-instance pipe]
+    Client[Unelevated UI or diagnostics client] --> Pipe[Random single-instance pipe]
     Client --> Uac[UAC launch]
     Uac --> Broker[Read-only elevated broker]
     Broker --> Pipe

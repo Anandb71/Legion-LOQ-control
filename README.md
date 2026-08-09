@@ -23,7 +23,8 @@ Working today:
 - a redacted JSON diagnostics CLI with inventory, direct-state, and brokered-state commands;
 - a short-lived, read-only UAC broker with strict framing, a one-time nonce, peer-process
   checks, a current-user pipe ACL, and no write dispatcher;
-- an unelevated WPF status view with no reference to legacy hardware writers;
+- an unelevated precision dashboard with explicit brokered state refresh and no reference
+  to legacy hardware writers;
 - locked dependencies and automated safety, contract, mapping, and redaction tests.
 
 On the recorded LOQ 15IRX9, the Lenovo provider denies the instance access needed by
@@ -38,12 +39,13 @@ The unelevated `state` command intentionally does not open EnergyDrv.
 Not enabled today:
 
 - battery, thermal, fan, GPU, display, or keyboard writes;
-- production broker signing, installer ACLs, or UI integration;
-- profiles and automation;
+- production broker signing, installer ACLs, or hardware-write UI;
+- profile application or automation execution;
 - any claim of production-ready model support.
 
 See [SAFETY.md](SAFETY.md), [architecture](docs/ARCHITECTURE.md), and the
-[current evidence policy](docs/SUPPORTED_MODELS.md).
+[current evidence policy](docs/SUPPORTED_MODELS.md). The staged path from read-only
+profile previews to validated controls is tracked in the [rebuild roadmap](docs/ROADMAP.md).
 
 ## Build and verify
 
