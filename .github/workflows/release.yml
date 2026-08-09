@@ -1,19 +1,17 @@
-name: Release
+name: Read-only Preview Artifact
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   DOTNET_CLI_TELEMETRY_OPTOUT: '1'
   DOTNET_NOLOGO: '1'
 
 jobs:
-  release:
+  preview:
     runs-on: windows-latest
     timeout-minutes: 20
 
@@ -27,13 +25,6 @@ jobs:
           cache: true
           cache-dependency-path: '**/packages.lock.json'
 
-      - name: Get version from tag
-        id: version
-        shell: pwsh
-        run: |
-          $version = '${{ github.ref_name }}'.TrimStart('v')
-          "version=$version" >> $env:GITHUB_OUTPUT
-
       - name: Restore locked dependencies
         run: dotnet restore LegionLoqControl.sln --locked-mode
 
@@ -43,14 +34,60 @@ jobs:
           dotnet test LegionLoqControl.sln --configuration Release --no-build --no-restore
 
       - name: Publish
-        run: dotnet publish LegionLoqControl/LegionLoqControl.csproj --configuration Release --output publish --no-restore -p:Version=${{ steps.version.outputs.version }}
-
-      - name: Create release archive
         shell: pwsh
-        run: Compress-Archive -Path publish/* -DestinationPath LegionLoqControl-${{ steps.version.outputs.version }}.zip
+        run: |
+          $version = "0.0.0-preview.${{ github.run_number }}"
+          dotnet publish LegionLoqControl/LegionLoqControl.csproj `
+            --configuration Release `
+            --output preview `
+            --no-restore `
+            --self-contained false `
+            -p:Version=$version `
+            -p:DebugType=None `
+            -p:DebugSymbols=false `
+            -p:IncludeBrokerArtifacts=false
 
-      - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
+
+      - name: Add license and safety documents
+        shell: pwsh
+        run: |
+          Copy-Item LICENSE preview/
+          Copy-Item THIRD-PARTY-NOTICES.md preview/
+          Copy-Item README.md preview/
+          Copy-Item SAFETY.md preview/
+          Copy-Item SECURITY.md preview/
+          Copy-Item docs/READ_ONLY_PREVIEW.md preview/
+
+      - name: Verify unelevated preview boundary
+        shell: pwsh
+        run: |
+          $required = @(
+            "LegionLoqControl.exe",
+            "LegionLoqControl.dll",
+            "LICENSE",
+            "THIRD-PARTY-NOTICES.md",
+            "READ_ONLY_PREVIEW.md",
+            "SAFETY.md"
+          )
+
+          foreach ($name in $required) {
+            if (-not (Test-Path (Join-Path preview $name) -PathType Leaf)) {
+              throw "Missing required preview artifact: $name"
+            }
+          }
+
+          $brokerArtifacts = @(Get-ChildItem preview -File -Filter "LegionLoqControl.Broker*")
+          if ($brokerArtifacts.Count -ne 0) {
+            throw "Unsigned elevated broker artifacts must not enter preview packages."
+          }
+
+      - name: Upload short-lived preview
+        uses: actions/upload-artifact@v4
         with:
-          files: LegionLoqControl-*.zip
-          generate_release_notes: true
+          name: LegionLoqControl-read-only-preview-${{ github.run_number }}
+          path: preview/
+          if-no-files-found: error
+          retention-days: 7

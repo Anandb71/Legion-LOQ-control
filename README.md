@@ -47,6 +47,9 @@ Not enabled today:
 - profile application or automation execution;
 - any claim of production-ready model support.
 
+The manual CI preview artifact is intentionally broker-free and short-lived; it is not a
+public release. See [the preview boundary](docs/READ_ONLY_PREVIEW.md).
+
 See [SAFETY.md](SAFETY.md), [architecture](docs/ARCHITECTURE.md), and the
 [current evidence policy](docs/SUPPORTED_MODELS.md). The staged path from read-only
 profile and automation previews to validated controls is tracked in the

@@ -1,7 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <IncludeBrokerArtifacts Condition="'$(IncludeBrokerArtifacts)' == ''">true</IncludeBrokerArtifacts>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\src\LegionLoqControl.Application\LegionLoqControl.Application.csproj" />
     <ProjectReference Include="..\src\LegionLoqControl.Broker\LegionLoqControl.Broker.csproj"
+                      Condition="'$(IncludeBrokerArtifacts)' == 'true'"
                       ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\src\LegionLoqControl.Contracts\LegionLoqControl.Contracts.csproj" />
     <ProjectReference Include="..\src\LegionLoqControl.Domain\LegionLoqControl.Domain.csproj" />
@@ -11,14 +20,9 @@
     <PackageReference Include="CommunityToolkit.Mvvm" />
   </ItemGroup>
 
-  <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0-windows</TargetFramework>
-    <UseWPF>true</UseWPF>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
-  </PropertyGroup>
-
-  <Target Name="CopyBrokerArtifacts" AfterTargets="Build">
+  <Target Name="CopyBrokerArtifacts"
+          AfterTargets="Build"
+          Condition="'$(IncludeBrokerArtifacts)' == 'true'">
     <ItemGroup>
       <BrokerArtifact Include="$(MSBuildProjectDirectory)\..\src\LegionLoqControl.Broker\bin\$(Configuration)\$(TargetFramework)\LegionLoqControl.Broker.exe" />
       <BrokerArtifact Include="$(MSBuildProjectDirectory)\..\src\LegionLoqControl.Broker\bin\$(Configuration)\$(TargetFramework)\LegionLoqControl.Broker.dll" />
