@@ -58,6 +58,87 @@ public sealed class HardwareStateReaderTests
     }
 
     [Fact]
+    public void PowerShell_batch_requires_typed_success_for_every_getter()
+    {
+        const string json =
+            """
+            {
+              "status": "success",
+              "results": {
+                "thermalMode": {
+                  "status": "success",
+                  "returnStatus": true,
+                  "data": 3
+                },
+                "displayOverdrive": {
+                  "status": "success",
+                  "returnStatus": true,
+                  "data": 0
+                },
+                "integratedGpuMode": {
+                  "status": "success",
+                  "returnStatus": true,
+                  "data": 1
+                }
+              }
+            }
+            """;
+
+        IReadOnlyDictionary<LenovoWmiReadOperation, GetterOutcome> outcomes =
+            PowerShellLenovoWmiReadInvoker.ParseBatch(json);
+
+        Assert.Equal(3u, outcomes[LenovoWmiReadOperation.ThermalMode].GetValue());
+        Assert.Equal(0u, outcomes[LenovoWmiReadOperation.DisplayOverdrive].GetValue());
+        Assert.Equal(1u, outcomes[LenovoWmiReadOperation.IntegratedGpuMode].GetValue());
+    }
+
+    [Fact]
+    public void PowerShell_batch_preserves_rejection_and_access_denial()
+    {
+        const string rejectedJson =
+            """
+            {
+              "status": "success",
+              "results": {
+                "thermalMode": {
+                  "status": "success",
+                  "returnStatus": false,
+                  "data": 3
+                },
+                "displayOverdrive": { "status": "access_denied" },
+                "integratedGpuMode": { "status": "not_supported" }
+              }
+            }
+            """;
+
+        IReadOnlyDictionary<LenovoWmiReadOperation, GetterOutcome> outcomes =
+            PowerShellLenovoWmiReadInvoker.ParseBatch(rejectedJson);
+
+        Assert.Throws<LenovoWmiMethodRejectedException>(
+            () => outcomes[LenovoWmiReadOperation.ThermalMode].GetValue());
+        LenovoWmiReadFailureException denied = Assert.Throws<LenovoWmiReadFailureException>(
+            () => outcomes[LenovoWmiReadOperation.DisplayOverdrive].GetValue());
+        Assert.Equal(HardwareReadStatus.AccessDenied, denied.Status);
+        Assert.Equal("wmi_access_denied", denied.ErrorCode);
+    }
+
+    [Fact]
+    public void PowerShell_batch_rejects_unknown_json_members()
+    {
+        const string json =
+            """
+            {
+              "status": "access_denied",
+              "results": null,
+              "unexpected": true
+            }
+            """;
+
+        Assert.Throws<InvalidDataException>(
+            () => PowerShellLenovoWmiReadInvoker.ParseBatch(json));
+    }
+
+    [Fact]
     public async Task Unexpected_firmware_values_fail_as_invalid_data()
     {
         var invoker = new StubInvoker();

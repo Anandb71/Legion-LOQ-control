@@ -15,7 +15,7 @@ public sealed class WindowsHardwareStateReader : IHardwareStateReader
     private readonly ILenovoWmiReadInvoker _invoker;
 
     public WindowsHardwareStateReader()
-        : this(new SystemLenovoWmiReadInvoker())
+        : this(new PowerShellLenovoWmiReadInvoker())
     {
     }
 
@@ -99,6 +99,10 @@ public sealed class WindowsHardwareStateReader : IHardwareStateReader
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
+        }
+        catch (LenovoWmiReadFailureException exception)
+        {
+            return HardwareReadResult<T>.Failure(exception.Status, exception.ErrorCode);
         }
         catch (UnauthorizedAccessException)
         {
