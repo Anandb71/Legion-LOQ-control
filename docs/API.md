@@ -73,11 +73,12 @@ Those inventory types do not invoke Lenovo WMI methods, open HID devices, or per
 writes.
 
 `WindowsHardwareStateReader` is a separate adapter. It invokes only the fixed
-`GetSmartFanMode`, `GetODStatus`, and `GetIGPUModeStatus` methods, applies a five-second
-caller wait bound, validates the Boolean return status and UInt32 data, and maps access
-denial explicitly. It fails closed when the provider does not expose that complete output.
-Its battery result is intentionally `Unavailable` until the Energy driver read transport
-exists.
+`GetSmartFanMode`, `GetODStatus`, and `GetIGPUModeStatus` methods. Its default transport
+batches them through one static, profile-free built-in Windows PowerShell/CIM invocation,
+caches the batch for the snapshot, validates Boolean return status and UInt32 data, caps
+output, and applies a 12-second process timeout. It fails closed when the provider does not
+expose that complete output. Its battery result is intentionally `Unavailable` until the
+Energy driver read transport exists.
 
 ## Broker contracts
 

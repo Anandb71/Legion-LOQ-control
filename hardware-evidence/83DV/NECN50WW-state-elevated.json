@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "capturedAtUtc": "2026-08-08T19:47:19.4987951Z",
+  "capturedAtUtc": "2026-08-08T23:42:00.8835105Z",
   "machine": {
     "manufacturer": "LENOVO",
     "machineType": "83DV",
@@ -10,8 +10,8 @@
   "execution": {
     "elevated": true,
     "boundary": "ShortLivedReadBroker",
-    "adapter": "ExperimentalMicrosoftManagementInfrastructure",
-    "productAdapterRetained": false,
+    "adapter": "BuiltInWindowsPowerShellCimCmdlets",
+    "productAdapterRetained": true,
     "writesAttempted": false
   },
   "privacy": {
@@ -29,7 +29,7 @@
     {
       "capability": "ThermalMode",
       "transport": "LenovoWmi",
-      "api": "Microsoft.Management.Infrastructure",
+      "api": "WindowsPowerShell.CimCmdlets",
       "operation": "GetSmartFanMode",
       "status": "Success",
       "returnStatus": true,
@@ -39,7 +39,7 @@
     {
       "capability": "DisplayOverdrive",
       "transport": "LenovoWmi",
-      "api": "Microsoft.Management.Infrastructure",
+      "api": "WindowsPowerShell.CimCmdlets",
       "operation": "GetODStatus",
       "status": "Success",
       "returnStatus": true,
@@ -49,7 +49,7 @@
     {
       "capability": "IntegratedGpuMode",
       "transport": "LenovoWmi",
-      "api": "Microsoft.Management.Infrastructure",
+      "api": "WindowsPowerShell.CimCmdlets",
       "operation": "GetIGPUModeStatus",
       "status": "Success",
       "returnStatus": true,

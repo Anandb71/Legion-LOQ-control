@@ -76,11 +76,11 @@ responses for Performance thermal mode (raw `3`), disabled display overdrive (ra
 and integrated-only GPU mode (raw `1`). This is one exact machine/BIOS observation, not a
 general support claim. The redacted record is
 [`hardware-evidence/83DV/NECN50WW-state-elevated.json`](../hardware-evidence/83DV/NECN50WW-state-elevated.json).
-The successful run used an experimental Microsoft Management Infrastructure adapter that
-was removed after its Windows runtime license was found to permit PowerShell use only.
-The retained `System.Management` adapter cannot preserve the Boolean return on this
-provider and therefore remains fail-closed rather than reporting those values as current
-product reads.
+The retained adapter starts the exact system `powershell.exe` with profiles disabled,
+restricts module lookup to the system Windows PowerShell modules directory, runs one static
+CIM script, validates Boolean status and UInt32 data, caps output at 64 KiB, and terminates
+the process after 12 seconds. No script, class name, method name, or argument comes from the
+caller.
 
 `GetPowerChargeMode` is intentionally not used for battery mode. Protocol cross-checking
 showed that it represents charging/power suitability, while conservation and rapid-charge

@@ -14,7 +14,10 @@ The C# migration prototype is deliberately **read-only**:
   opening a driver or selecting a device;
 - default inventory invokes no Lenovo methods and opens no HID devices;
 - the optional state diagnostic invokes only `GetSmartFanMode`, `GetODStatus`, and
-  `GetIGPUModeStatus`, with fixed identifiers, bounded WMI options, and typed failures;
+  `GetIGPUModeStatus`, with fixed identifiers, bounded execution, and typed failures;
+- those getters are batched through the exact system Windows PowerShell executable with
+  profiles disabled, a system-only module path, static script text, capped output, and a
+  12-second process timeout;
 - the optional elevated state path uses a one-request, 30-second broker with strict framing,
   current-user ACL, mutual process-ID checks, a one-time nonce, and anonymous client
   impersonation;

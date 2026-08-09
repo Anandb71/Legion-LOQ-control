@@ -29,11 +29,10 @@ Working today:
 On the recorded LOQ 15IRX9, the Lenovo provider denies the instance access needed by
 the state getters in an unelevated process. The probe reports `AccessDenied` rather than
 inventing values. The read-only broker successfully validated Performance thermal mode,
-disabled display overdrive, and integrated-only GPU mode on the same machine/BIOS with an
-experimental MI adapter. That adapter was removed because its runtime license is limited
-to PowerShell use; the distributable reader remains fail-closed until an acceptable typed
-transport is implemented. Battery charge mode also remains unavailable until its Energy
-driver read transport is isolated and validated.
+disabled display overdrive, and integrated-only GPU mode on the same machine/BIOS. The
+current adapter batches those fixed getters through the built-in Windows PowerShell CIM
+host so no restricted MI runtime is distributed. Battery charge mode remains unavailable
+until its Energy driver read transport is isolated and validated.
 
 Not enabled today:
 

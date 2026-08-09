@@ -12,6 +12,11 @@ administrator-protected directory. The current broker is a read-only development
 validation path and must not gain a write dispatcher before the gates in
 [SAFETY.md](SAFETY.md) pass review.
 
+The temporary CIM bridge may launch only the built-in system Windows PowerShell executable
+with profiles disabled, a system-only module path, and the repository's static encoded
+script. Caller-provided PowerShell, WMI identifiers, arguments, modules, or paths are
+security violations.
+
 ## Reporting a Vulnerability
 
 If you discover a security vulnerability or a safety issue (e.g., a bug that could cause hardware damage), please report it immediately.

@@ -92,11 +92,15 @@ Legion + LOQ Control.
   `LenovoLegionToolkit.Lib/Features/BatteryFeature.cs`, and
   `LenovoLegionToolkit.Lib/System/Power.cs`
 - **License:** GPL-3.0 with LLT-specific plugin exception
+- **Platform documentation:**
+  [Get-CimInstance](https://learn.microsoft.com/powershell/module/cimcmdlets/get-ciminstance)
+  and
+  [Invoke-CimMethod](https://learn.microsoft.com/powershell/module/cimcmdlets/invoke-cimmethod)
 - **Local implementation:** Independently written typed result contracts, sequential state
-  service, fixed getter allowlist, bounded WMI query/caller waits,
-  Boolean-status/UInt32-data validation, and stable error mapping. The retained
-  `System.Management` adapter fails closed when the provider cannot expose the complete
-  typed output. No LLT source expression was copied.
+  service, fixed getter allowlist, a single bounded built-in Windows PowerShell/CIM batch,
+  Boolean-status/UInt32-data validation, and stable error mapping. The script and all
+  identifiers are static, profiles are disabled, and no MI runtime is redistributed. No
+  LLT source expression was copied.
 - **Protocol facts cross-checked:** `GetSmartFanMode` uses a one-value offset for quiet,
   balanced, performance, extreme, and custom modes; overdrive and integrated-GPU getters
   use direct enum values. `GetPowerChargeMode` was confirmed to be unrelated to battery
@@ -112,10 +116,8 @@ Legion + LOQ Control.
   `hardware-evidence/83DV/NECN50WW-state-elevated.json`
 - **Hardware validation:** The broker observed Performance thermal mode (raw `3`), disabled
   overdrive (raw `0`), and integrated-only GPU mode (raw `1`), each with Boolean `true`
-  status and UInt32 data through an experimental MI adapter. That adapter was removed
-  because its Windows runtime license permits PowerShell use only; these values remain
-  evidence, not current product output. No setter, Energy driver IOCTL, or HID report was
-  sent.
+  status and UInt32 data through the retained built-in PowerShell/CIM adapter. No setter,
+  Energy driver IOCTL, or HID report was sent.
 - **Reviewer:** Pending
 - **Date:** 2026-08-08
 
@@ -147,10 +149,8 @@ Legion + LOQ Control.
 - **Test fixtures:** `tests/LegionLoqControl.Platform.Tests/BrokerWireProtocolTests.cs` and
   `tests/LegionLoqControl.Platform.Tests/BrokerSecurityTests.cs`
 - **Hardware validation:** The elevated broker returned the successful typed state values
-  recorded in `hardware-evidence/83DV/NECN50WW-state-elevated.json` with the subsequently
-  removed MI validation adapter. The retained reader currently reports the provider result
-  as unavailable rather than dropping its Boolean status. No write behavior was implemented
-  or tested.
+  recorded in `hardware-evidence/83DV/NECN50WW-state-elevated.json` through the retained
+  built-in PowerShell/CIM adapter. No write behavior was implemented or tested.
 - **Release gate:** Authenticode signing and administrator-protected installation ACLs are
   required before production broker use.
 - **Reviewer:** Pending
