@@ -1,10 +1,12 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using LegionLoqControl.Application.Profiles;
 using LegionLoqControl.Domain.Capabilities;
 using LegionLoqControl.Domain.Controls;
 using LegionLoqControl.Domain.Diagnostics;
 using LegionLoqControl.Domain.Results;
+using LegionLoqControl.Infrastructure.Windows.Profiles;
 using LegionLoqControl.Services;
 
 namespace LegionLoqControl.ViewModels;
@@ -122,16 +124,24 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private string _lastUpdated = "Not read";
 
     public MainWindowViewModel()
-        : this(new DashboardDataSource(), new MachineSessionViewModel())
+        : this(
+            new DashboardDataSource(),
+            new MachineSessionViewModel(),
+            JsonProfileStore.CreateDefault())
     {
     }
 
     internal MainWindowViewModel(
         IDashboardDataSource dataSource,
-        MachineSessionViewModel? session = null)
+        MachineSessionViewModel? session = null,
+        IProfileStore? profileStore = null)
     {
         _dataSource = dataSource ?? throw new ArgumentNullException(nameof(dataSource));
         Session = session ?? new MachineSessionViewModel();
+        ProfileWorkspace = new ProfileWorkspaceViewModel(
+            profileStore ?? JsonProfileStore.CreateDefault(),
+            new ProfilePreviewService(),
+            Session);
 
         Battery = new HardwareStateCardViewModel(
             "BATTERY",
@@ -160,6 +170,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public HardwareStateCardViewModel IntegratedGpu { get; }
 
     public MachineSessionViewModel Session { get; }
+
+    public ProfileWorkspaceViewModel ProfileWorkspace { get; }
 
     public ObservableCollection<CapabilityItemViewModel> Capabilities { get; } = [];
 
@@ -201,7 +213,11 @@ public sealed partial class MainWindowViewModel : ObservableObject
         }
     }
 
-    public void Cancel() => _lifetime.Cancel();
+    public void Cancel()
+    {
+        _lifetime.Cancel();
+        ProfileWorkspace.Dispose();
+    }
 
     [RelayCommand(CanExecute = nameof(CanRefreshHardwareState))]
     private async Task RefreshHardwareStateAsync()

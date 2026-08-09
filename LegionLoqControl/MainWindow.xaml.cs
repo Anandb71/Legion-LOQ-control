@@ -19,7 +19,9 @@ public partial class MainWindow : Window
 
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
-        await _viewModel.InitializeAsync();
+        await Task.WhenAll(
+            _viewModel.InitializeAsync(),
+            _viewModel.ProfileWorkspace.InitializeAsync());
     }
 
     private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
