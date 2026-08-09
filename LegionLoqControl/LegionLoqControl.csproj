@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="..\src\LegionLoqControl.Application\LegionLoqControl.Application.csproj" />
+    <ProjectReference Include="..\src\LegionLoqControl.Broker\LegionLoqControl.Broker.csproj"
+                      ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\src\LegionLoqControl.Contracts\LegionLoqControl.Contracts.csproj" />
     <ProjectReference Include="..\src\LegionLoqControl.Domain\LegionLoqControl.Domain.csproj" />
     <ProjectReference Include="..\src\LegionLoqControl.Infrastructure.Windows\LegionLoqControl.Infrastructure.Windows.csproj" />
@@ -15,4 +17,16 @@
     <UseWPF>true</UseWPF>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
+
+  <Target Name="CopyBrokerArtifacts" AfterTargets="Build">
+    <ItemGroup>
+      <BrokerArtifact Include="$(MSBuildProjectDirectory)\..\src\LegionLoqControl.Broker\bin\$(Configuration)\$(TargetFramework)\LegionLoqControl.Broker.exe" />
+      <BrokerArtifact Include="$(MSBuildProjectDirectory)\..\src\LegionLoqControl.Broker\bin\$(Configuration)\$(TargetFramework)\LegionLoqControl.Broker.dll" />
+      <BrokerArtifact Include="$(MSBuildProjectDirectory)\..\src\LegionLoqControl.Broker\bin\$(Configuration)\$(TargetFramework)\LegionLoqControl.Broker.deps.json" />
+      <BrokerArtifact Include="$(MSBuildProjectDirectory)\..\src\LegionLoqControl.Broker\bin\$(Configuration)\$(TargetFramework)\LegionLoqControl.Broker.runtimeconfig.json" />
+    </ItemGroup>
+    <Copy SourceFiles="@(BrokerArtifact)"
+          DestinationFolder="$(OutDir)"
+          SkipUnchangedFiles="true" />
+  </Target>
 </Project>
