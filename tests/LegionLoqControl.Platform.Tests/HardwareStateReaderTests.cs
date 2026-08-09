@@ -43,6 +43,24 @@ public sealed class HardwareStateReaderTests
         Assert.Empty(invoker.Operations);
     }
 
+    [Fact]
+    public async Task Privileged_reader_delegates_battery_state_to_the_Energy_adapter()
+    {
+        var invoker = new StubInvoker();
+        var batteryReader = new StubBatteryReader(
+            HardwareReadResult<BatteryChargeMode>.Success(
+                BatteryChargeMode.Conservation));
+        var reader = new WindowsHardwareStateReader(invoker, batteryReader);
+
+        HardwareReadResult<BatteryChargeMode> result =
+            await reader.ReadBatteryChargeModeAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(HardwareReadStatus.Success, result.Status);
+        Assert.Equal(BatteryChargeMode.Conservation, result.Value);
+        Assert.Equal(1, batteryReader.CallCount);
+        Assert.Empty(invoker.Operations);
+    }
+
     [Theory]
     [InlineData(0x00u, BatteryChargeMode.Normal)]
     [InlineData(0x80u, BatteryChargeMode.Normal)]
@@ -68,6 +86,14 @@ public sealed class HardwareStateReaderTests
         Assert.Equal(HardwareReadStatus.InvalidData, result.Status);
         Assert.False(result.HasValue);
         Assert.Equal("energy_battery_mode_conflict", result.ErrorCode);
+    }
+
+    [Fact]
+    public void Energy_driver_reader_is_locked_to_the_read_contract()
+    {
+        Assert.Equal(0x831020F8u, EnergyDriverBatteryReader.ControlCodeForValidation);
+        Assert.Equal(0xFFu, EnergyDriverBatteryReader.ReadSelectorForValidation);
+        Assert.Equal(0u, EnergyDriverBatteryReader.DesiredAccessForValidation);
     }
 
     [Fact]
@@ -249,6 +275,20 @@ public sealed class HardwareStateReaderTests
                 return ValueTask.FromException<uint>(Exception);
 
             return ValueTask.FromResult(Values[operation]);
+        }
+    }
+
+    private sealed class StubBatteryReader(HardwareReadResult<BatteryChargeMode> result)
+        : IEnergyDriverBatteryReader
+    {
+        public int CallCount { get; private set; }
+
+        public ValueTask<HardwareReadResult<BatteryChargeMode>> ReadAsync(
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            CallCount++;
+            return ValueTask.FromResult(result);
         }
     }
 

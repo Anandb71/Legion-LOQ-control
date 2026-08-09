@@ -119,7 +119,8 @@ internal static class BrokerHost
                 return;
             }
 
-            var service = new HardwareStateService(new WindowsHardwareStateReader());
+            var service = new HardwareStateService(
+                WindowsHardwareStateReader.CreatePrivilegedReadOnly());
             HardwareStateSnapshot snapshot = await service
                 .CaptureAsync(cancellationToken)
                 .ConfigureAwait(false);

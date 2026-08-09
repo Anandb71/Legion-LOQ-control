@@ -30,6 +30,12 @@ internal sealed class EnergyDriverBatteryReader : IEnergyDriverBatteryReader
     private const int ErrorNotSupported = 50;
     private static readonly TimeSpan ReadTimeout = TimeSpan.FromSeconds(5);
 
+    internal static uint ControlCodeForValidation => BatteryChargeModeControlCode;
+
+    internal static uint ReadSelectorForValidation => ReadSelector;
+
+    internal static uint DesiredAccessForValidation => 0;
+
     public async ValueTask<HardwareReadResult<BatteryChargeMode>> ReadAsync(
         CancellationToken cancellationToken)
     {

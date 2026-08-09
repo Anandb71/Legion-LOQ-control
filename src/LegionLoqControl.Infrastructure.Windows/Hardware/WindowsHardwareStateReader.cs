@@ -13,21 +13,38 @@ public sealed class WindowsHardwareStateReader : IHardwareStateReader
     private const int WbemAccessDenied = unchecked((int)0x80041003);
 
     private readonly ILenovoWmiReadInvoker _invoker;
+    private readonly IEnergyDriverBatteryReader? _batteryReader;
 
     public WindowsHardwareStateReader()
-        : this(new PowerShellLenovoWmiReadInvoker())
+        : this(new PowerShellLenovoWmiReadInvoker(), batteryReader: null)
     {
     }
 
     internal WindowsHardwareStateReader(ILenovoWmiReadInvoker invoker)
+        : this(invoker, batteryReader: null)
+    {
+    }
+
+    internal WindowsHardwareStateReader(
+        ILenovoWmiReadInvoker invoker,
+        IEnergyDriverBatteryReader? batteryReader)
     {
         _invoker = invoker ?? throw new ArgumentNullException(nameof(invoker));
+        _batteryReader = batteryReader;
     }
+
+    internal static WindowsHardwareStateReader CreatePrivilegedReadOnly() =>
+        new(
+            new PowerShellLenovoWmiReadInvoker(),
+            new EnergyDriverBatteryReader());
 
     public ValueTask<HardwareReadResult<BatteryChargeMode>> ReadBatteryChargeModeAsync(
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        if (_batteryReader is not null)
+            return _batteryReader.ReadAsync(cancellationToken);
+
         return ValueTask.FromResult(HardwareReadResult<BatteryChargeMode>.Failure(
             HardwareReadStatus.Unavailable,
             "battery_read_transport_not_implemented"));
