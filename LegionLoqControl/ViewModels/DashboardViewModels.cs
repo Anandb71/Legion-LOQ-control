@@ -1,14 +1,11 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using LegionLoqControl.Application.Diagnostics;
-using LegionLoqControl.Contracts.Broker;
 using LegionLoqControl.Domain.Capabilities;
 using LegionLoqControl.Domain.Controls;
 using LegionLoqControl.Domain.Diagnostics;
 using LegionLoqControl.Domain.Results;
-using LegionLoqControl.Infrastructure.Windows.Broker;
-using LegionLoqControl.Infrastructure.Windows.Diagnostics;
+using LegionLoqControl.Services;
 
 namespace LegionLoqControl.ViewModels;
 
@@ -91,8 +88,7 @@ public sealed record CapabilityItemViewModel(
 
 public sealed partial class MainWindowViewModel : ObservableObject
 {
-    private readonly MachineDiagnosticsService _diagnostics;
-    private readonly ElevatedHardwareStateBrokerClient _broker;
+    private readonly IDashboardDataSource _dataSource;
     private readonly CancellationTokenSource _lifetime = new();
     private bool _initialized;
 
@@ -126,20 +122,16 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private string _lastUpdated = "Not read";
 
     public MainWindowViewModel()
-        : this(
-            new MachineDiagnosticsService(
-                new WindowsMachineIdentitySource(),
-                [new WindowsCapabilityProbe()]),
-            new ElevatedHardwareStateBrokerClient())
+        : this(new DashboardDataSource(), new MachineSessionViewModel())
     {
     }
 
     internal MainWindowViewModel(
-        MachineDiagnosticsService diagnostics,
-        ElevatedHardwareStateBrokerClient broker)
+        IDashboardDataSource dataSource,
+        MachineSessionViewModel? session = null)
     {
-        _diagnostics = diagnostics ?? throw new ArgumentNullException(nameof(diagnostics));
-        _broker = broker ?? throw new ArgumentNullException(nameof(broker));
+        _dataSource = dataSource ?? throw new ArgumentNullException(nameof(dataSource));
+        Session = session ?? new MachineSessionViewModel();
 
         Battery = new HardwareStateCardViewModel(
             "BATTERY",
@@ -167,6 +159,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     public HardwareStateCardViewModel IntegratedGpu { get; }
 
+    public MachineSessionViewModel Session { get; }
+
     public ObservableCollection<CapabilityItemViewModel> Capabilities { get; } = [];
 
     public async Task InitializeAsync()
@@ -178,9 +172,10 @@ public sealed partial class MainWindowViewModel : ObservableObject
         IsBusy = true;
         try
         {
-            MachineSnapshot snapshot = await _diagnostics
-                .CaptureAsync(_lifetime.Token)
+            MachineSnapshot snapshot = await _dataSource
+                .CaptureMachineAsync(_lifetime.Token)
                 .ConfigureAwait(true);
+            Session.UpdateMachineSnapshot(snapshot);
             ApplyIdentity(snapshot.Identity);
             ApplyCapabilities(snapshot.Capabilities);
 
@@ -220,16 +215,10 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
         try
         {
-            HardwareStateReadResponse response = await _broker
-                .ReadAsync(_lifetime.Token)
+            HardwareStateSnapshot snapshot = await _dataSource
+                .ReadHardwareStateAsync(_lifetime.Token)
                 .ConfigureAwait(true);
-            if (response.Status != BrokerReadStatus.Succeeded || response.Snapshot is null)
-            {
-                ApplyBrokerFailure(response.ErrorCode ?? "broker_read_failed");
-                return;
-            }
-
-            HardwareStateSnapshot snapshot = response.Snapshot.ToSnapshot();
+            Session.UpdateHardwareStateSnapshot(snapshot);
             Battery.Apply(snapshot.BatteryChargeMode, FormatBatteryMode);
             Thermal.Apply(snapshot.ThermalMode, FormatThermalMode);
             DisplayOverdrive.Apply(snapshot.DisplayOverdrive, FormatToggle);
@@ -256,7 +245,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
         }
-        catch (BrokerTransportException exception)
+        catch (DashboardDataSourceException exception)
         {
             ApplyBrokerFailure(exception.ErrorCode);
         }
