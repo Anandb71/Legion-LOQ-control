@@ -53,7 +53,8 @@ public release. See [the preview boundary](docs/READ_ONLY_PREVIEW.md).
 See [SAFETY.md](SAFETY.md), [architecture](docs/ARCHITECTURE.md), and the
 [current evidence policy](docs/SUPPORTED_MODELS.md). The staged path from read-only
 profile and automation previews to validated controls is tracked in the
-[rebuild roadmap](docs/ROADMAP.md).
+[rebuild roadmap](docs/ROADMAP.md). Artifact classes and production blockers are defined in
+the [release process](docs/RELEASING.md).
 
 ## Build and verify
 

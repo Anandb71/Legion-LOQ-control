@@ -54,6 +54,9 @@ The current low-motion WPF shell deliberately uses software rendering. Hardware 
 produced blank client surfaces on the validated Windows build; do not re-enable it without
 cross-version startup and visual regression coverage.
 
+Preview packaging and production release blockers are documented in
+[`RELEASING.md`](RELEASING.md).
+
 ## Repository layout
 
 - `src/`: new layered platform code
