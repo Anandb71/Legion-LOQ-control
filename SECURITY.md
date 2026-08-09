@@ -22,6 +22,11 @@ an EnergyDrv handle opened with zero requested access. A generic driver API, cal
 control code/input, writable handle, or use outside the elevated read broker is a security
 violation.
 
+Local profile and automation JSON is untrusted input. The stores cap file size and entry
+count, reject unknown members and numeric enums, validate all domain values, and replace
+files atomically. Names and rule fields are data only; they must never become executable
+commands, scripts, protocol identifiers, or broker requests.
+
 ## Reporting a Vulnerability
 
 If you discover a security vulnerability or a safety issue (e.g., a bug that could cause hardware damage), please report it immediately.

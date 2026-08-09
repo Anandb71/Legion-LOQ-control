@@ -29,6 +29,10 @@ The C# migration prototype is deliberately **read-only**:
   retained typed snapshots and capability evidence;
 - the profile workspace exposes new, save, delete, and preview commands but no Apply
   command, broker call, or automation runner;
+- AC/battery automation observes one typed `GetSystemPowerStatus` result, then performs
+  deterministic in-memory rule evaluation;
+- automation rules use a separate bounded, strict, versioned local JSON store, and the
+  workspace has no watcher, scheduler, execute command, broker call, or profile Apply path;
 - unit tests verify that battery, thermal, fan, and keyboard commands fail closed.
 
 The read-only broker is a validation milestone, not authorization for writes. It is not
@@ -59,6 +63,8 @@ Hardware writes may return only after all of these controls exist and pass revie
 - No hardware write runs during startup, refresh, state hydration, shutdown, or migration.
 - UI binding changes are not user intent.
 - Creating, editing, saving, deleting, or previewing a profile never launches the broker.
+- Creating, editing, saving, deleting, refreshing, or previewing an automation rule never
+  launches the broker or applies its target profile.
 - Profiles show a dry-run preview before their first application.
 - Ambiguous timeout or readback failure suspends automation; it is not retried blindly.
 - Real-hardware tests require an exact machine/BIOS record and explicit confirmation for

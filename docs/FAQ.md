@@ -9,20 +9,27 @@ always-running management suite.
 ## Can it replace Lenovo Vantage today?
 
 No. The current `rebuild/v1` application provides serial-free diagnostics, an explicit
-read-only hardware-state dashboard, and local battery/thermal profile previews. Hardware
-controls, profile application, and automation execution remain disabled until their safety
-gates pass.
+read-only hardware-state dashboard, local battery/thermal profile previews, and
+deterministic AC/battery automation previews. Hardware controls, profile application, and
+automation execution remain disabled until their safety gates pass.
 
 ## What is being built next?
 
-The next slice is deterministic automation preview, beginning with read-only AC/DC power
-state. It may report which local profile a rule would select, but it will not apply that
-profile. See the [rebuild roadmap](ROADMAP.md).
+The next slice is a release-grade read-only foundation: CI and packaging hardening,
+accessibility automation, broker signing and install-ACL design, diagnostics export, and
+release documentation. See the [rebuild roadmap](ROADMAP.md).
 
 ## Can a saved profile change my hardware?
 
 No. A profile is currently a strictly validated local draft. New, save, delete, and preview
 operations do not launch the broker, and the UI contains no Apply command.
+
+## Can an automation rule change my hardware?
+
+No. A rule is a strictly validated local preview. The app observes AC/battery state once
+when the workspace initializes and again only after an explicit refresh. It evaluates which
+profile would win, but there is no watcher, scheduler, runner, broker call, or profile Apply
+command.
 
 ## Is the current build safe to run?
 

@@ -27,6 +27,8 @@ Working today:
   to legacy hardware writers;
 - strict, versioned local battery and thermal drafts with typed current-versus-target
   previews and no Apply path;
+- strict, versioned AC/battery automation rules with deterministic priority evaluation,
+  explicit conflict states, and no scheduler or execution path;
 - locked dependencies and automated safety, contract, mapping, and redaction tests.
 
 On the recorded LOQ 15IRX9, the Lenovo provider denies the instance access needed by
@@ -47,7 +49,8 @@ Not enabled today:
 
 See [SAFETY.md](SAFETY.md), [architecture](docs/ARCHITECTURE.md), and the
 [current evidence policy](docs/SUPPORTED_MODELS.md). The staged path from read-only
-profile previews to validated controls is tracked in the [rebuild roadmap](docs/ROADMAP.md).
+profile and automation previews to validated controls is tracked in the
+[rebuild roadmap](docs/ROADMAP.md).
 
 ## Build and verify
 

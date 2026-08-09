@@ -26,12 +26,15 @@ its behavior is replaced feature by feature.
 ## Projects
 
 - `src/LegionLoqControl.Domain`: platform-neutral observations, capability evidence,
-  hardware read results, hardware states, bounded profile drafts, and preview outcomes.
+  hardware read results, hardware states, bounded profile and automation drafts, and
+  preview outcomes.
 - `src/LegionLoqControl.Application`: read-only use cases and ports such as
-  `IMachineIdentitySource`, `ICapabilityProbe`, `IHardwareStateReader`, and `IProfileStore`.
+  `IMachineIdentitySource`, `ICapabilityProbe`, `IHardwareStateReader`, `IProfileStore`,
+  `IPowerSourceReader`, and `IAutomationRuleStore`.
 - `src/LegionLoqControl.Infrastructure.Windows`: Windows WMI inventory and strict read
-  adapters plus the bounded local JSON profile store. Inventory does not invoke methods;
-  the state adapter invokes only fixed Lenovo getters and never exposes WMI names to callers.
+  adapters plus bounded local JSON profile and automation stores. Inventory does not invoke
+  methods; the state adapter invokes only fixed Lenovo getters and never exposes WMI names
+  to callers.
 - `src/LegionLoqControl.Contracts`: versioned, typed compare-and-set commands for the
   future write path plus the bounded read-only wire protocol. Raw IOCTL values, WMI names,
   and HID packets are not IPC contracts.
@@ -40,7 +43,7 @@ its behavior is replaced feature by feature.
 - `src/LegionLoqControl.Diagnostics`: serial-free JSON inventory, direct state probe, and
   explicit brokered state-validation client.
 - `LegionLoqControl`: unelevated WPF composition root, precision dashboard, and local
-  profile-preview workspace.
+  profile and automation-preview workspaces.
 - `LegionLoqControl.Core`: quarantined migration prototype; never reference it from new
   product projects.
 
@@ -122,6 +125,32 @@ process. The store is capped, rejects unknown JSON members and numeric enum valu
 replaces its file atomically. Previewing compares domain values directly; it never parses
 display text. The profile workspace has no broker reference, Apply command, or automation
 runner.
+
+## Automation preview flow
+
+```mermaid
+flowchart LR
+    PowerApi[GetSystemPowerStatus] --> Power[Typed AC or battery snapshot]
+    Draft[Bounded local rule draft] --> Preview[AutomationPreviewService]
+    Store[Strict versioned rule JSON] --> Preview
+    Power --> Preview
+    Profiles[Strict local profile drafts] --> Preview
+    Preview --> Outcome[Unique selection or explicit blocked state]
+```
+
+Rule evaluation is deterministic and platform-neutral. Only enabled rules matching the
+fresh observed source participate; exactly one unique highest priority must win. Duplicate
+IDs, equal winning priorities, stale or unavailable observations, no match, and missing
+profiles are explicit blocked outcomes. The Windows adapter performs one local power-status
+read. No polling loop, background watcher, scheduler, broker call, or profile application
+exists.
+
+## Desktop rendering policy
+
+The current low-motion WPF shell uses software rendering. This avoids blank client surfaces
+observed with the hardware-composition path on the validated Windows build and keeps visual
+behavior deterministic while that path is qualified. Rendering policy does not alter the
+hardware access boundary.
 
 ## Future privileged flow
 

@@ -12,6 +12,7 @@ optional follow-up work.
 - exact zero-access EnergyDrv battery-mode read
 - unelevated precision dashboard with an explicit brokered refresh
 - strict local battery and thermal drafts with typed, fail-closed previews
+- deterministic AC/battery automation previews with strict local rule storage
 - protocol provenance, redacted hardware fixtures, and fail-closed tests
 
 ## Completed: profile preview
@@ -27,11 +28,26 @@ Profiles now begin as local, read-only plans. The profile workspace:
 There is no Apply action, profile-triggered elevation, hardware write, or background
 automation.
 
-## Current milestone: automation preview
+## Completed: automation preview
 
-Automation starts as deterministic rule evaluation against read-only observations. The
-first source will be AC/DC power state. The UI may report which profile a rule would select,
-but it will not apply that profile.
+Automation now starts as deterministic rule evaluation against read-only AC/battery
+observations. The automation workspace:
+
+1. observes the current power source through `GetSystemPowerStatus` without elevation;
+2. persists bounded, versioned rules with strict JSON validation;
+3. selects only one unique highest-priority rule for the observed source;
+4. distinguishes unavailable, stale, unmatched, ambiguous, disabled, and missing-profile
+   outcomes; and
+5. exposes local new, save, delete, refresh, and preview actions only.
+
+There is no watcher, scheduler, background runner, profile application, broker call, or
+hardware write.
+
+## Current milestone: release-grade read-only foundation
+
+The next slice hardens CI, packaging, accessibility automation, broker signing and install
+ACL design, diagnostics export, and release documentation. This creates a useful read-only
+release without weakening the write-path gate.
 
 Process, temperature, time, resume, and hotkey sources follow only after the rule model,
 precedence, cooldown, stale-data handling, and audit output are tested.

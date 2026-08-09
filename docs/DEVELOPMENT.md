@@ -50,6 +50,10 @@ Run the read-only desktop shell:
 dotnet run --project LegionLoqControl --configuration Release
 ```
 
+The current low-motion WPF shell deliberately uses software rendering. Hardware composition
+produced blank client surfaces on the validated Windows build; do not re-enable it without
+cross-version startup and visual regression coverage.
+
 ## Repository layout
 
 - `src/`: new layered platform code
