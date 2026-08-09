@@ -4,6 +4,9 @@
     <ProjectReference Include="..\src\LegionLoqControl.Domain\LegionLoqControl.Domain.csproj" />
     <ProjectReference Include="..\src\LegionLoqControl.Infrastructure.Windows\LegionLoqControl.Infrastructure.Windows.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+  </ItemGroup>
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>

@@ -19,6 +19,7 @@ or source of adapted code. An entry in the candidate list is not approval to imp
 | Project | Pin | License | Use | Distribution |
 |---|---|---|---|---|
 | [Lenovo Legion Toolkit](https://github.com/LenovoLegionToolkit-Team/LenovoLegionToolkit) | `6f19ef48095a32afe439474a65e5b95cf8fa1b24` | GPL-3.0 with its repository-specific plugin exception | Reference-only submodule for protocol and behavior comparison | Not compiled or packaged |
+| [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet) | NuGet `8.4.2` | MIT | Observable state and asynchronous commands for the WPF shell | Runtime dependency |
 | [HidSharp](https://github.com/IntergatedCircuits/HidSharp) | NuGet `2.6.4` | Apache-2.0 | Read-only HID inventory; quarantined legacy transport | Runtime dependency |
 | [System.Management](https://github.com/dotnet/runtime) | NuGet `10.0.10` | MIT | Allowlisted identity reads and WMI metadata inventory | Runtime dependency |
 | [Windows PowerShell](https://learn.microsoft.com/powershell/scripting/windows-powershell/starting-windows-powershell) | OS component `5.1` | Microsoft Windows component | Static, bounded local `CimCmdlets` batch for typed Lenovo getters | Required from Windows; not redistributed |
@@ -34,7 +35,6 @@ remains relevant for historical attribution.
 
 | Project | License | Intended role | Acceptance condition |
 |---|---|---|---|
-| [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet) | MIT | MVVM source generators and commands | Accept after .NET 10 build and trimming review |
 | [WPF UI](https://github.com/lepoco/wpfui) | MIT | Fluent WPF controls and navigation | Accept after startup, memory, high-contrast, and packaging benchmarks |
 | [LibreHardwareMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor) | MPL-2.0 plus third-party notices | CPU, GPU, storage, and system sensors | Accept behind a sensor adapter after privilege and polling-cost tests |
 | [Microsoft.Windows.CsWin32](https://github.com/microsoft/CsWin32) | MIT | Generated Win32 interop | Accept if it removes hand-written unsafe declarations without increasing the broker surface |
