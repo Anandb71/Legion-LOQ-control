@@ -25,6 +25,10 @@ The C# migration prototype is deliberately **read-only**:
   zero requested device access) and no caller-controlled or generic driver operation;
 - the elevated broker has no write message type, write dispatcher, legacy Core reference,
   writable EnergyDrv handle, or HID access;
+- profile drafts use a bounded, strict, versioned local JSON store and compare only against
+  retained typed snapshots and capability evidence;
+- the profile workspace exposes new, save, delete, and preview commands but no Apply
+  command, broker call, or automation runner;
 - unit tests verify that battery, thermal, fan, and keyboard commands fail closed.
 
 The read-only broker is a validation milestone, not authorization for writes. It is not

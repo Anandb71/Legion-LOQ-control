@@ -11,11 +11,12 @@ optional follow-up work.
 - short-lived authenticated read-only elevation broker
 - exact zero-access EnergyDrv battery-mode read
 - unelevated precision dashboard with an explicit brokered refresh
+- strict local battery and thermal drafts with typed, fail-closed previews
 - protocol provenance, redacted hardware fixtures, and fail-closed tests
 
-## Current milestone: profile preview
+## Completed: profile preview
 
-Profiles begin as local, read-only plans. The first profile workspace will:
+Profiles now begin as local, read-only plans. The profile workspace:
 
 1. model bounded battery and thermal targets;
 2. compare a draft with the latest typed hardware snapshot;
@@ -24,9 +25,9 @@ Profiles begin as local, read-only plans. The first profile workspace will:
 5. expose save, delete, and preview actions only.
 
 There is no Apply action, profile-triggered elevation, hardware write, or background
-automation in this milestone.
+automation.
 
-## Next: automation preview
+## Current milestone: automation preview
 
 Automation starts as deterministic rule evaluation against read-only observations. The
 first source will be AC/DC power state. The UI may report which profile a rule would select,

@@ -26,12 +26,12 @@ its behavior is replaced feature by feature.
 ## Projects
 
 - `src/LegionLoqControl.Domain`: platform-neutral observations, capability evidence,
-  hardware read results, hardware states, and bounded value objects.
+  hardware read results, hardware states, bounded profile drafts, and preview outcomes.
 - `src/LegionLoqControl.Application`: read-only use cases and ports such as
-  `IMachineIdentitySource`, `ICapabilityProbe`, and `IHardwareStateReader`.
+  `IMachineIdentitySource`, `ICapabilityProbe`, `IHardwareStateReader`, and `IProfileStore`.
 - `src/LegionLoqControl.Infrastructure.Windows`: Windows WMI inventory and strict read
-  adapters. Inventory does not invoke methods; the state adapter invokes only fixed Lenovo
-  getters and never exposes WMI names to callers.
+  adapters plus the bounded local JSON profile store. Inventory does not invoke methods;
+  the state adapter invokes only fixed Lenovo getters and never exposes WMI names to callers.
 - `src/LegionLoqControl.Contracts`: versioned, typed compare-and-set commands for the
   future write path plus the bounded read-only wire protocol. Raw IOCTL values, WMI names,
   and HID packets are not IPC contracts.
@@ -39,7 +39,8 @@ its behavior is replaced feature by feature.
   authenticated, typed hardware-state read and exits. It contains no write dispatcher.
 - `src/LegionLoqControl.Diagnostics`: serial-free JSON inventory, direct state probe, and
   explicit brokered state-validation client.
-- `LegionLoqControl`: unelevated WPF composition root and read-only precision dashboard.
+- `LegionLoqControl`: unelevated WPF composition root, precision dashboard, and local
+  profile-preview workspace.
 - `LegionLoqControl.Core`: quarantined migration prototype; never reference it from new
   product projects.
 
@@ -104,6 +105,23 @@ one request and has a 30-second lifetime.
 .NET's `PipeOptions.CurrentUserOnly` is not used because it also enforces equal elevation
 levels, which would reject this split-token connection. Production use still requires a
 signed broker and administrator-protected installation directory.
+
+## Profile preview flow
+
+```mermaid
+flowchart LR
+    Draft[Bounded local draft] --> Preview[ProfilePreviewService]
+    Session[Latest typed session snapshots] --> Preview
+    Evidence[Capability evidence] --> Preview
+    Preview --> Outcome[Matches would-change stale unavailable or unverified]
+    Draft --> Store[Strict versioned JSON store]
+```
+
+Creating, editing, saving, deleting, and previewing a profile stays in the unelevated
+process. The store is capped, rejects unknown JSON members and numeric enum values, and
+replaces its file atomically. Previewing compares domain values directly; it never parses
+display text. The profile workspace has no broker reference, Apply command, or automation
+runner.
 
 ## Future privileged flow
 

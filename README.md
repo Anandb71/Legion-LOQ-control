@@ -25,6 +25,8 @@ Working today:
   checks, a current-user pipe ACL, and no write dispatcher;
 - an unelevated precision dashboard with explicit brokered state refresh and no reference
   to legacy hardware writers;
+- strict, versioned local battery and thermal drafts with typed current-versus-target
+  previews and no Apply path;
 - locked dependencies and automated safety, contract, mapping, and redaction tests.
 
 On the recorded LOQ 15IRX9, the Lenovo provider denies the instance access needed by
