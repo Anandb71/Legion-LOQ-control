@@ -1,69 +1,310 @@
 <Window x:Class="LegionLoqControl.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Legion + LOQ Control" Height="500" Width="800"
-        Background="#1E1E1E" Foreground="White">
-    <Grid Margin="20">
-        <StackPanel>
-            <TextBlock Text="Legion + LOQ Control" FontSize="24" FontWeight="Bold" Margin="0,0,0,12"/>
+        xmlns:automation="clr-namespace:System.Windows.Automation;assembly=PresentationCore"
+        xmlns:vm="clr-namespace:LegionLoqControl.ViewModels"
+        Title="Legion + LOQ Control"
+        Width="1080"
+        Height="720"
+        MinWidth="860"
+        MinHeight="600"
+        WindowStartupLocation="CenterScreen">
+    <Window.Resources>
+        <DataTemplate x:Key="StateCardTemplate"
+                      DataType="{x:Type vm:HardwareStateCardViewModel}">
+            <Border Style="{StaticResource SurfaceBorderStyle}"
+                    Padding="20">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="4" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
 
-            <Border Background="#3A2F16" BorderBrush="#A97916" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,12">
-                <TextBlock Text="Read-only safety mode: hardware changes are disabled until the isolated write broker is complete."
-                           Foreground="#FFD37A" TextWrapping="Wrap"/>
+                    <Border x:Name="StateMarker"
+                            Grid.Column="0"
+                            Margin="0,1,0,1"
+                            Background="{StaticResource MutedTextBrush}"
+                            CornerRadius="2" />
+
+                    <Grid Grid.Column="1" Margin="16,0,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0"
+                                   Style="{StaticResource EyebrowTextStyle}"
+                                   Text="{Binding Label}" />
+                        <TextBlock Grid.Row="1"
+                                   Margin="0,4,0,20"
+                                   Foreground="{StaticResource MutedTextBrush}"
+                                   Text="{Binding Description}" />
+                        <TextBlock Grid.Row="2"
+                                   FontFamily="{StaticResource DisplayFont}"
+                                   FontSize="28"
+                                   FontWeight="SemiBold"
+                                   Text="{Binding Value}" />
+                        <TextBlock Grid.Row="3"
+                                   Margin="0,8,0,0"
+                                   FontSize="11"
+                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                   Text="{Binding Detail}" />
+                    </Grid>
+                </Grid>
+            </Border>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding State}"
+                             Value="{x:Static vm:DashboardStateKind.Success}">
+                    <Setter TargetName="StateMarker"
+                            Property="Background"
+                            Value="{StaticResource SuccessBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding State}"
+                             Value="{x:Static vm:DashboardStateKind.Warning}">
+                    <Setter TargetName="StateMarker"
+                            Property="Background"
+                            Value="{StaticResource WarningBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding State}"
+                             Value="{x:Static vm:DashboardStateKind.Error}">
+                    <Setter TargetName="StateMarker"
+                            Property="Background"
+                            Value="{StaticResource FailureBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding State}"
+                             Value="{x:Static vm:DashboardStateKind.Unavailable}">
+                    <Setter TargetName="StateMarker"
+                            Property="Background"
+                            Value="{StaticResource BorderBrush}" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <DataTemplate x:Key="CapabilityItemTemplate"
+                      DataType="{x:Type vm:CapabilityItemViewModel}">
+            <Grid Margin="0,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                    <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
+                    <TextBlock Margin="0,3,16,0"
+                               FontSize="10"
+                               Foreground="{StaticResource MutedTextBrush}"
+                               Text="{Binding EvidenceCode}" />
+                </StackPanel>
+                <TextBlock x:Name="SupportText"
+                           Grid.Column="1"
+                           VerticalAlignment="Center"
+                           Style="{StaticResource EyebrowTextStyle}"
+                           Text="{Binding Support}" />
+            </Grid>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding State}"
+                             Value="{x:Static vm:DashboardStateKind.Success}">
+                    <Setter TargetName="SupportText"
+                            Property="Foreground"
+                            Value="{StaticResource SuccessBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding State}"
+                             Value="{x:Static vm:DashboardStateKind.Warning}">
+                    <Setter TargetName="SupportText"
+                            Property="Foreground"
+                            Value="{StaticResource WarningBrush}" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+    </Window.Resources>
+
+    <ScrollViewer Background="{StaticResource CanvasBrush}"
+                  VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled">
+        <Grid Margin="32,24,32,28"
+              Background="{StaticResource CanvasBrush}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" Margin="0,0,0,24">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock Style="{StaticResource EyebrowTextStyle}"
+                               Text="LEGION + LOQ CONTROL / READ-ONLY REBUILD" />
+                    <TextBlock Margin="0,6,0,0"
+                               FontFamily="{StaticResource DisplayFont}"
+                               FontSize="28"
+                               FontWeight="SemiBold"
+                               Text="{Binding DeviceName}" />
+                    <TextBlock Margin="0,5,0,0"
+                               Foreground="{StaticResource SecondaryTextBrush}"
+                               Text="{Binding DeviceMetadata}" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center">
+                    <TextBlock HorizontalAlignment="Right"
+                               Style="{StaticResource EyebrowTextStyle}"
+                               Text="LOCAL · NO TELEMETRY" />
+                    <TextBlock Margin="0,6,0,0"
+                               HorizontalAlignment="Right"
+                               Foreground="{StaticResource MutedTextBrush}"
+                               Text="{Binding InventoryStatus}" />
+                </StackPanel>
+            </Grid>
+
+            <Border Grid.Row="1"
+                    Margin="0,0,0,28"
+                    Style="{StaticResource SurfaceBorderStyle}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="4" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border x:Name="BannerMarker"
+                            Grid.Column="0"
+                            CornerRadius="6,0,0,6">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background"
+                                        Value="{StaticResource WarningBrush}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding BannerState}"
+                                                 Value="{x:Static vm:DashboardStateKind.Success}">
+                                        <Setter Property="Background"
+                                                Value="{StaticResource SuccessBrush}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding BannerState}"
+                                                 Value="{x:Static vm:DashboardStateKind.Error}">
+                                        <Setter Property="Background"
+                                                Value="{StaticResource FailureBrush}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                    </Border>
+
+                    <StackPanel Grid.Column="1" Margin="20,16">
+                        <TextBlock FontWeight="SemiBold"
+                                   Text="{Binding BannerTitle}" />
+                        <TextBlock Margin="0,4,16,0"
+                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                   Text="{Binding BannerMessage}" />
+                    </StackPanel>
+
+                    <Button Grid.Column="2"
+                            Margin="16"
+                            VerticalAlignment="Center"
+                            automation:AutomationProperties.Name="Read current hardware state using the elevated broker"
+                            Command="{Binding RefreshHardwareStateCommand}"
+                            Content="{Binding RefreshButtonText}"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            ToolTip="Opens one Windows elevation prompt for a read-only snapshot" />
+                </Grid>
             </Border>
 
-            <!-- Device Info -->
-            <Border BorderBrush="#3E3E3E" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,10">
+            <Grid Grid.Row="2" Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                    <TextBlock Style="{StaticResource SectionTitleStyle}"
+                               Text="Current hardware state" />
+                    <TextBlock Margin="0,4,0,0"
+                               Foreground="{StaticResource MutedTextBrush}"
+                               Text="Values are evidence, not controls. Refresh requires explicit elevation." />
+                </StackPanel>
+                <TextBlock Grid.Column="1"
+                           VerticalAlignment="Bottom"
+                           Style="{StaticResource EyebrowTextStyle}"
+                           Text="{Binding LastUpdated, StringFormat=LAST VERIFIED · {0}}" />
+            </Grid>
+
+            <Grid Grid.Row="3" Margin="0,0,0,28">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <ContentControl Grid.Row="0"
+                                Grid.Column="0"
+                                Margin="0,0,6,6"
+                                Content="{Binding Battery}"
+                                ContentTemplate="{StaticResource StateCardTemplate}" />
+                <ContentControl Grid.Row="0"
+                                Grid.Column="1"
+                                Margin="6,0,0,6"
+                                Content="{Binding Thermal}"
+                                ContentTemplate="{StaticResource StateCardTemplate}" />
+                <ContentControl Grid.Row="1"
+                                Grid.Column="0"
+                                Margin="0,6,6,0"
+                                Content="{Binding DisplayOverdrive}"
+                                ContentTemplate="{StaticResource StateCardTemplate}" />
+                <ContentControl Grid.Row="1"
+                                Grid.Column="1"
+                                Margin="6,6,0,0"
+                                Content="{Binding IntegratedGpu}"
+                                ContentTemplate="{StaticResource StateCardTemplate}" />
+            </Grid>
+
+            <Border Grid.Row="4"
+                    Padding="20,18"
+                    Style="{StaticResource SurfaceBorderStyle}">
                 <StackPanel>
-                    <TextBlock Text="Device Information" FontWeight="SemiBold" Margin="0,0,0,10"/>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Model: " Foreground="#AAAAAA"/>
-                        <TextBlock x:Name="TextModel" Text="Detecting..." FontWeight="Bold"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Status: " Foreground="#AAAAAA"/>
-                        <TextBlock x:Name="TextStatus" Text="-" FontWeight="Bold"/>
-                    </StackPanel>
-                    <TextBlock x:Name="TextEvidence" Text="Reading capability evidence..."
-                               Margin="0,8,0,0" Foreground="#B8B8B8" FontSize="12" TextWrapping="Wrap"/>
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Style="{StaticResource SectionTitleStyle}"
+                                       Text="Capability evidence" />
+                            <TextBlock Margin="0,4,0,0"
+                                       Foreground="{StaticResource MutedTextBrush}"
+                                       Text="Candidate means an interface exists; it does not claim verified support." />
+                        </StackPanel>
+                        <TextBlock Grid.Column="1"
+                                   VerticalAlignment="Center"
+                                   Style="{StaticResource EyebrowTextStyle}"
+                                   Text="SERIAL-FREE INVENTORY" />
+                    </Grid>
+
+                    <Border Style="{StaticResource ThinSeparatorStyle}" />
+
+                    <ItemsControl ItemsSource="{Binding Capabilities}"
+                                  ItemTemplate="{StaticResource CapabilityItemTemplate}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="2" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemContainerStyle>
+                            <Style TargetType="ContentPresenter">
+                                <Setter Property="Margin" Value="0,0,24,0" />
+                            </Style>
+                        </ItemsControl.ItemContainerStyle>
+                    </ItemsControl>
                 </StackPanel>
             </Border>
-
-            <!-- Power Controls -->
-            <GroupBox Header="Power Controls" Foreground="White" BorderBrush="#3E3E3E" Margin="0,0,0,10" IsEnabled="False" ToolTip="Unavailable in read-only safety mode">
-                <StackPanel Margin="10">
-                    <CheckBox x:Name="CheckConservation" IsThreeState="True" Content="Conservation Mode (Limit Charge)" Margin="0,5" Foreground="White"/>
-                    <CheckBox x:Name="CheckRapidCharge" IsThreeState="True" Content="Rapid Charge" Margin="0,5" Foreground="White"/>
-                    
-                    <TextBlock Text="Thermal Mode" Margin="0,10,0,5"/>
-                    <StackPanel Orientation="Horizontal">
-                        <Button Content="Quiet" Width="80" Margin="0,0,10,0"/>
-                        <Button Content="Balanced" Width="80" Margin="0,0,10,0"/>
-                        <Button Content="Perf" Width="80"/>
-                    </StackPanel>
-                </StackPanel>
-            </GroupBox>
-
-            <!-- Fan Control -->
-            <GroupBox Header="Custom Mode (Fans)" Foreground="White" BorderBrush="#3E3E3E" Margin="0,0,0,10" IsEnabled="False" ToolTip="Unavailable in read-only safety mode">
-                <StackPanel Margin="10">
-                    <CheckBox x:Name="CheckFanFullSpeed" IsThreeState="True" Content="Full Speed Fans (Max Performance)" Margin="0,5" Foreground="White"/>
-                </StackPanel>
-            </GroupBox>
-
-            <!-- Lighting -->
-            <GroupBox Header="Keyboard Backlight" Foreground="White" BorderBrush="#3E3E3E" IsEnabled="False" ToolTip="Unavailable in read-only safety mode">
-                <StackPanel Margin="10">
-                    <Button Content="Take Control" Width="120" HorizontalAlignment="Left" Margin="0,0,0,10"/>
-                    
-                    <TextBlock Text="Brightness"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,5">
-                        <Button Content="OFF" Width="60" Margin="0,0,10,0"/>
-                        <Button Content="LOW" Width="60" Margin="0,0,10,0"/>
-                        <Button Content="HIGH" Width="60"/>
-                    </StackPanel>
-                </StackPanel>
-            </GroupBox>
-        </StackPanel>
-    </Grid>
+        </Grid>
+    </ScrollViewer>
 </Window>
