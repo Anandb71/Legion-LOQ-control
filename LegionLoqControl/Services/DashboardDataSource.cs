@@ -36,23 +36,26 @@ public sealed class DashboardDataSourceException : Exception
 public sealed class DashboardDataSource : IDashboardDataSource
 {
     private readonly MachineDiagnosticsService _diagnostics;
-    private readonly ElevatedHardwareStateBrokerClient _broker;
+    private readonly Func<CancellationToken, ValueTask<HardwareStateReadResponse>>
+        _readHardwareStateAsync;
 
     public DashboardDataSource()
         : this(
             new MachineDiagnosticsService(
                 new WindowsMachineIdentitySource(),
                 [new WindowsCapabilityProbe()]),
-            new ElevatedHardwareStateBrokerClient())
+            static cancellationToken =>
+                new ElevatedHardwareStateBrokerClient().ReadAsync(cancellationToken))
     {
     }
 
     internal DashboardDataSource(
         MachineDiagnosticsService diagnostics,
-        ElevatedHardwareStateBrokerClient broker)
+        Func<CancellationToken, ValueTask<HardwareStateReadResponse>> readHardwareStateAsync)
     {
         _diagnostics = diagnostics ?? throw new ArgumentNullException(nameof(diagnostics));
-        _broker = broker ?? throw new ArgumentNullException(nameof(broker));
+        _readHardwareStateAsync = readHardwareStateAsync ??
+            throw new ArgumentNullException(nameof(readHardwareStateAsync));
     }
 
     public Task<MachineSnapshot> CaptureMachineAsync(CancellationToken cancellationToken) =>
@@ -63,8 +66,7 @@ public sealed class DashboardDataSource : IDashboardDataSource
     {
         try
         {
-            HardwareStateReadResponse response = await _broker
-                .ReadAsync(cancellationToken)
+            HardwareStateReadResponse response = await _readHardwareStateAsync(cancellationToken)
                 .ConfigureAwait(false);
             if (response.Status != BrokerReadStatus.Succeeded || response.Snapshot is null)
             {

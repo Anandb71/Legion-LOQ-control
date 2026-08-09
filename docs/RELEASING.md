@@ -27,8 +27,9 @@ Run the `Read-only Preview Artifact` workflow manually from GitHub Actions. It:
 6. records the source commit, SDK, version, and enforced safety flags in `BUILD-INFO.json`;
 7. generates `SHA256SUMS.txt`;
 8. fails if a required file is absent, debug symbols are present, or any
-   `LegionLoqControl.Broker*` file is present; and
-9. uploads a private workflow artifact retained for seven days.
+   `LegionLoqControl.Broker*` file is present;
+9. launches the packaged executable and requires a responsive main window; and
+10. uploads a private workflow artifact retained for seven days.
 
 The preview requires the .NET 10 Desktop Runtime. It is unsigned and is not an installer.
 See [`READ_ONLY_PREVIEW.md`](READ_ONLY_PREVIEW.md) for the user-facing boundary.
@@ -42,12 +43,13 @@ dotnet restore LegionLoqControl.sln --locked-mode
 dotnet build LegionLoqControl.sln --configuration Release --no-restore
 ./scripts/test-accessibility-contracts.ps1
 dotnet test LegionLoqControl.sln --configuration Release --no-build --no-restore
-./scripts/build-read-only-preview.ps1 `
-  -OutputPath "$env:TEMP/LegionLoqControl-preview-$([guid]::NewGuid().ToString('N'))"
+$preview = "$env:TEMP/LegionLoqControl-preview-$([guid]::NewGuid().ToString('N'))"
+./scripts/build-read-only-preview.ps1 -OutputPath $preview
+./scripts/test-read-only-preview-startup.ps1 -PreviewPath $preview
 ```
 
-Build & Test repeats the broker-free packaging check on every branch push. Also confirm that
-the branch's Build & Test and CodeQL workflows pass.
+Build & Test repeats the broker-free packaging and startup checks on every branch push. Also
+confirm that the branch's Build & Test and CodeQL workflows pass.
 
 ## Production release blockers
 

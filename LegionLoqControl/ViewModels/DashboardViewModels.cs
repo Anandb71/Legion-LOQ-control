@@ -338,7 +338,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
             "broker_elevation_cancelled" =>
                 "Windows approval was cancelled. No privileged hardware read ran.",
             "broker_not_found" =>
-                "The signed read broker is missing from the application directory.",
+                "The read broker is not included in this package or is missing from the " +
+                "application directory.",
             "broker_timeout" or "broker_lifetime_timeout" =>
                 "The broker reached its time limit and stopped without changing hardware.",
             "broker_peer_mismatch" or "broker_authorization_failed" =>

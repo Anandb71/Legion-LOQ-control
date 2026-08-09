@@ -44,6 +44,10 @@ jobs:
           -OutputPath preview
           -Version "0.0.0-preview.${{ github.run_number }}"
 
+      - name: Smoke test broker-free preview startup
+        shell: pwsh
+        run: ./scripts/test-read-only-preview-startup.ps1 -PreviewPath preview
+
       - name: Upload short-lived preview
         uses: actions/upload-artifact@v4
         with:

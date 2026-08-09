@@ -54,3 +54,9 @@ jobs:
           ./scripts/build-read-only-preview.ps1
           -OutputPath "$env:RUNNER_TEMP/LegionLoqControl-read-only-preview-${{ github.run_attempt }}"
           -Version "0.0.0-ci.${{ github.run_number }}.${{ github.run_attempt }}"
+
+      - name: Smoke test broker-free preview startup
+        shell: pwsh
+        run: >
+          ./scripts/test-read-only-preview-startup.ps1
+          -PreviewPath "$env:RUNNER_TEMP/LegionLoqControl-read-only-preview-${{ github.run_attempt }}"

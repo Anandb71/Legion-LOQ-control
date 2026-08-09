@@ -71,6 +71,25 @@ public sealed class DashboardViewModelTests
         Assert.Equal(2, source.HardwareReadCount);
     }
 
+    [Fact]
+    public async Task Broker_free_package_reports_the_missing_optional_broker()
+    {
+        var source = new StubDashboardDataSource(
+            CreateMachineSnapshot(),
+            CreateHardwareSnapshot())
+        {
+            ReadException = new DashboardDataSourceException("broker_not_found"),
+        };
+        var viewModel = new MainWindowViewModel(source);
+        await viewModel.InitializeAsync();
+
+        await viewModel.RefreshHardwareStateCommand.ExecuteAsync(null);
+
+        Assert.Equal("Hardware state unavailable", viewModel.BannerTitle);
+        Assert.Contains("not included in this package", viewModel.BannerMessage);
+        Assert.Equal(DashboardStateKind.Error, viewModel.BannerState);
+    }
+
     private static MachineSnapshot CreateMachineSnapshot()
     {
         var identity = new MachineIdentity(
