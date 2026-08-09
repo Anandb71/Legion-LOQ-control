@@ -43,6 +43,33 @@ public sealed class HardwareStateReaderTests
         Assert.Empty(invoker.Operations);
     }
 
+    [Theory]
+    [InlineData(0x00u, BatteryChargeMode.Normal)]
+    [InlineData(0x80u, BatteryChargeMode.Normal)]
+    [InlineData(0x20u, BatteryChargeMode.Conservation)]
+    [InlineData(0x04u, BatteryChargeMode.RapidCharge)]
+    public void Energy_driver_bits_map_to_battery_modes(
+        uint rawValue,
+        BatteryChargeMode expected)
+    {
+        HardwareReadResult<BatteryChargeMode> result =
+            EnergyDriverBatteryReader.MapRawValue(rawValue);
+
+        Assert.Equal(HardwareReadStatus.Success, result.Status);
+        Assert.Equal(expected, result.Value);
+    }
+
+    [Fact]
+    public void Conflicting_energy_driver_bits_are_rejected()
+    {
+        HardwareReadResult<BatteryChargeMode> result =
+            EnergyDriverBatteryReader.MapRawValue(0x24);
+
+        Assert.Equal(HardwareReadStatus.InvalidData, result.Status);
+        Assert.False(result.HasValue);
+        Assert.Equal("energy_battery_mode_conflict", result.ErrorCode);
+    }
+
     [Fact]
     public void Getter_output_contract_requires_true_status_and_UInt32_data()
     {
