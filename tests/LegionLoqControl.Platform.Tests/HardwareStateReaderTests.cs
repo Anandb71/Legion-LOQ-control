@@ -139,6 +139,22 @@ public sealed class HardwareStateReaderTests
     }
 
     [Fact]
+    public void PowerShell_script_is_static_and_getter_only()
+    {
+        string script = PowerShellLenovoWmiReadInvoker.ScriptForValidation;
+
+        Assert.Contains("'GetSmartFanMode'", script, StringComparison.Ordinal);
+        Assert.Contains("'GetODStatus'", script, StringComparison.Ordinal);
+        Assert.Contains("'GetIGPUModeStatus'", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("SetSmartFanMode", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("SetODStatus", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("SetIGPUModeStatus", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("Invoke-Expression", script, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Add-Type", script, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Start-Process", script, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task Unexpected_firmware_values_fail_as_invalid_data()
     {
         var invoker = new StubInvoker();

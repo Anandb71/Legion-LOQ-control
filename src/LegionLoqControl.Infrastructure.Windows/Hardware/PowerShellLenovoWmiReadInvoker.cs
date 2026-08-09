@@ -33,7 +33,7 @@ internal sealed class PowerShellLenovoWmiReadInvoker : ILenovoWmiReadInvoker
 
         Task<IReadOnlyDictionary<LenovoWmiReadOperation, GetterOutcome>> task;
         lock (_sync)
-            task = _batchTask ??= ReadBatchAsync();
+            task = _batchTask ??= ReadBatchAsync(cancellationToken);
 
         IReadOnlyDictionary<LenovoWmiReadOperation, GetterOutcome> outcomes =
             await task.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -81,14 +81,17 @@ internal sealed class PowerShellLenovoWmiReadInvoker : ILenovoWmiReadInvoker
         };
     }
 
+    internal static string ScriptForValidation => PowerShellScript;
+
     private static async Task<IReadOnlyDictionary<LenovoWmiReadOperation, GetterOutcome>>
-        ReadBatchAsync()
+        ReadBatchAsync(CancellationToken cancellationToken)
     {
-        string output = await ExecutePowerShellAsync().ConfigureAwait(false);
+        string output = await ExecutePowerShellAsync(cancellationToken).ConfigureAwait(false);
         return ParseBatch(output);
     }
 
-    private static async Task<string> ExecutePowerShellAsync()
+    private static async Task<string> ExecutePowerShellAsync(
+        CancellationToken cancellationToken)
     {
         string systemDirectory = Environment.GetFolderPath(Environment.SpecialFolder.System);
         string executable = Path.Combine(
@@ -124,6 +127,7 @@ internal sealed class PowerShellLenovoWmiReadInvoker : ILenovoWmiReadInvoker
             "WindowsPowerShell",
             "v1.0",
             "Modules");
+        startInfo.Environment["POWERSHELL_TELEMETRY_OPTOUT"] = "1";
 
         using var process = new Process { StartInfo = startInfo };
         try
@@ -149,10 +153,16 @@ internal sealed class PowerShellLenovoWmiReadInvoker : ILenovoWmiReadInvoker
 
         Task<string> standardOutput = process.StandardOutput.ReadToEndAsync();
         Task<string> standardError = process.StandardError.ReadToEndAsync();
-        using var timeout = new CancellationTokenSource(ProcessTimeout);
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(ProcessTimeout);
         try
         {
             await process.WaitForExitAsync(timeout.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            TryTerminate(process);
+            throw;
         }
         catch (OperationCanceledException) when (timeout.IsCancellationRequested)
         {
