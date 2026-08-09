@@ -8,20 +8,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Initial C# WPF project structure
-- Core library with WMI integration
-- Device detection module
-- GitHub Actions CI/CD workflow
+
+- Layered .NET 10 rebuild with platform-neutral Domain and Application projects
+- Serial-free machine identity, Lenovo WMI metadata, and HID product-ID diagnostics
+- Typed battery, thermal, display-overdrive, and integrated-GPU state results
+- One-request authenticated read-only elevation broker
+- Exact zero-access EnergyDrv battery-mode reader
+- Unelevated precision dashboard with explicit brokered state refresh
+- Strict local battery and thermal profile drafts with typed previews
+- Strict local AC/battery automation rules with deterministic priority previews
+- Versioned atomic JSON stores for profiles and automation rules
+- Locked dependency restore, 129 automated tests, CodeQL, and accessibility contracts
+- Manually generated, short-lived, broker-free read-only preview artifact
 
 ### Changed
-- Migrated from Rust to .NET 9 WPF
-- Archived Rust prototype to `rust_prototype/`
 
-### Planned
-- Thermal profile switching (Quiet/Balanced/Performance)
-- Battery conservation mode
-- Rapid charge toggle
-- Keyboard backlight control
+- Migrated the active application from .NET 9 to .NET 10 WPF
+- Relicensed the active rebuild under GPL-3.0-or-later
+- Quarantined the old C# writer prototype behind a fail-closed global policy
+- Kept Lenovo Legion Toolkit as a pinned reference-only submodule
+- Selected built-in Windows PowerShell CIM cmdlets instead of a restricted MI runtime
+- Selected WPF software rendering while the failing hardware-composition path is qualified
+
+### Security
+
+- Hardware writes, profile application, and automation execution remain absent
+- Broker IPC uses a random pipe, current-user ACL, one-time nonce, strict framing, and
+  mutual process-ID checks
+- WMI reads use fixed getter names, static script text, capped output, and bounded execution
+- Public release packaging is blocked until broker signing and protected installation ACLs
+  are implemented
 
 ---
 
