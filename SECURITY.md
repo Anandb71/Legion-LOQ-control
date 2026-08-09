@@ -27,6 +27,10 @@ count, reject unknown members and numeric enums, validate all domain values, and
 files atomically. Names and rule fields are data only; they must never become executable
 commands, scripts, protocol identifiers, or broker requests.
 
+GitHub Actions dependencies are pinned to full commit SHAs, and NuGet restore uses committed
+lock files. Preview packaging fails closed if the unsigned broker or debug symbols enter the
+artifact, then records build provenance and SHA-256 checksums before a startup smoke test.
+
 ## Reporting a Vulnerability
 
 If you discover a security vulnerability or a safety issue (e.g., a bug that could cause hardware damage), please report it immediately.
