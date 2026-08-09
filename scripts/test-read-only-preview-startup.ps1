@@ -4,7 +4,7 @@ param(
     [string] $PreviewPath,
 
     [ValidateRange(1, 60)]
-    [int] $TimeoutSeconds = 15
+    [int] $TimeoutSeconds = 30
 )
 
 Set-StrictMode -Version Latest
