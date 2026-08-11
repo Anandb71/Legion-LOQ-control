@@ -64,6 +64,19 @@ into unknown evidence. Caller cancellation is propagated.
 those methods sequentially to avoid concurrent access to Lenovo providers and retains each
 individual outcome in the snapshot.
 
+## Diagnostics export contract
+
+`DiagnosticsExportService` maps a `MachineSnapshot` and optional retained
+`HardwareStateSnapshot` into schema version 1 of `DiagnosticsExportDocument`. The mapping
+is an explicit allowlist: it omits observation details, dynamic source strings, local
+drafts, transport identifiers, and future domain fields unless the contract is deliberately
+versioned.
+
+`IDiagnosticsExportWriter` accepts `CreateNew` or `ReplaceExisting` mode. The Windows JSON
+writer uses string-only enums, a 256 KiB cap, an exclusive same-directory temporary file,
+write-through flush, and atomic rename. Export failure codes are stable and do not include
+the selected path.
+
 ## Windows diagnostics
 
 - `WindowsMachineIdentitySource` reads an allowlist of CIM properties.

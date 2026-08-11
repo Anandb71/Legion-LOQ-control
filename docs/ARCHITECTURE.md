@@ -30,20 +30,20 @@ its behavior is replaced feature by feature.
   preview outcomes.
 - `src/LegionLoqControl.Application`: read-only use cases and ports such as
   `IMachineIdentitySource`, `ICapabilityProbe`, `IHardwareStateReader`, `IProfileStore`,
-  `IPowerSourceReader`, and `IAutomationRuleStore`.
+  `IPowerSourceReader`, `IAutomationRuleStore`, and `IDiagnosticsExportWriter`.
 - `src/LegionLoqControl.Infrastructure.Windows`: Windows WMI inventory and strict read
-  adapters plus bounded local JSON profile and automation stores. Inventory does not invoke
-  methods; the state adapter invokes only fixed Lenovo getters and never exposes WMI names
-  to callers.
+  adapters plus bounded local JSON profile, automation, and diagnostics writers. Inventory
+  does not invoke methods; the state adapter invokes only fixed Lenovo getters and never
+  exposes WMI names to callers.
 - `src/LegionLoqControl.Contracts`: versioned, typed compare-and-set commands for the
   future write path plus the bounded read-only wire protocol. Raw IOCTL values, WMI names,
   and HID packets are not IPC contracts.
 - `src/LegionLoqControl.Broker`: short-lived `requireAdministrator` process that serves one
   authenticated, typed hardware-state read and exits. It contains no write dispatcher.
-- `src/LegionLoqControl.Diagnostics`: serial-free JSON inventory, direct state probe, and
-  explicit brokered state-validation client.
+- `src/LegionLoqControl.Diagnostics`: versioned serial-free JSON report, direct state probe,
+  and explicit brokered state-validation client.
 - `LegionLoqControl`: unelevated WPF composition root, precision dashboard, and local
-  profile and automation-preview workspaces.
+  diagnostics export, profile, and automation-preview workspaces.
 - `LegionLoqControl.Core`: quarantined migration prototype; never reference it from new
   product projects.
 
@@ -54,10 +54,33 @@ its behavior is replaced feature by feature.
 3. `WindowsCapabilityProbe` inventories class method names and matching HID product IDs.
 4. Every probe emits evidence. Interface presence remains `Unknown`, not `Supported`.
 5. Probe failures become typed unknown evidence with stable error codes.
-6. The CLI serializes the snapshot without serial numbers, device paths, usernames, or
-   exception messages.
+6. `DiagnosticsExportService` maps the snapshot into an explicit, versioned allowlist.
+7. The CLI serializes that report without serial numbers, device paths, usernames,
+   exception details, local drafts, or reflection-discovered fields.
 
 Metadata is cached per scan so each WMI class and HID vendor inventory is queried once.
+
+## Diagnostics export flow
+
+```mermaid
+flowchart LR
+    Session[Retained typed session snapshots] --> Allowlist[DiagnosticsExportService]
+    Allowlist --> Report[Versioned privacy-bounded report]
+    Report --> Json[Strict string-enum JSON]
+    Json --> Temp[Bounded same-directory temporary file]
+    Temp --> Rename[Atomic rename to user-selected destination]
+```
+
+The dashboard export view model depends on the retained session and export writer, not the
+dashboard data source or broker client. Export therefore cannot trigger a new hardware
+read, UAC prompt, profile-store read, or hardware write. Hardware state is marked
+`notCaptured` until an explicit brokered read has already succeeded.
+
+The report DTO is an allowlist rather than a serialized domain graph. Observation details,
+dynamic source strings, profile and rule data, transport identifiers, and future domain
+properties stay out unless the export contract is deliberately versioned. Output is capped
+at 256 KiB, written with exclusive access and write-through, flushed to disk, and renamed
+within the destination directory. Cancellation before rename preserves the previous file.
 
 ## Hardware state read flow
 

@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Strict local battery and thermal profile drafts with typed previews
 - Strict local AC/battery automation rules with deterministic priority previews
 - Versioned atomic JSON stores for profiles and automation rules
+- Versioned, allowlisted diagnostics reports with atomic dashboard export
 - Locked dependency restore, comprehensive automated tests, CodeQL, and accessibility contracts
 - Manually generated, short-lived, broker-free read-only preview artifact
 
@@ -29,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Kept Lenovo Legion Toolkit as a pinned reference-only submodule
 - Selected built-in Windows PowerShell CIM cmdlets instead of a restricted MI runtime
 - Selected WPF software rendering while the failing hardware-composition path is qualified
+- Replaced reflection-based inventory JSON with an explicit privacy-bounded export contract
 
 ### Security
 

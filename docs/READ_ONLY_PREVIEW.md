@@ -7,13 +7,17 @@ The preview deliberately excludes every `LegionLoqControl.Broker*` file because 
 broker is not yet signed or installed under administrator-protected filesystem ACLs.
 Consequently, the dashboard's elevated hardware-state refresh reports that the broker is
 unavailable. Serial-free inventory, local profile previews, AC/battery observation, and
-deterministic automation previews remain available without elevation.
+deterministic automation previews remain available without elevation. The dashboard can
+also atomically export its retained serial-free inventory; hardware state remains
+`notCaptured` because the broker is absent.
 
 The artifact:
 
 - requires the .NET 10 Desktop Runtime on Windows;
 - contains no installer, service, updater, background watcher, or automation runner;
 - performs no hardware writes and has no profile Apply path;
+- exports only an explicit, versioned diagnostics allowlist and never triggers a fresh
+  hardware read, elevation request, profile-store read, or upload;
 - is framework-dependent and unsigned;
 - carries the restored runtime packages' exact license and notice files;
 - includes `BUILD-INFO.json` plus `SHA256SUMS.txt` for provenance and integrity checks; and

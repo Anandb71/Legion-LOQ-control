@@ -9,6 +9,9 @@ The diagnostics CLI has three deliberately separate read-only paths:
 - `state-elevated` sends the same typed request to a short-lived UAC broker, which adds one
   fixed EnergyDrv battery read with zero requested device access.
 
+The dashboard can also export the inventory and latest retained hardware snapshot. Export
+does not collect fresh data, launch the broker, or request elevation.
+
 ## Run inventory
 
 ```powershell
@@ -17,15 +20,39 @@ dotnet run --project src/LegionLoqControl.Diagnostics --configuration Release --
 
 Run inventory as a normal user. Omitting the command selects `inventory`. JSON is written
 to standard output; stable failures are written to standard error. Press Ctrl+C to cancel.
+Inventory output uses the same explicit, versioned allowlist as the dashboard export
+instead of serializing domain objects by reflection.
 
 The inventory contains:
 
+- report schema and product version;
 - manufacturer, product name, model, machine type, and BIOS version observations;
-- capability, support state, source, timestamp, and stable evidence code;
-- redacted exception type only when an inventory source fails.
+- capability, support state, timestamp, and stable evidence code;
+- an explicit `notCaptured` hardware-state marker; and
+- declarations that export triggered no hardware read or write and included no drafts or
+  raw device paths.
 
-It does not query or serialize serial numbers, usernames, device paths, or account data.
-Evidence fixture tests reject those fields.
+It does not query or serialize serial numbers, usernames, device paths, account data,
+exception details, dynamic source strings, local profiles, or automation rules. Export
+tests inspect the serialized bytes so future domain properties do not enter the report
+automatically.
+
+## Export from the dashboard
+
+After inventory completes, select **Export diagnostics** in the Capability evidence
+section. The standard Windows save dialog writes a bounded JSON document through a
+same-directory temporary file and atomic rename.
+
+The export captures only the two typed snapshots already retained by the current session:
+
+- serial-free inventory is always present;
+- hardware state is included only after a successful explicit brokered read; and
+- otherwise hardware state remains explicitly `notCaptured`.
+
+Cancelling the dialog creates no file. A failed or cancelled write leaves an existing
+destination untouched. The UI never displays the destination path in status or error
+messages. Model, machine type, BIOS, and timestamps can still fingerprint a device, so
+review the JSON before sharing it.
 
 ## Probe typed state
 
@@ -103,11 +130,13 @@ IDs do not identify all keyboard implementations. A successful inventory proves 
 inventory was readable. A successful state getter proves only that one read returned a
 recognized value; it does not authorize a write or establish full model support.
 
-## Submitting an inventory fixture
+## Preparing an inventory fixture
 
-1. Run the `inventory` command unelevated.
+1. Run the `inventory` command unelevated or use **Export diagnostics**.
 2. Review every field for personal information.
 3. Record the exact machine type, model, and BIOS.
 4. Keep candidate states as `Unknown`; do not promote them manually.
-5. Add the redacted JSON under `hardware-evidence/<machine-type>/<bios>.json`.
-6. Run the full build and test commands from [DEVELOPMENT.md](DEVELOPMENT.md).
+5. Convert the report into the repository's reviewed evidence-fixture schema; do not copy
+   a support export into `hardware-evidence` verbatim.
+6. Add the fixture under `hardware-evidence/<machine-type>/<bios>.json`.
+7. Run the full build and test commands from [DEVELOPMENT.md](DEVELOPMENT.md).

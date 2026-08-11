@@ -27,6 +27,12 @@ count, reject unknown members and numeric enums, validate all domain values, and
 files atomically. Names and rule fields are data only; they must never become executable
 commands, scripts, protocol identifiers, or broker requests.
 
+Diagnostics export maps retained typed snapshots into an explicit versioned allowlist. It
+must not serialize domain objects by reflection, include observation details or local
+drafts, trigger a new hardware read, launch the broker, display destination paths, or write
+an unbounded document. The current writer caps output at 256 KiB and uses a same-directory
+temporary file plus atomic rename.
+
 GitHub Actions dependencies are pinned to full commit SHAs, and NuGet restore uses committed
 lock files. Preview packaging fails closed if the unsigned broker or debug symbols enter the
 artifact, then records build provenance and SHA-256 checksums before a startup smoke test.
@@ -45,7 +51,7 @@ in a public issue.
 
 | Version | Supported |
 | :--- | :--- |
-| `rebuild/v1` | Security fixes only; not a stable release |
+| `main` rebuild | Security fixes only; not a stable release |
 | 0.2.x prototype | Unsupported |
 | 0.1.x | Unsupported |
 

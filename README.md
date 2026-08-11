@@ -9,8 +9,8 @@ A safety-first, free and open-source Lenovo Vantage alternative for Legion and L
 
 ## Current status
 
-The next-generation rebuild lives on `rebuild/v1`. It is intentionally **read-only** while
-the privileged boundary and per-model verification system are built.
+The next-generation rebuild is now active on `main`. It remains intentionally
+**read-only** while the privileged boundary and per-model verification system are built.
 
 Working today:
 
@@ -21,6 +21,8 @@ Working today:
   timeout states;
 - strict allowlisted getters for thermal mode, display overdrive, and integrated-GPU mode;
 - a redacted JSON diagnostics CLI with inventory, direct-state, and brokered-state commands;
+- a versioned, explicitly allowlisted diagnostics report with atomic in-app export of
+  retained snapshots and no export-triggered read or elevation;
 - a short-lived, read-only UAC broker with strict framing, a one-time nonce, peer-process
   checks, a current-user pipe ACL, and no write dispatcher;
 - an unelevated precision dashboard with explicit brokered state refresh and no reference

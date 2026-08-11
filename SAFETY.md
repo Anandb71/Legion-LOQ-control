@@ -33,6 +33,10 @@ The C# migration prototype is deliberately **read-only**:
   deterministic in-memory rule evaluation;
 - automation rules use a separate bounded, strict, versioned local JSON store, and the
   workspace has no watcher, scheduler, execute command, broker call, or profile Apply path;
+- diagnostics export uses an explicit versioned allowlist, omits local drafts and dynamic
+  detail fields, and writes only the typed snapshots already retained by the session;
+- exporting diagnostics never starts a hardware read, launches the broker, requests
+  elevation, or performs a hardware write;
 - unit tests verify that battery, thermal, fan, and keyboard commands fail closed.
 
 The read-only broker is a validation milestone, not authorization for writes. It is not
@@ -65,6 +69,8 @@ Hardware writes may return only after all of these controls exist and pass revie
 - Creating, editing, saving, deleting, or previewing a profile never launches the broker.
 - Creating, editing, saving, deleting, refreshing, or previewing an automation rule never
   launches the broker or applies its target profile.
+- Exporting diagnostics never refreshes inventory or hardware state and never includes
+  local profile or automation-rule data.
 - Profiles show a dry-run preview before their first application.
 - Ambiguous timeout or readback failure suspends automation; it is not retried blindly.
 - Real-hardware tests require an exact machine/BIOS record and explicit confirmation for

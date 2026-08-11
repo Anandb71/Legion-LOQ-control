@@ -7,8 +7,8 @@ The repository currently produces two deliberately different artifact classes:
 1. **Development build** — local `dotnet build` output. It includes the unsigned elevated
    read broker for explicit hardware-boundary validation and must not be redistributed.
 2. **Read-only preview artifact** — a manually dispatched, seven-day CI artifact. It
-   excludes every broker file and supports only unelevated inventory, profile preview, and
-   automation preview.
+   excludes every broker file and supports only unelevated inventory and diagnostics
+   export, profile preview, and automation preview.
 
 There is no public production release workflow yet. Pushing a Git tag does not publish an
 artifact or create a GitHub release.

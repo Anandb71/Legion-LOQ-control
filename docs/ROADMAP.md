@@ -13,6 +13,7 @@ optional follow-up work.
 - unelevated precision dashboard with an explicit brokered refresh
 - strict local battery and thermal drafts with typed, fail-closed previews
 - deterministic AC/battery automation previews with strict local rule storage
+- versioned, allowlisted diagnostics reports with atomic export of retained snapshots
 - protocol provenance, redacted hardware fixtures, and fail-closed tests
 
 ## Completed: profile preview
@@ -45,9 +46,11 @@ hardware write.
 
 ## Current milestone: release-grade read-only foundation
 
-The next slice hardens CI, packaging, accessibility automation, broker signing and install
-ACL design, diagnostics export, and release documentation. This creates a useful read-only
-release without weakening the write-path gate.
+CI, broker-free preview packaging, accessibility contracts, diagnostics export, and release
+documentation are now in place. The remaining release-foundation work covers broker
+signing and install-ACL design, cross-process local-store integrity, and supported
+Windows/scaling validation. These gates must create a useful read-only release without
+weakening the write-path boundary.
 
 Process, temperature, time, resume, and hotkey sources follow only after the rule model,
 precedence, cooldown, stale-data handling, and audit output are tested.

@@ -8,16 +8,17 @@ always-running management suite.
 
 ## Can it replace Lenovo Vantage today?
 
-No. The current `rebuild/v1` application provides serial-free diagnostics, an explicit
-read-only hardware-state dashboard, local battery/thermal profile previews, and
+No. The current `main` rebuild provides serial-free diagnostics and atomic export, an
+explicit read-only hardware-state dashboard, local battery/thermal profile previews, and
 deterministic AC/battery automation previews. Hardware controls, profile application, and
 automation execution remain disabled until their safety gates pass.
 
 ## What is being built next?
 
-The next slice is a release-grade read-only foundation: CI and packaging hardening,
-accessibility automation, broker signing and install-ACL design, diagnostics export, and
-release documentation. See the [rebuild roadmap](ROADMAP.md).
+The release-grade read-only foundation now has hardened CI and preview packaging,
+accessibility contracts, diagnostics export, and release documentation. Remaining work
+includes broker signing and install-ACL design, cross-process local-store integrity, and
+supported Windows/scaling validation. See the [rebuild roadmap](ROADMAP.md).
 
 ## Can a saved profile change my hardware?
 
@@ -53,6 +54,11 @@ Inventory collects manufacturer, product/model, machine type, BIOS version, WMI
 method-name presence, known Lenovo HID product-ID presence, evidence codes, and
 timestamps. The state command emits typed state/read outcomes and stable error codes. Both
 exclude serial numbers, usernames, device paths, and telemetry.
+
+The dashboard export contains only the inventory and any hardware snapshot already retained
+by the current session. It does not read the profile or automation stores, start a new
+hardware read, request elevation, or upload anything. Model, BIOS, and timestamps can still
+identify a device configuration, so review the JSON before sharing it.
 
 ## Why are detected interfaces marked Unknown?
 
