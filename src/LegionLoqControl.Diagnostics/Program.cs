@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using LegionLoqControl.Application.Diagnostics;
@@ -71,7 +72,11 @@ try
         new WindowsMachineIdentitySource(),
         [new WindowsCapabilityProbe()]);
     MachineSnapshot snapshot = await diagnosticsService.CaptureAsync(cancellation.Token);
-    Console.WriteLine(JsonSerializer.Serialize(snapshot, serializerOptions));
+    DiagnosticsExportDocument document = new DiagnosticsExportService().Create(
+        snapshot,
+        retainedHardwareState: null,
+        GetProductVersion());
+    Console.WriteLine(DiagnosticsJsonSerializer.SerializeToString(document));
     return 0;
 }
 catch (OperationCanceledException)
@@ -100,4 +105,13 @@ catch (Exception exception)
         new { error = "diagnostics_failed", detail = exception.GetType().Name },
         serializerOptions));
     return 1;
+}
+
+static string GetProductVersion()
+{
+    Assembly assembly = Assembly.GetExecutingAssembly();
+    return assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+               ?.InformationalVersion
+           ?? assembly.GetName().Version?.ToString()
+           ?? "unknown";
 }
