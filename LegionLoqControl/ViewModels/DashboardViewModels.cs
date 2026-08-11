@@ -1,14 +1,17 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.Reflection;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LegionLoqControl.Application.Automation;
+using LegionLoqControl.Application.Diagnostics;
 using LegionLoqControl.Application.Profiles;
 using LegionLoqControl.Domain.Capabilities;
 using LegionLoqControl.Domain.Controls;
 using LegionLoqControl.Domain.Diagnostics;
 using LegionLoqControl.Domain.Results;
 using LegionLoqControl.Infrastructure.Windows.Automation;
+using LegionLoqControl.Infrastructure.Windows.Diagnostics;
 using LegionLoqControl.Infrastructure.Windows.Profiles;
 using LegionLoqControl.Services;
 
@@ -143,6 +146,12 @@ public sealed partial class MainWindowViewModel : ObservableObject
     {
         _dataSource = dataSource ?? throw new ArgumentNullException(nameof(dataSource));
         Session = session ?? new MachineSessionViewModel();
+        DiagnosticsExport = new DiagnosticsExportViewModel(
+            Session,
+            new DiagnosticsExportService(),
+            new JsonDiagnosticsExportWriter(),
+            new DiagnosticsExportDestinationPicker(),
+            GetProductVersion());
         IProfileStore sharedProfileStore =
             profileStore ?? JsonProfileStore.CreateDefault();
         ProfileWorkspace = new ProfileWorkspaceViewModel(
@@ -183,6 +192,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public HardwareStateCardViewModel IntegratedGpu { get; }
 
     public MachineSessionViewModel Session { get; }
+
+    public DiagnosticsExportViewModel DiagnosticsExport { get; }
 
     public ProfileWorkspaceViewModel ProfileWorkspace { get; }
 
@@ -232,6 +243,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     {
         _lifetime.Cancel();
         ProfileWorkspace.Profiles.CollectionChanged -= Profiles_CollectionChanged;
+        DiagnosticsExport.Dispose();
         ProfileWorkspace.Dispose();
         AutomationWorkspace.Dispose();
     }
@@ -353,6 +365,15 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     private static string Display(Observation observation) =>
         observation.State == ObservationState.Observed ? observation.Value! : "Unknown";
+
+    private static string GetProductVersion()
+    {
+        Assembly assembly = typeof(MainWindowViewModel).Assembly;
+        return assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+                   ?.InformationalVersion
+               ?? assembly.GetName().Version?.ToString()
+               ?? "unknown";
+    }
 
     private static string FormatBatteryMode(BatteryChargeMode value) =>
         value switch

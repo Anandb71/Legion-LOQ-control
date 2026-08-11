@@ -380,10 +380,30 @@
                                        Foreground="{StaticResource MutedTextBrush}"
                                        Text="Candidate means an interface exists; it does not claim verified support." />
                         </StackPanel>
-                        <TextBlock Grid.Column="1"
-                                   VerticalAlignment="Center"
-                                   Style="{StaticResource EyebrowTextStyle}"
-                                   Text="SERIAL-FREE INVENTORY" />
+                        <StackPanel Grid.Column="1"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Center">
+                            <TextBlock HorizontalAlignment="Right"
+                                       Style="{StaticResource EyebrowTextStyle}"
+                                       Text="SERIAL-FREE INVENTORY" />
+                            <Button Margin="0,8,0,0"
+                                    Padding="14,7"
+                                    HorizontalAlignment="Right"
+                                    automation:AutomationProperties.Name="Export redacted diagnostics to a JSON file"
+                                    Command="{Binding DiagnosticsExport.ExportCommand}"
+                                    Content="{Binding DiagnosticsExport.ButtonText}"
+                                    Style="{StaticResource BaseButtonStyle}"
+                                    ToolTip="Exports retained snapshots without starting a hardware read or elevation" />
+                            <TextBlock MaxWidth="320"
+                                       Margin="0,6,0,0"
+                                       HorizontalAlignment="Right"
+                                       automation:AutomationProperties.LiveSetting="Polite"
+                                       FontSize="10"
+                                       Foreground="{StaticResource MutedTextBrush}"
+                                       Text="{Binding DiagnosticsExport.StatusMessage}"
+                                       TextAlignment="Right"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
                     </Grid>
 
                     <Border Style="{StaticResource ThinSeparatorStyle}" />
