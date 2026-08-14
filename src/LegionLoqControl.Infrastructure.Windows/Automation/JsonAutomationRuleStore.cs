@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using LegionLoqControl.Application.Automation;
 using LegionLoqControl.Domain.Automation;
 using LegionLoqControl.Domain.Profiles;
+using LegionLoqControl.Infrastructure.Windows.Storage;
 
 namespace LegionLoqControl.Infrastructure.Windows.Automation;
 
@@ -16,6 +17,7 @@ public sealed class JsonAutomationRuleStore : IAutomationRuleStore
     private static readonly JsonSerializerOptions SerializerOptions = CreateSerializerOptions();
 
     private readonly string _filePath;
+    private readonly CrossProcessFileLock _fileLock;
     private readonly SemaphoreSlim _gate = new(1, 1);
 
     public JsonAutomationRuleStore(string filePath)
@@ -25,6 +27,8 @@ public sealed class JsonAutomationRuleStore : IAutomationRuleStore
         _filePath = Path.GetFullPath(filePath);
         if (string.IsNullOrWhiteSpace(Path.GetFileName(_filePath)))
             throw new ArgumentException("An automation rule store path must include a file name.", nameof(filePath));
+
+        _fileLock = new CrossProcessFileLock(_filePath);
     }
 
     public static JsonAutomationRuleStore CreateDefault()
@@ -44,11 +48,23 @@ public sealed class JsonAutomationRuleStore : IAutomationRuleStore
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            if (!File.Exists(_filePath))
+                return Array.Empty<AutomationRule>();
+
+            await using FileStream processLock = await _fileLock
+                .AcquireAsync(cancellationToken)
+                .ConfigureAwait(false);
             return await LoadCoreAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (AutomationRuleStoreException)
         {
             throw;
+        }
+        catch (CrossProcessFileLockUnavailableException exception)
+        {
+            throw new AutomationRuleStoreException(
+                "automation_rule_store_busy",
+                exception);
         }
         catch (UnauthorizedAccessException exception)
         {
@@ -84,6 +100,14 @@ public sealed class JsonAutomationRuleStore : IAutomationRuleStore
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            string directory = Path.GetDirectoryName(_filePath)
+                ?? throw new AutomationRuleStoreException(
+                    "automation_rule_store_location_unavailable");
+            Directory.CreateDirectory(directory);
+            await using FileStream processLock = await _fileLock
+                .AcquireAsync(cancellationToken)
+                .ConfigureAwait(false);
+
             List<AutomationRule> rules =
                 [.. await LoadCoreAsync(cancellationToken).ConfigureAwait(false)];
             int existingIndex = rules.FindIndex(item => item.Id == rule.Id);
@@ -108,6 +132,12 @@ public sealed class JsonAutomationRuleStore : IAutomationRuleStore
         catch (AutomationRuleStoreException)
         {
             throw;
+        }
+        catch (CrossProcessFileLockUnavailableException exception)
+        {
+            throw new AutomationRuleStoreException(
+                "automation_rule_store_busy",
+                exception);
         }
         catch (UnauthorizedAccessException exception)
         {
@@ -144,6 +174,12 @@ public sealed class JsonAutomationRuleStore : IAutomationRuleStore
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            if (!File.Exists(_filePath))
+                return false;
+
+            await using FileStream processLock = await _fileLock
+                .AcquireAsync(cancellationToken)
+                .ConfigureAwait(false);
             List<AutomationRule> rules =
                 [.. await LoadCoreAsync(cancellationToken).ConfigureAwait(false)];
             int removed = rules.RemoveAll(item => item.Id == id);
@@ -156,6 +192,12 @@ public sealed class JsonAutomationRuleStore : IAutomationRuleStore
         catch (AutomationRuleStoreException)
         {
             throw;
+        }
+        catch (CrossProcessFileLockUnavailableException exception)
+        {
+            throw new AutomationRuleStoreException(
+                "automation_rule_store_busy",
+                exception);
         }
         catch (UnauthorizedAccessException exception)
         {

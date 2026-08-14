@@ -444,11 +444,15 @@ public sealed partial class ProfileWorkspaceViewModel : ObservableObject, IDispo
                 "The profile file uses a schema this build does not understand.",
             "profile_store_access_denied" =>
                 "Windows denied access to the local profile file.",
+            "profile_store_busy" =>
+                "Another app instance is using the profile file. Try again in a moment.",
             "profile_store_file_too_large" or "profile_store_limit_exceeded" =>
                 "The bounded profile store rejected this file.",
             _ => "The local profile operation failed without changing hardware.",
         };
-        WorkspaceState = DashboardStateKind.Error;
+        WorkspaceState = errorCode == "profile_store_busy"
+            ? DashboardStateKind.Warning
+            : DashboardStateKind.Error;
     }
 
     private void ReplaceProfiles(IEnumerable<HardwareProfile> profiles)

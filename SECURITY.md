@@ -24,7 +24,9 @@ violation.
 
 Local profile and automation JSON is untrusted input. The stores cap file size and entry
 count, reject unknown members and numeric enums, validate all domain values, and replace
-files atomically. Names and rule fields are data only; they must never become executable
+files atomically. Load and save operations take a same-directory exclusive lock so two
+app instances cannot silently overwrite each other; a busy lock is reported instead of a
+partial write. Names and rule fields are data only; they must never become executable
 commands, scripts, protocol identifiers, or broker requests.
 
 Diagnostics export maps retained typed snapshots into an explicit versioned allowlist. It

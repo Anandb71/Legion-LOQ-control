@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using LegionLoqControl.Application.Profiles;
 using LegionLoqControl.Domain.Controls;
 using LegionLoqControl.Domain.Profiles;
+using LegionLoqControl.Infrastructure.Windows.Storage;
 
 namespace LegionLoqControl.Infrastructure.Windows.Profiles;
 
@@ -16,6 +17,7 @@ public sealed class JsonProfileStore : IProfileStore
     private static readonly JsonSerializerOptions SerializerOptions = CreateSerializerOptions();
 
     private readonly string _filePath;
+    private readonly CrossProcessFileLock _fileLock;
     private readonly SemaphoreSlim _gate = new(1, 1);
 
     public JsonProfileStore(string filePath)
@@ -25,6 +27,8 @@ public sealed class JsonProfileStore : IProfileStore
         _filePath = Path.GetFullPath(filePath);
         if (string.IsNullOrWhiteSpace(Path.GetFileName(_filePath)))
             throw new ArgumentException("A profile store path must include a file name.", nameof(filePath));
+
+        _fileLock = new CrossProcessFileLock(_filePath);
     }
 
     public static JsonProfileStore CreateDefault()
@@ -44,11 +48,21 @@ public sealed class JsonProfileStore : IProfileStore
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            if (!File.Exists(_filePath))
+                return Array.Empty<HardwareProfile>();
+
+            await using FileStream processLock = await _fileLock
+                .AcquireAsync(cancellationToken)
+                .ConfigureAwait(false);
             return await LoadCoreAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (ProfileStoreException)
         {
             throw;
+        }
+        catch (CrossProcessFileLockUnavailableException exception)
+        {
+            throw new ProfileStoreException("profile_store_busy", exception);
         }
         catch (UnauthorizedAccessException exception)
         {
@@ -78,6 +92,13 @@ public sealed class JsonProfileStore : IProfileStore
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            string directory = Path.GetDirectoryName(_filePath)
+                ?? throw new ProfileStoreException("profile_store_location_unavailable");
+            Directory.CreateDirectory(directory);
+            await using FileStream processLock = await _fileLock
+                .AcquireAsync(cancellationToken)
+                .ConfigureAwait(false);
+
             List<HardwareProfile> profiles =
                 [.. await LoadCoreAsync(cancellationToken).ConfigureAwait(false)];
             int existingIndex = profiles.FindIndex(item => item.Id == profile.Id);
@@ -99,6 +120,10 @@ public sealed class JsonProfileStore : IProfileStore
         catch (ProfileStoreException)
         {
             throw;
+        }
+        catch (CrossProcessFileLockUnavailableException exception)
+        {
+            throw new ProfileStoreException("profile_store_busy", exception);
         }
         catch (UnauthorizedAccessException exception)
         {
@@ -129,6 +154,12 @@ public sealed class JsonProfileStore : IProfileStore
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            if (!File.Exists(_filePath))
+                return false;
+
+            await using FileStream processLock = await _fileLock
+                .AcquireAsync(cancellationToken)
+                .ConfigureAwait(false);
             List<HardwareProfile> profiles =
                 [.. await LoadCoreAsync(cancellationToken).ConfigureAwait(false)];
             int removed = profiles.RemoveAll(item => item.Id == id);
@@ -141,6 +172,10 @@ public sealed class JsonProfileStore : IProfileStore
         catch (ProfileStoreException)
         {
             throw;
+        }
+        catch (CrossProcessFileLockUnavailableException exception)
+        {
+            throw new ProfileStoreException("profile_store_busy", exception);
         }
         catch (UnauthorizedAccessException exception)
         {

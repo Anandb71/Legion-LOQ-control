@@ -47,10 +47,11 @@ hardware write.
 ## Current milestone: release-grade read-only foundation
 
 CI, broker-free preview packaging, accessibility contracts, diagnostics export, and release
-documentation are now in place. The remaining release-foundation work covers broker
-signing and install-ACL design, cross-process local-store integrity, and supported
-Windows/scaling validation. These gates must create a useful read-only release without
-weakening the write-path boundary.
+documentation are now in place. Cross-process local-store integrity uses exclusive file
+locks so two app instances cannot silently overwrite drafts. Remaining release-foundation
+work covers broker signing, install-ACL design, and supported Windows/scaling validation.
+These gates must create a useful read-only release without weakening the write-path
+boundary.
 
 Process, temperature, time, resume, and hotkey sources follow only after the rule model,
 precedence, cooldown, stale-data handling, and audit output are tested.

@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Strict local battery and thermal profile drafts with typed previews
 - Strict local AC/battery automation rules with deterministic priority previews
 - Versioned atomic JSON stores for profiles and automation rules
+- Cross-process exclusive locking for local profile and automation JSON
 - Versioned, allowlisted diagnostics reports with atomic dashboard export
 - Locked dependency restore, comprehensive automated tests, CodeQL, and accessibility contracts
 - Manually generated, short-lived, broker-free read-only preview artifact

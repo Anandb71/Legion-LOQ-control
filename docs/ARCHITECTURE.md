@@ -144,8 +144,9 @@ flowchart LR
 ```
 
 Creating, editing, saving, deleting, and previewing a profile stays in the unelevated
-process. The store is capped, rejects unknown JSON members and numeric enum values, and
-replaces its file atomically. Previewing compares domain values directly; it never parses
+process. The store is capped, rejects unknown JSON members and numeric enum values, takes
+an exclusive same-directory lock across process instances, and replaces its file
+atomically. Previewing compares domain values directly; it never parses
 display text. The profile workspace has no broker reference, Apply command, or automation
 runner.
 

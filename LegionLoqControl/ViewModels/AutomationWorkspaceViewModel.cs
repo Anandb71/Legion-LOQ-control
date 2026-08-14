@@ -630,9 +630,14 @@ public sealed partial class AutomationWorkspaceViewModel : ObservableObject, IDi
             "automation_rule_store_access_denied"
                 or "profile_store_access_denied" =>
                 "Windows denied access to the local draft file.",
+            "automation_rule_store_busy"
+                or "profile_store_busy" =>
+                "Another app instance is using the local draft file. Try again in a moment.",
             _ => "The local storage operation failed without changing hardware.",
         };
-        WorkspaceState = DashboardStateKind.Error;
+        WorkspaceState = errorCode is "automation_rule_store_busy" or "profile_store_busy"
+            ? DashboardStateKind.Warning
+            : DashboardStateKind.Error;
     }
 
     private void ApplyUnexpectedFailure()

@@ -227,6 +227,28 @@ public sealed class AutomationWorkspaceViewModelTests
     }
 
     [Fact]
+    public async Task Busy_rule_store_is_reported_as_retryable()
+    {
+        var ruleStore = new StubRuleStore
+        {
+            LoadException = new AutomationRuleStoreException(
+                "automation_rule_store_busy"),
+        };
+        using var viewModel = CreateViewModel(
+            ruleStore,
+            new StubProfileStore(CreateProfile("Unused")),
+            new StubPowerSourceReader(PowerSourceKind.Ac));
+
+        await viewModel.InitializeAsync();
+
+        Assert.Equal("Local automation storage unavailable", viewModel.WorkspaceTitle);
+        Assert.Equal(DashboardStateKind.Warning, viewModel.WorkspaceState);
+        Assert.Contains("Another app instance", viewModel.WorkspaceMessage);
+        Assert.Equal(0, ruleStore.SaveCount);
+        Assert.Equal(0, ruleStore.DeleteCount);
+    }
+
+    [Fact]
     public async Task Delete_removes_only_the_selected_local_rule()
     {
         HardwareProfile profile = CreateProfile("Shared");

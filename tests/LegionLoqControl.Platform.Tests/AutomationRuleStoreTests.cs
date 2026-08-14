@@ -255,6 +255,34 @@ public sealed class AutomationRuleStoreTests
     }
 
     [Fact]
+    public async Task Concurrent_saves_across_store_instances_preserve_every_rule()
+    {
+        using var temporary = new TemporaryDirectory();
+        JsonAutomationRuleStore[] stores =
+        [
+            new JsonAutomationRuleStore(temporary.FilePath),
+            new JsonAutomationRuleStore(temporary.FilePath),
+        ];
+        AutomationRule[] rules = Enumerable
+            .Range(0, 24)
+            .Select(index => CreateRule($"Rule {index:D2}", priority: index % 5))
+            .ToArray();
+
+        await Task.WhenAll(rules.Select((rule, index) =>
+            stores[index % stores.Length]
+                .SaveAsync(rule, TestContext.Current.CancellationToken)
+                .AsTask()));
+        IReadOnlyList<AutomationRule> loaded =
+            await new JsonAutomationRuleStore(temporary.FilePath)
+                .LoadAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            rules.Select(static rule => rule.Id).OrderBy(static id => id.Value),
+            loaded.Select(static rule => rule.Id).OrderBy(static id => id.Value));
+        Assert.Empty(Directory.GetFiles(temporary.Path, "*.tmp"));
+    }
+
+    [Fact]
     public async Task Pre_cancelled_save_does_not_create_a_store()
     {
         using var temporary = new TemporaryDirectory();

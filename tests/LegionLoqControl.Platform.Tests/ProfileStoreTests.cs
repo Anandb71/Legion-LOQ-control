@@ -231,6 +231,36 @@ public sealed class ProfileStoreTests
     }
 
     [Fact]
+    public async Task Concurrent_saves_across_store_instances_preserve_every_profile()
+    {
+        using var temporary = new TemporaryDirectory();
+        JsonProfileStore[] stores =
+        [
+            new JsonProfileStore(temporary.FilePath),
+            new JsonProfileStore(temporary.FilePath),
+        ];
+        HardwareProfile[] profiles = Enumerable
+            .Range(0, 16)
+            .Select(index => CreateProfile(
+                $"Profile {index:D2}",
+                (ThermalMode)(index % 3)))
+            .ToArray();
+
+        await Task.WhenAll(profiles.Select((profile, index) =>
+            stores[index % stores.Length]
+                .SaveAsync(profile, TestContext.Current.CancellationToken)
+                .AsTask()));
+        IReadOnlyList<HardwareProfile> loaded =
+            await new JsonProfileStore(temporary.FilePath)
+                .LoadAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            profiles.Select(static profile => profile.Name).Order(),
+            loaded.Select(static profile => profile.Name));
+        Assert.Empty(Directory.GetFiles(temporary.Path, "*.tmp"));
+    }
+
+    [Fact]
     public async Task Pre_cancelled_save_does_not_create_a_store()
     {
         using var temporary = new TemporaryDirectory();

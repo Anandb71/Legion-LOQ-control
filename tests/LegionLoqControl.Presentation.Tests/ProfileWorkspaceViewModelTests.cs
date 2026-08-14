@@ -100,6 +100,26 @@ public sealed class ProfileWorkspaceViewModelTests
     }
 
     [Fact]
+    public async Task Busy_store_is_reported_as_retryable()
+    {
+        var store = new StubProfileStore
+        {
+            LoadException = new ProfileStoreException("profile_store_busy"),
+        };
+        using var viewModel = CreateViewModel(
+            store,
+            new MachineSessionViewModel());
+
+        await viewModel.InitializeAsync();
+
+        Assert.Equal("Local profile storage unavailable", viewModel.WorkspaceTitle);
+        Assert.Equal(DashboardStateKind.Warning, viewModel.WorkspaceState);
+        Assert.Contains("Another app instance", viewModel.WorkspaceMessage);
+        Assert.Equal(0, store.SaveCount);
+        Assert.Equal(0, store.DeleteCount);
+    }
+
+    [Fact]
     public async Task Delete_removes_only_the_selected_local_draft()
     {
         HardwareProfile first = CreateProfile("First", ThermalMode.Quiet);
