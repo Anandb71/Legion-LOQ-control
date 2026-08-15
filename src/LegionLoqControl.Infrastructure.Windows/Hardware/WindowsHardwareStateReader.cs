@@ -14,29 +14,40 @@ public sealed class WindowsHardwareStateReader : IHardwareStateReader
 
     private readonly ILenovoWmiReadInvoker _invoker;
     private readonly IEnergyDriverBatteryReader? _batteryReader;
+    private readonly IFourZoneKeyboardHid? _keyboard;
 
     public WindowsHardwareStateReader()
-        : this(new PowerShellLenovoWmiReadInvoker(), batteryReader: null)
+        : this(new PowerShellLenovoWmiReadInvoker(), batteryReader: null, keyboard: null)
     {
     }
 
     internal WindowsHardwareStateReader(ILenovoWmiReadInvoker invoker)
-        : this(invoker, batteryReader: null)
+        : this(invoker, batteryReader: null, keyboard: null)
     {
     }
 
     internal WindowsHardwareStateReader(
         ILenovoWmiReadInvoker invoker,
         IEnergyDriverBatteryReader? batteryReader)
+        : this(invoker, batteryReader, keyboard: null)
+    {
+    }
+
+    internal WindowsHardwareStateReader(
+        ILenovoWmiReadInvoker invoker,
+        IEnergyDriverBatteryReader? batteryReader,
+        IFourZoneKeyboardHid? keyboard)
     {
         _invoker = invoker ?? throw new ArgumentNullException(nameof(invoker));
         _batteryReader = batteryReader;
+        _keyboard = keyboard;
     }
 
     internal static WindowsHardwareStateReader CreatePrivilegedReadOnly() =>
         new(
             new PowerShellLenovoWmiReadInvoker(),
-            new EnergyDriverBatteryReader());
+            new EnergyDriverBatteryReader(),
+            new FourZoneKeyboardHid());
 
     public ValueTask<HardwareReadResult<BatteryChargeMode>> ReadBatteryChargeModeAsync(
         CancellationToken cancellationToken)
@@ -92,6 +103,18 @@ public sealed class WindowsHardwareStateReader : IHardwareStateReader
             },
             "unexpected_integrated_gpu_mode_value",
             cancellationToken);
+
+    public ValueTask<HardwareReadResult<FourZoneKeyboardMode>> ReadFourZoneKeyboardAsync(
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (_keyboard is not null)
+            return _keyboard.ReadAsync(cancellationToken);
+
+        return ValueTask.FromResult(HardwareReadResult<FourZoneKeyboardMode>.Failure(
+            HardwareReadStatus.Unavailable,
+            "keyboard_hid_not_opened"));
+    }
 
     private async ValueTask<HardwareReadResult<T>> ReadAsync<T>(
         LenovoWmiReadOperation operation,

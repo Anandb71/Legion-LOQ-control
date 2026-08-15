@@ -109,7 +109,8 @@ public sealed class DiagnosticsExportService
                 BatteryChargeMode: null,
                 ThermalMode: null,
                 DisplayOverdrive: null,
-                IntegratedGpuMode: null);
+                IntegratedGpuMode: null,
+                FourZoneKeyboard: null);
         }
 
         return new DiagnosticsHardwareStateExport(
@@ -118,7 +119,8 @@ public sealed class DiagnosticsExportService
             MapHardwareRead(snapshot.BatteryChargeMode),
             MapHardwareRead(snapshot.ThermalMode),
             MapHardwareRead(snapshot.DisplayOverdrive),
-            MapHardwareRead(snapshot.IntegratedGpuMode));
+            MapHardwareRead(snapshot.IntegratedGpuMode),
+            MapHardwareRead(snapshot.FourZoneKeyboard));
     }
 
     private static DiagnosticsHardwareReadExport MapHardwareRead<T>(

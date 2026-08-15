@@ -15,6 +15,7 @@ internal enum LenovoWmiWriteOperation
     ThermalMode = 0,
     DisplayOverdrive = 1,
     IntegratedGpuMode = 2,
+    LightControlOwner = 3,
 }
 
 internal interface ILenovoWmiWriteInvoker
@@ -93,6 +94,7 @@ internal sealed class PowerShellLenovoWmiWriteInvoker : ILenovoWmiWriteInvoker
             LenovoWmiWriteOperation.ThermalMode => 0,
             LenovoWmiWriteOperation.DisplayOverdrive => 1,
             LenovoWmiWriteOperation.IntegratedGpuMode => 2,
+            LenovoWmiWriteOperation.LightControlOwner => 3,
             _ => throw new ArgumentOutOfRangeException(nameof(operation)),
         };
 
@@ -270,6 +272,7 @@ internal sealed class PowerShellLenovoWmiWriteInvoker : ILenovoWmiWriteInvoker
             0 { 'SetSmartFanMode' }
             1 { 'SetODStatus' }
             2 { 'SetIGPUModeStatus' }
+            3 { 'SetLightControlOwner' }
             default { $null }
         }
         if ($null -eq $method) {
@@ -325,23 +328,36 @@ internal sealed class WindowsHardwareStateWriter : IHardwareStateWriter
 {
     private readonly ILenovoWmiWriteInvoker _invoker;
     private readonly IEnergyDriverBatteryWriter _batteryWriter;
+    private readonly IFourZoneKeyboardHid _keyboard;
 
     public WindowsHardwareStateWriter()
-        : this(new PowerShellLenovoWmiWriteInvoker(), new EnergyDriverBatteryWriter())
+        : this(
+            new PowerShellLenovoWmiWriteInvoker(),
+            new EnergyDriverBatteryWriter(),
+            new FourZoneKeyboardHid())
     {
     }
 
     internal WindowsHardwareStateWriter(ILenovoWmiWriteInvoker invoker)
-        : this(invoker, new EnergyDriverBatteryWriter())
+        : this(invoker, new EnergyDriverBatteryWriter(), new FourZoneKeyboardHid())
     {
     }
 
     internal WindowsHardwareStateWriter(
         ILenovoWmiWriteInvoker invoker,
         IEnergyDriverBatteryWriter batteryWriter)
+        : this(invoker, batteryWriter, new FourZoneKeyboardHid())
+    {
+    }
+
+    internal WindowsHardwareStateWriter(
+        ILenovoWmiWriteInvoker invoker,
+        IEnergyDriverBatteryWriter batteryWriter,
+        IFourZoneKeyboardHid keyboard)
     {
         _invoker = invoker ?? throw new ArgumentNullException(nameof(invoker));
         _batteryWriter = batteryWriter ?? throw new ArgumentNullException(nameof(batteryWriter));
+        _keyboard = keyboard ?? throw new ArgumentNullException(nameof(keyboard));
     }
 
     public ValueTask WriteThermalModeAsync(
@@ -390,6 +406,22 @@ internal sealed class WindowsHardwareStateWriter : IHardwareStateWriter
         BatteryChargeMode desired,
         CancellationToken cancellationToken) =>
         _batteryWriter.WriteAsync(expected, desired, cancellationToken);
+
+    public async ValueTask WriteFourZoneKeyboardAsync(
+        FourZoneKeyboardMode desired,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await WriteAsync(LenovoWmiWriteOperation.LightControlOwner, 1, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (HardwareWriteException)
+        {
+        }
+
+        await _keyboard.WriteAsync(desired, cancellationToken).ConfigureAwait(false);
+    }
 
     private async ValueTask WriteAsync(
         LenovoWmiWriteOperation operation,

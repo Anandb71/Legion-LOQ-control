@@ -31,7 +31,8 @@ public sealed record HardwareStateReadPayload(
     HardwareReadValue<BatteryChargeMode> BatteryChargeMode,
     HardwareReadValue<ThermalMode> ThermalMode,
     HardwareReadValue<ToggleState> DisplayOverdrive,
-    HardwareReadValue<IntegratedGpuMode> IntegratedGpuMode)
+    HardwareReadValue<IntegratedGpuMode> IntegratedGpuMode,
+    HardwareReadValue<FourZoneKeyboardMode> FourZoneKeyboard)
 {
     public static HardwareStateReadPayload FromSnapshot(HardwareStateSnapshot snapshot)
     {
@@ -41,7 +42,8 @@ public sealed record HardwareStateReadPayload(
             HardwareReadValue<BatteryChargeMode>.FromResult(snapshot.BatteryChargeMode),
             HardwareReadValue<ThermalMode>.FromResult(snapshot.ThermalMode),
             HardwareReadValue<ToggleState>.FromResult(snapshot.DisplayOverdrive),
-            HardwareReadValue<IntegratedGpuMode>.FromResult(snapshot.IntegratedGpuMode));
+            HardwareReadValue<IntegratedGpuMode>.FromResult(snapshot.IntegratedGpuMode),
+            HardwareReadValue<FourZoneKeyboardMode>.FromResult(snapshot.FourZoneKeyboard));
     }
 
     public HardwareStateSnapshot ToSnapshot()
@@ -49,7 +51,8 @@ public sealed record HardwareStateReadPayload(
         if (BatteryChargeMode is null ||
             ThermalMode is null ||
             DisplayOverdrive is null ||
-            IntegratedGpuMode is null)
+            IntegratedGpuMode is null ||
+            FourZoneKeyboard is null)
         {
             throw new InvalidDataException("The hardware state payload is incomplete.");
         }
@@ -59,7 +62,8 @@ public sealed record HardwareStateReadPayload(
             BatteryChargeMode.ToResult(),
             ThermalMode.ToResult(),
             DisplayOverdrive.ToResult(),
-            IntegratedGpuMode.ToResult());
+            IntegratedGpuMode.ToResult(),
+            FourZoneKeyboard.ToResult());
     }
 }
 

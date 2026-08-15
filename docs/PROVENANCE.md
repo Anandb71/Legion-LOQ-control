@@ -180,6 +180,38 @@ Legion + LOQ Control.
 - **Reviewer:** Pending
 - **Date:** 2026-08-15
 
+## Implementation record: ITE 4-zone keyboard brightness
+
+- **Feature:** Detect `048D:C993` and apply Off/Low/High brightness
+- **Local files:**
+  `src/LegionLoqControl.Infrastructure.Windows/Hardware/FourZoneKeyboardPacket.cs`,
+  `src/LegionLoqControl.Infrastructure.Windows/Hardware/FourZoneKeyboardHid.cs`,
+  and `src/LegionLoqControl.Infrastructure.Windows/Diagnostics/WindowsCapabilityProbe.cs`
+- **Classification:** Original implementation with protocol cross-check
+- **External projects and URLs:** LegionAura,
+  <https://github.com/Nivedck/LegionAura>; 4JX/lenovo-legion-hid,
+  <https://github.com/4JX/lenovo-legion-hid>
+- **External files examined:** `lib/legionaura.cpp`, `lib/legionaura.h`,
+  `devices/devices.json`, and `src/lib.rs`
+- **License:** Check each upstream project before copying code. No source was copied.
+- **Local implementation:** Independently written 33-byte feature-report codec. Write
+  packets are `CC 16` plus a fixed Off/Low/High layout. The HID opener accepts only
+  vendor `048D`, product IDs `C935`/`C955`/`C993`, and feature length 33. `C996` is
+  excluded. GetFeature of report `CC` on this LOQ returned an identity report
+  (`CC 05` plus VID/PID), not lighting state.
+- **Protocol facts cross-checked:** LegionAura lists LOQ PID `C993` as its default
+  4-zone device and uses the same `CC 16` command, effect/speed/brightness offsets,
+  and 32-byte payload padded to the 33-byte Windows feature report.
+- **Independent evidence:** Unelevated HID inventory on LOQ 15IRX9 `83DV` / `NECN50WW`
+  observed `048D:C993` collections with feature lengths 17, 33, 65, and 192, and
+  `048D:C996` with no 33-byte collection. One GetFeature of the 33-byte collection
+  returned `CC-05-FF-0A-00-8D-04-93-C9-00-03` plus zeros.
+- **Test fixtures:** Packet encode/decode and PID allowlist in
+  `tests/LegionLoqControl.Platform.Tests/HardwareStateReaderTests.cs`
+- **Hardware validation:** No SetFeature apply has been recorded yet.
+- **Reviewer:** Pending
+- **Date:** 2026-08-15
+
 ## Implementation record: read-only elevated broker
 
 - **Feature:** One-request privileged hardware-state read boundary

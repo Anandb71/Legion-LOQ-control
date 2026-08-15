@@ -22,8 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Versioned, allowlisted diagnostics reports with atomic dashboard export
 - Broker install policy that refuses production launches from unsigned or user-writable paths
 - Diagnostics `inventory --output` using the same atomic allowlisted writer as the dashboard
-- Explicit elevated apply for thermal mode, display overdrive, integrated-GPU mode, and
-  battery charge mode
+- Explicit elevated apply for thermal mode, display overdrive, integrated-GPU mode,
+  battery charge mode, and 4-zone keyboard brightness
 - Locked dependency restore, comprehensive automated tests, CodeQL, and accessibility contracts
 - Manually generated, short-lived, broker-free read-only preview artifact
 
@@ -39,7 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-- Fan, keyboard, profile application, and automation execution remain absent
+- Fan tables, per-zone colors, profile application, and automation execution remain absent
 - Broker IPC uses a random pipe, current-user ACL, one-time nonce, strict framing, and
   mutual process-ID checks
 - WMI reads use fixed getter names, static script text, capped output, and bounded execution

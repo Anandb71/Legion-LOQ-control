@@ -36,12 +36,18 @@ public sealed class HardwareStateService
         HardwareReadResult<IntegratedGpuMode> integratedGpu = await _reader
             .ReadIntegratedGpuModeAsync(cancellationToken)
             .ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        HardwareReadResult<FourZoneKeyboardMode> keyboard = await _reader
+            .ReadFourZoneKeyboardAsync(cancellationToken)
+            .ConfigureAwait(false);
 
         return new HardwareStateSnapshot(
             _timeProvider.GetUtcNow(),
             battery,
             thermal,
             overdrive,
-            integratedGpu);
+            integratedGpu,
+            keyboard);
     }
 }

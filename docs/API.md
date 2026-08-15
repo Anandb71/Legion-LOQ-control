@@ -123,8 +123,9 @@ to stable transport error codes.
 
 `ElevatedHardwareStateBrokerClient.WriteAsync` launches the same sibling with `--write`
 and sends one `HardwareStateWriteRequest` for thermal mode, display overdrive,
-integrated-GPU mode, or battery charge mode. The broker rereads, compares the expected
-value, invokes one allowlisted setter, and returns a readback snapshot.
+integrated-GPU mode, battery charge mode, or 4-zone keyboard brightness. The broker
+rereads, compares the expected value, invokes one allowlisted setter, and returns a
+readback snapshot.
 
 `BrokerInstallPolicy` classifies that sibling as missing, development, protected, or
 unprotected from owner/DACL evidence and Authenticode state. Production mode refuses

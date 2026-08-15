@@ -14,7 +14,7 @@ public sealed class WindowsCapabilityProbe : ICapabilityProbe
     private const int LenovoLightingVendorId = 0x048D;
 
     private static readonly FrozenSet<int> FourZoneProductIds =
-        new[] { 0xC935, 0xC955 }.ToFrozenSet();
+        new[] { 0xC935, 0xC955, 0xC993 }.ToFrozenSet();
 
     private static readonly FrozenSet<int> SpectrumProductIds =
         new[] { 0xC965 }.ToFrozenSet();

@@ -83,6 +83,32 @@ public sealed class WindowsDiagnosticsTests
         Assert.Equal(1, reader.MetadataRequests.Count(static name => name == "LENOVO_FAN_METHOD"));
     }
 
+    [Fact]
+    public async Task Loq_four_zone_pid_is_a_candidate_not_an_absence()
+    {
+        DateTimeOffset now = new(2026, 8, 15, 12, 0, 0, TimeSpan.Zero);
+        var reader = new StubManagementReader();
+        var probe = new WindowsCapabilityProbe(
+            reader,
+            new StubHidInventory(0xC993),
+            new FixedTimeProvider(now));
+
+        IReadOnlyCollection<CapabilityEvidence> evidence = await probe.ProbeAsync(
+            TestIdentity(),
+            TestContext.Current.CancellationToken);
+
+        AssertEvidence(
+            evidence,
+            HardwareCapability.FourZoneRgbKeyboard,
+            CapabilitySupport.Unknown,
+            "hid_interface_present_unverified");
+        AssertEvidence(
+            evidence,
+            HardwareCapability.SpectrumKeyboard,
+            CapabilitySupport.Unsupported,
+            "hid_interface_not_found");
+    }
+
     private static WmiClassMetadata Metadata(params string[] methods) =>
         new(true, methods.ToHashSet(StringComparer.OrdinalIgnoreCase));
 

@@ -137,7 +137,9 @@ public sealed class DiagnosticsExportViewModelTests
             HardwareReadResult<ThermalMode>.Success(ThermalMode.Performance),
             HardwareReadResult<ToggleState>.Success(ToggleState.Disabled),
             HardwareReadResult<IntegratedGpuMode>.Success(
-                IntegratedGpuMode.IntegratedOnly));
+                IntegratedGpuMode.IntegratedOnly),
+            HardwareReadResult<FourZoneKeyboardMode>.Success(
+                FourZoneKeyboardMode.Unknown));
 
     private sealed class StubPicker(string? destinationPath)
         : IDiagnosticsExportDestinationPicker

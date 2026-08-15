@@ -211,6 +211,10 @@ public sealed partial class MainWindowViewModel : ObservableObject
             "GPU MODE",
             "Current graphics topology",
             "Elevation required by Lenovo WMI");
+        Keyboard = new HardwareStateCardViewModel(
+            "KEYBOARD",
+            "4-zone RGB brightness",
+            "Elevation required for the ITE lighting controller");
 
         AddOptions(
             Battery,
@@ -220,10 +224,16 @@ public sealed partial class MainWindowViewModel : ObservableObject
         AddOptions(Thermal, ("Quiet", nameof(ThermalMode.Quiet)), ("Balanced", nameof(ThermalMode.Balanced)), ("Performance", nameof(ThermalMode.Performance)), ("Extreme", nameof(ThermalMode.Extreme)));
         AddOptions(DisplayOverdrive, ("Off", nameof(ToggleState.Disabled)), ("On", nameof(ToggleState.Enabled)));
         AddOptions(IntegratedGpu, ("Default", nameof(IntegratedGpuMode.Default)), ("Integrated only", nameof(IntegratedGpuMode.IntegratedOnly)), ("Automatic", nameof(IntegratedGpuMode.Automatic)));
+        AddOptions(
+            Keyboard,
+            ("Off", nameof(FourZoneKeyboardMode.Off)),
+            ("Low", nameof(FourZoneKeyboardMode.Low)),
+            ("High", nameof(FourZoneKeyboardMode.High)));
         Battery.ApplyAsync = token => ApplyWriteAsync(HardwareWriteTarget.BatteryChargeMode, token);
         Thermal.ApplyAsync = token => ApplyWriteAsync(HardwareWriteTarget.ThermalMode, token);
         DisplayOverdrive.ApplyAsync = token => ApplyWriteAsync(HardwareWriteTarget.DisplayOverdrive, token);
         IntegratedGpu.ApplyAsync = token => ApplyWriteAsync(HardwareWriteTarget.IntegratedGpuMode, token);
+        Keyboard.ApplyAsync = token => ApplyWriteAsync(HardwareWriteTarget.FourZoneKeyboard, token);
     }
 
     public HardwareStateCardViewModel Battery { get; }
@@ -233,6 +243,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public HardwareStateCardViewModel DisplayOverdrive { get; }
 
     public HardwareStateCardViewModel IntegratedGpu { get; }
+
+    public HardwareStateCardViewModel Keyboard { get; }
 
     public MachineSessionViewModel Session { get; }
 
@@ -312,6 +324,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
             Thermal.Apply(snapshot.ThermalMode, FormatThermalMode);
             DisplayOverdrive.Apply(snapshot.DisplayOverdrive, FormatToggle);
             IntegratedGpu.Apply(snapshot.IntegratedGpuMode, FormatGpuMode);
+            Keyboard.Apply(snapshot.FourZoneKeyboard, FormatKeyboardMode);
 
             HardwareReadStatus[] statuses =
             [
@@ -319,6 +332,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
                 snapshot.ThermalMode.Status,
                 snapshot.DisplayOverdrive.Status,
                 snapshot.IntegratedGpuMode.Status,
+                snapshot.FourZoneKeyboard.Status,
             ];
             int successCount = statuses.Count(static status => status == HardwareReadStatus.Success);
             LastUpdated = snapshot.ObservedAt.ToLocalTime().ToString("HH:mm:ss");
@@ -408,10 +422,10 @@ public sealed partial class MainWindowViewModel : ObservableObject
             "broker_signature_invalid" =>
                 "The broker signature is invalid, so no privileged read ran.",
             "thermal_expected_mismatch" or "overdrive_expected_mismatch" or
-                "integrated_gpu_expected_mismatch" =>
+                "integrated_gpu_expected_mismatch" or "keyboard_expected_mismatch" =>
                 "Hardware changed before the write. Refresh, then apply again.",
             "thermal_readback_mismatch" or "overdrive_readback_mismatch" or
-                "integrated_gpu_readback_mismatch" =>
+                "integrated_gpu_readback_mismatch" or "keyboard_readback_mismatch" =>
                 "The setter ran, but readback did not match the requested value.",
             "battery_expected_mismatch" =>
                 "Battery mode changed before the write. Refresh, then apply again.",
@@ -466,6 +480,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
             HardwareWriteTarget.BatteryChargeMode when
                 current.BatteryChargeMode is { Status: HardwareReadStatus.Success, Value: { } value } =>
                 value.ToString(),
+            HardwareWriteTarget.FourZoneKeyboard when
+                current.FourZoneKeyboard is { Status: HardwareReadStatus.Success, Value: { } value } =>
+                value.ToString(),
             _ => null,
         };
         if (expected is null)
@@ -487,6 +504,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
             Thermal.Apply(snapshot.ThermalMode, FormatThermalMode);
             DisplayOverdrive.Apply(snapshot.DisplayOverdrive, FormatToggle);
             IntegratedGpu.Apply(snapshot.IntegratedGpuMode, FormatGpuMode);
+            Keyboard.Apply(snapshot.FourZoneKeyboard, FormatKeyboardMode);
             LastUpdated = snapshot.ObservedAt.ToLocalTime().ToString("HH:mm:ss");
             BannerTitle = "Hardware change verified";
             BannerMessage = $"Applied {desired} · read back at {LastUpdated}";
@@ -559,6 +577,15 @@ public sealed partial class MainWindowViewModel : ObservableObject
             IntegratedGpuMode.IntegratedOnly => "Integrated only",
             IntegratedGpuMode.Automatic => "Automatic",
             _ => value.ToString(),
+        };
+
+    private static string FormatKeyboardMode(FourZoneKeyboardMode value) =>
+        value switch
+        {
+            FourZoneKeyboardMode.Off => "Off",
+            FourZoneKeyboardMode.Low => "Low",
+            FourZoneKeyboardMode.High => "High",
+            _ => "Present",
         };
 
     private static string FormatCapability(HardwareCapability value) =>

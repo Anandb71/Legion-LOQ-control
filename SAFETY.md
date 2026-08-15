@@ -8,10 +8,11 @@ failed state is never treated as a usable default.
 The rebuild is write-gated. Inventory, refresh, preview, and export stay read-only:
 
 - the GUI runs as the current user (`asInvoker`), not as administrator;
-- the dashboard can apply thermal mode, display overdrive, integrated-GPU mode, and
-  battery charge mode only after an explicit click and a UAC prompt;
+- the dashboard can apply thermal mode, display overdrive, integrated-GPU mode,
+  battery charge mode, and 4-zone keyboard brightness only after an explicit click and a
+  UAC prompt;
 - each apply is one typed broker write with a fresh expected-state check and readback;
-- custom thermal mode, fan tables, and keyboard writes remain disabled;
+- custom thermal mode, fan tables, and per-zone RGB color writes remain disabled;
 - `HardwareWritePolicy` in the quarantined Core assembly still has no unlock path;
 - legacy or write-capable EnergyDrv, WMI mutation, and HID feature-write entry points
   reject commands before opening a driver or selecting a device;
@@ -30,8 +31,9 @@ The rebuild is write-gated. Inventory, refresh, preview, and export stay read-on
 - the elevated broker may run one allowlisted WMI setter (`SetSmartFanMode`,
   `SetODStatus`, or `SetIGPUModeStatus`) or the typed battery write when launched with
   `--write`;
-- the elevated broker still has no legacy Core reference, generic IOCTL entry point,
-  HID access, or caller-supplied WMI names;
+- the elevated broker may open one allowlisted ITE HID collection (`048D` + `C935` /
+  `C955` / `C993`, 33-byte feature report) for 4-zone brightness; it still has no legacy
+  Core reference, generic IOCTL entry point, or caller-supplied WMI names;
 - profile drafts use a bounded, strict, versioned local JSON store with a
   cross-process file lock and compare only against retained typed snapshots and
   capability evidence;
@@ -47,9 +49,9 @@ The rebuild is write-gated. Inventory, refresh, preview, and export stay read-on
   elevation, or performs a hardware write;
 - unit tests verify that battery, thermal, fan, and keyboard commands fail closed.
 
-The broker may apply the three allowlisted WMI setters and the typed battery-mode write
-after an explicit UAC prompt. That is not authorization for fan, keyboard, or unsigned
-production installs. Development mode may launch an unsigned sibling broker after an
+The broker may apply the allowlisted WMI setters, the typed battery-mode write, and the
+typed 4-zone brightness packet after an explicit UAC prompt. That is not authorization
+for fan tables, per-zone color editors, or unsigned production installs. Development mode may launch an unsigned sibling broker after an
 explicit UAC prompt. Production mode refuses that launch unless the sibling directory is
 administrator-protected and the broker is Authenticode-signed. See
 [`docs/BROKER_INSTALL.md`](docs/BROKER_INSTALL.md).

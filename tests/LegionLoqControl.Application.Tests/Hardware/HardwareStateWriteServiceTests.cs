@@ -102,6 +102,24 @@ public sealed class HardwareStateWriteServiceTests
         Assert.Null(writer.LastBattery);
     }
 
+    [Fact]
+    public async Task Apply_writes_four_zone_brightness_when_the_controller_is_present()
+    {
+        var writer = new StubWriter();
+        var service = new HardwareStateWriteService(
+            () => new StubReader(ThermalMode.Balanced, ThermalMode.Balanced),
+            writer);
+
+        HardwareStateSnapshot snapshot = await service.ApplyAsync(
+            HardwareWriteKind.FourZoneKeyboard,
+            nameof(FourZoneKeyboardMode.Unknown),
+            nameof(FourZoneKeyboardMode.High),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(FourZoneKeyboardMode.Unknown, snapshot.FourZoneKeyboard.Value);
+        Assert.Equal(FourZoneKeyboardMode.High, writer.LastKeyboard);
+    }
+
     private sealed class StubReader : IHardwareStateReader
     {
         private readonly Queue<ThermalMode> _thermal;
@@ -139,6 +157,11 @@ public sealed class HardwareStateWriteServiceTests
             CancellationToken cancellationToken) =>
             ValueTask.FromResult(
                 HardwareReadResult<IntegratedGpuMode>.Success(IntegratedGpuMode.Default));
+
+        public ValueTask<HardwareReadResult<FourZoneKeyboardMode>> ReadFourZoneKeyboardAsync(
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult(
+                HardwareReadResult<FourZoneKeyboardMode>.Success(FourZoneKeyboardMode.Unknown));
     }
 
     private sealed class StubWriter : IHardwareStateWriter
@@ -167,6 +190,8 @@ public sealed class HardwareStateWriteServiceTests
             CancellationToken cancellationToken) =>
             ValueTask.CompletedTask;
 
+        public FourZoneKeyboardMode? LastKeyboard { get; private set; }
+
         public ValueTask WriteBatteryChargeModeAsync(
             BatteryChargeMode expected,
             BatteryChargeMode desired,
@@ -174,6 +199,14 @@ public sealed class HardwareStateWriteServiceTests
         {
             LastBatteryExpected = expected;
             LastBattery = desired;
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask WriteFourZoneKeyboardAsync(
+            FourZoneKeyboardMode desired,
+            CancellationToken cancellationToken)
+        {
+            LastKeyboard = desired;
             return ValueTask.CompletedTask;
         }
     }

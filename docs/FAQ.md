@@ -11,15 +11,15 @@ always-running management suite.
 Not yet. The current `main` rebuild provides serial-free diagnostics and atomic export, an
 explicit hardware-state dashboard, local battery/thermal profile previews, and
 deterministic AC/battery automation previews. Thermal, overdrive, integrated-GPU, and
-battery apply require an explicit click and a UAC prompt. Keyboard, fans, profile
-application, and automation execution remain disabled.
+battery apply, and 4-zone keyboard brightness require an explicit click and a UAC prompt.
+Per-zone colors, fans, profile application, and automation execution remain disabled.
 
 ## What is being built next?
 
 The release-grade foundation now has hardened CI, preview packaging, accessibility
 contracts, diagnostics export, and the first typed apply path. Remaining work includes
-keyboard and bounded fans, profile Apply, opt-in automation, Authenticode signing, a
-protected installer, and supported Windows/scaling validation. See the
+bounded fans, profile Apply, opt-in automation, Authenticode signing, a protected
+installer, and supported Windows/scaling validation. See the
 [rebuild roadmap](ROADMAP.md).
 
 ## Can a saved profile change my hardware?
@@ -37,7 +37,7 @@ command.
 ## Is the current build safe to run?
 
 Inventory, refresh, preview, and export send no hardware writes. Dashboard apply can
-change four typed states after an explicit click and a UAC prompt. The UI has no legacy
+change five typed states after an explicit click and a UAC prompt. The UI has no legacy
 writer reference, the legacy assembly is globally locked, and the broker has no generic
 IOCTL or caller-supplied WMI name. It is still pre-release software; review
 [SAFETY.md](../SAFETY.md).
@@ -78,16 +78,16 @@ does not open that device.
 
 ## Can I run it alongside Lenovo Vantage?
 
-Yes, but dashboard apply can change the same thermal, overdrive, GPU, and battery settings
-Vantage owns. Use one owner at a time. Profile Apply and automation execution are still
-disabled.
+Yes, but dashboard apply can change the same thermal, overdrive, GPU, battery, and
+keyboard-brightness settings Vantage owns. Use one owner at a time. Profile Apply and
+automation execution are still disabled.
 
 ## Why is my keyboard listed as unsupported?
 
-The current scan only recognizes the documented legacy product IDs in the repository.
-`Unsupported` means that interface was not found during this scan; it does not prove the
-laptop has no keyboard lighting. Submit redacted diagnostics rather than trying random HID
-reports.
+The scan now treats ITE `048D:C993` as a 4-zone candidate in addition to the older
+`C935`/`C955` IDs. `Unsupported` still means only that the scanned IDs were absent; it
+does not prove the laptop has no lighting. This LOQ's 4-zone controller is `C993`.
+Spectrum remains unrecognized unless its HID ID appears.
 
 ## Does it support AMD, Intel, or NVIDIA variants?
 

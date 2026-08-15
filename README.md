@@ -27,7 +27,8 @@ Working today:
   current-user pipe ACL, one allowlisted write per `--write` launch, and an install policy
   that keeps unsigned sibling launches in development mode;
 - an unelevated precision dashboard with explicit brokered state refresh and apply for
-  thermal mode, display overdrive, integrated-GPU mode, and battery charge mode;
+  thermal mode, display overdrive, integrated-GPU mode, battery charge mode, and 4-zone
+  keyboard brightness;
 - strict, versioned local battery and thermal drafts with typed current-versus-target
   previews and no Apply path;
 - strict, versioned AC/battery automation rules with deterministic priority evaluation,
@@ -45,7 +46,7 @@ The unelevated `state` command intentionally does not open EnergyDrv.
 
 Not enabled today:
 
-- keyboard, fan, or custom-thermal writes;
+- per-zone RGB color editors, fan writes, or custom-thermal writes;
 - production broker signing or installer ACLs;
 - profile application or automation execution;
 - any claim of production-ready model support.

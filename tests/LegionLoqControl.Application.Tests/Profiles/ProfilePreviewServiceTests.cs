@@ -215,7 +215,8 @@ public sealed class ProfilePreviewServiceTests
             battery ?? HardwareReadResult<BatteryChargeMode>.Success(BatteryChargeMode.Normal),
             thermal ?? HardwareReadResult<ThermalMode>.Success(ThermalMode.Balanced),
             HardwareReadResult<ToggleState>.Success(ToggleState.Disabled),
-            HardwareReadResult<IntegratedGpuMode>.Success(IntegratedGpuMode.Default));
+            HardwareReadResult<IntegratedGpuMode>.Success(IntegratedGpuMode.Default),
+            HardwareReadResult<FourZoneKeyboardMode>.Success(FourZoneKeyboardMode.Unknown));
 
     private static CapabilityEvidence Evidence(
         HardwareCapability capability,

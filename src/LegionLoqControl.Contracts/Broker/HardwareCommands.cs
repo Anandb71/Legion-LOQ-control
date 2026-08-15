@@ -43,6 +43,7 @@ public enum HardwareWriteTarget
     DisplayOverdrive = 1,
     IntegratedGpuMode = 2,
     BatteryChargeMode = 3,
+    FourZoneKeyboard = 4,
 }
 
 public enum BrokerCommandStatus

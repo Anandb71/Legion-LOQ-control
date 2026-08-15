@@ -55,7 +55,8 @@ public sealed record DiagnosticsHardwareStateExport(
     DiagnosticsHardwareReadExport? BatteryChargeMode,
     DiagnosticsHardwareReadExport? ThermalMode,
     DiagnosticsHardwareReadExport? DisplayOverdrive,
-    DiagnosticsHardwareReadExport? IntegratedGpuMode);
+    DiagnosticsHardwareReadExport? IntegratedGpuMode,
+    DiagnosticsHardwareReadExport? FourZoneKeyboard);
 
 public sealed record DiagnosticsHardwareReadExport(
     HardwareReadStatus Status,

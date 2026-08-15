@@ -197,5 +197,6 @@ public sealed class BrokerSecurityTests
                 "not_available"),
             HardwareReadResult<ThermalMode>.Success(ThermalMode.Balanced),
             HardwareReadResult<ToggleState>.Success(ToggleState.Disabled),
-            HardwareReadResult<IntegratedGpuMode>.Success(IntegratedGpuMode.Default));
+            HardwareReadResult<IntegratedGpuMode>.Success(IntegratedGpuMode.Default),
+            HardwareReadResult<FourZoneKeyboardMode>.Success(FourZoneKeyboardMode.Unknown));
 }

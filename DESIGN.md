@@ -119,3 +119,5 @@ Color never carries meaning alone. Every semantic color is paired with a label o
 - **2026-08-09:** Initial system approved. Quiet precision selected over gaming energy and
   conventional Fluent styling after reviewing Vantage/Legion Space, Lenovo Legion Toolkit,
   G-Helper, and hardware-monitoring dashboards.
+- **2026-08-15:** 4-zone keyboard brightness sits in a third row under the 2 × 2 matrix.
+  Off/Low/High only; no RGB color picker or effect chrome.

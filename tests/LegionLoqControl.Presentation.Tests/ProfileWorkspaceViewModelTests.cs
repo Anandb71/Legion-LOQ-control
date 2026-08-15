@@ -193,7 +193,8 @@ public sealed class ProfileWorkspaceViewModelTests
             HardwareReadResult<BatteryChargeMode>.Success(BatteryChargeMode.Normal),
             HardwareReadResult<ThermalMode>.Success(thermalMode),
             HardwareReadResult<ToggleState>.Success(ToggleState.Disabled),
-            HardwareReadResult<IntegratedGpuMode>.Success(IntegratedGpuMode.Default));
+            HardwareReadResult<IntegratedGpuMode>.Success(IntegratedGpuMode.Default),
+            HardwareReadResult<FourZoneKeyboardMode>.Success(FourZoneKeyboardMode.Unknown));
 
     private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
     {

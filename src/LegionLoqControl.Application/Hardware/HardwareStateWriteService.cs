@@ -10,6 +10,7 @@ public enum HardwareWriteKind
     DisplayOverdrive = 1,
     IntegratedGpuMode = 2,
     BatteryChargeMode = 3,
+    FourZoneKeyboard = 4,
 }
 
 public enum HardwareWriteStatus
@@ -56,6 +57,10 @@ public interface IHardwareStateWriter
     ValueTask WriteBatteryChargeModeAsync(
         BatteryChargeMode expected,
         BatteryChargeMode desired,
+        CancellationToken cancellationToken);
+
+    ValueTask WriteFourZoneKeyboardAsync(
+        FourZoneKeyboardMode desired,
         CancellationToken cancellationToken);
 }
 
@@ -160,6 +165,22 @@ public sealed class HardwareStateWriteService
                     "battery_readback_mismatch",
                     cancellationToken)
                     .ConfigureAwait(false);
+            case HardwareWriteKind.FourZoneKeyboard:
+                FourZoneKeyboardMode expectedKeyboard = ParseKeyboard(expected);
+                FourZoneKeyboardMode desiredKeyboard = ParseKeyboard(desired);
+                if (desiredKeyboard == FourZoneKeyboardMode.Unknown)
+                {
+                    throw new HardwareWriteException(
+                        "keyboard_value_invalid",
+                        HardwareWriteStatus.Failed);
+                }
+
+                EnsureKeyboardPresence(before.FourZoneKeyboard, expectedKeyboard);
+                await _writer
+                    .WriteFourZoneKeyboardAsync(desiredKeyboard, cancellationToken)
+                    .ConfigureAwait(false);
+                return await VerifyKeyboardAsync(desiredKeyboard, cancellationToken)
+                    .ConfigureAwait(false);
             default:
                 throw new ArgumentOutOfRangeException(nameof(kind));
         }
@@ -215,6 +236,51 @@ public sealed class HardwareStateWriteService
 
     private static BatteryChargeMode ParseBattery(string value) =>
         ParseEnum<BatteryChargeMode>(value, "battery_value_invalid");
+
+    private static FourZoneKeyboardMode ParseKeyboard(string value) =>
+        ParseEnum<FourZoneKeyboardMode>(value, "keyboard_value_invalid");
+
+    private static void EnsureKeyboardPresence(
+        HardwareReadResult<FourZoneKeyboardMode> result,
+        FourZoneKeyboardMode expected)
+    {
+        if (result.Status != HardwareReadStatus.Success || !result.Value.HasValue)
+        {
+            throw new HardwareWriteException(
+                "keyboard_expected_mismatch",
+                HardwareWriteStatus.Conflict);
+        }
+
+        if (expected != FourZoneKeyboardMode.Unknown &&
+            result.Value.Value != FourZoneKeyboardMode.Unknown &&
+            result.Value.Value != expected)
+        {
+            throw new HardwareWriteException(
+                "keyboard_expected_mismatch",
+                HardwareWriteStatus.Conflict);
+        }
+    }
+
+    private async ValueTask<HardwareStateSnapshot> VerifyKeyboardAsync(
+        FourZoneKeyboardMode desired,
+        CancellationToken cancellationToken)
+    {
+        HardwareStateSnapshot after = await CaptureAsync(cancellationToken).ConfigureAwait(false);
+        HardwareReadResult<FourZoneKeyboardMode> result = after.FourZoneKeyboard;
+        if (result.Status != HardwareReadStatus.Success || !result.Value.HasValue)
+        {
+            throw new HardwareWriteException(
+                "keyboard_readback_mismatch",
+                HardwareWriteStatus.Unverified);
+        }
+
+        if (result.Value.Value is FourZoneKeyboardMode.Unknown || result.Value.Value == desired)
+            return after;
+
+        throw new HardwareWriteException(
+            "keyboard_readback_mismatch",
+            HardwareWriteStatus.Unverified);
+    }
 
     private static T ParseEnum<T>(string value, string errorCode)
         where T : struct, Enum

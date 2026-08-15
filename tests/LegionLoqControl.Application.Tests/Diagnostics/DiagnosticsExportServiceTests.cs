@@ -86,7 +86,9 @@ public sealed class DiagnosticsExportServiceTests
                 "wmi_access_denied"),
             HardwareReadResult<ToggleState>.Success(ToggleState.Disabled),
             HardwareReadResult<IntegratedGpuMode>.Success(
-                IntegratedGpuMode.IntegratedOnly));
+                IntegratedGpuMode.IntegratedOnly),
+            HardwareReadResult<FourZoneKeyboardMode>.Success(
+                FourZoneKeyboardMode.Unknown));
         var service = new DiagnosticsExportService(new FixedTimeProvider(ExportedAt));
 
         DiagnosticsExportDocument document = service.Create(

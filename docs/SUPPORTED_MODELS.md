@@ -3,9 +3,9 @@
 ## Current release gate
 
 No model is approved as `Supported` for hardware writes. Typed apply exists for thermal
-mode, display overdrive, integrated-GPU mode, and battery charge mode, but no feature has
-reached the `Supported` evidence level. Battery apply still has no recorded on-device
-write evidence.
+mode, display overdrive, integrated-GPU mode, battery charge mode, and 4-zone keyboard
+brightness, but no feature has reached the `Supported` evidence level. Battery and
+keyboard apply still have no recorded on-device write evidence.
 
 Capability evidence terms:
 
@@ -28,10 +28,12 @@ Inventory captured read-only on 2026-08-08:
 - manufacturer, model, machine type, and BIOS were observed;
 - battery mode's Energy driver read was later observed through the elevated broker; the
   write selectors are implemented but not yet recorded as on-device evidence;
-- thermal mode, fan table, white keyboard, display overdrive, hybrid graphics, and GPU mode
-  WMI method sets were present but remain unverified candidates;
+- thermal mode, fan table, white-keyboard WMI, display overdrive, hybrid graphics, and GPU
+  mode WMI method sets were present but remain unverified candidates; this machine's
+  lighting path is the ITE 4-zone HID controller, not the white WMI backlight;
 - the fan interface exposes table methods, not the legacy prototype's full-speed methods;
-- known 4-zone and Spectrum HID product IDs were not found;
+- a later HID inventory on the same machine found ITE `048D:C993` with a 33-byte feature
+  collection and `048D:C996` without one; Spectrum IDs were still absent;
 - no Lenovo WMI method was invoked and no HID device was opened during inventory;
 - no write behavior was tested.
 

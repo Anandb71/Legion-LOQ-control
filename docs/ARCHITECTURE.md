@@ -191,10 +191,9 @@ flowchart LR
     Verify --> Result[Typed result and redacted journal]
 ```
 
-The current broker accepts reads only. Hardware writes remain disabled until write-specific
-authorization, executable signing and installation ACLs, capability validation,
-machine-wide locking, readback, journaling, and crash reconciliation are implemented and
-reviewed.
+The current broker accepts one typed read or one allowlisted write per launch. Remaining
+write-path work includes executable signing and installation ACLs, machine-wide locking,
+journaling, and crash reconciliation.
 
 ## Architectural rules
 

@@ -134,6 +134,24 @@ public sealed class DashboardViewModelTests
     }
 
     [Fact]
+    public async Task Applying_keyboard_brightness_uses_the_verified_expected_state()
+    {
+        var source = new StubDashboardDataSource(CreateMachineSnapshot(), CreateHardwareSnapshot());
+        var viewModel = new MainWindowViewModel(source);
+        await viewModel.InitializeAsync();
+        await viewModel.RefreshHardwareStateCommand.ExecuteAsync(null);
+
+        await viewModel.Keyboard.ApplyOptionCommand.ExecuteAsync(
+            nameof(FourZoneKeyboardMode.High));
+
+        Assert.Equal("Hardware change verified", viewModel.BannerTitle);
+        Assert.Equal(HardwareWriteTarget.FourZoneKeyboard, source.LastWriteTarget);
+        Assert.Equal(nameof(FourZoneKeyboardMode.Unknown), source.LastWriteExpected);
+        Assert.Equal(nameof(FourZoneKeyboardMode.High), source.LastWriteDesired);
+        Assert.True(viewModel.Keyboard.CanApply);
+    }
+
+    [Fact]
     public async Task Production_install_refusal_explains_the_unprotected_path()
     {
         var source = new StubDashboardDataSource(
@@ -180,7 +198,9 @@ public sealed class DashboardViewModelTests
             HardwareReadResult<ThermalMode>.Success(ThermalMode.Performance),
             HardwareReadResult<ToggleState>.Success(ToggleState.Disabled),
             HardwareReadResult<IntegratedGpuMode>.Success(
-                IntegratedGpuMode.IntegratedOnly));
+                IntegratedGpuMode.IntegratedOnly),
+            HardwareReadResult<FourZoneKeyboardMode>.Success(
+                FourZoneKeyboardMode.Unknown));
 
     private sealed class StubDashboardDataSource(
         MachineSnapshot machineSnapshot,

@@ -111,6 +111,34 @@ public sealed class HardwareStateReaderTests
     }
 
     [Fact]
+    public void Four_zone_packets_are_fixed_and_identity_reports_are_not_lighting_state()
+    {
+        byte[] off = FourZoneKeyboardPacket.Build(FourZoneKeyboardMode.Off);
+        byte[] low = FourZoneKeyboardPacket.Build(FourZoneKeyboardMode.Low);
+        byte[] high = FourZoneKeyboardPacket.Build(FourZoneKeyboardMode.High);
+        byte[] identity =
+        [
+            0xCC, 0x05, 0xFF, 0x0A, 0x00, 0x8D, 0x04, 0x93, 0xC9, 0x00, 0x03,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+
+        Assert.Equal(33, off.Length);
+        Assert.Equal(0xCC, off[0]);
+        Assert.Equal(0x16, off[1]);
+        Assert.Equal(0x00, off[2]);
+        Assert.Equal(0x01, low[2]);
+        Assert.Equal(0x01, low[4]);
+        Assert.Equal(0x02, high[4]);
+        Assert.Equal(0xFF, low[5]);
+        Assert.Equal(FourZoneKeyboardMode.Off, FourZoneKeyboardPacket.Parse(off).Value);
+        Assert.Equal(FourZoneKeyboardMode.Low, FourZoneKeyboardPacket.Parse(low).Value);
+        Assert.Equal(FourZoneKeyboardMode.High, FourZoneKeyboardPacket.Parse(high).Value);
+        Assert.Equal(FourZoneKeyboardMode.Unknown, FourZoneKeyboardPacket.Parse(identity).Value);
+        Assert.Contains(0xC993, FourZoneKeyboardPacket.RecognizedProductIds);
+        Assert.DoesNotContain(0xC996, FourZoneKeyboardPacket.RecognizedProductIds);
+    }
+
+    [Fact]
     public void Energy_driver_writer_is_locked_to_the_write_contract()
     {
         Assert.Equal(0x831020F8u, EnergyDriverBatteryWriter.ControlCodeForValidation);
@@ -240,6 +268,7 @@ public sealed class HardwareStateReaderTests
         Assert.Contains("'SetSmartFanMode'", script, StringComparison.Ordinal);
         Assert.Contains("'SetODStatus'", script, StringComparison.Ordinal);
         Assert.Contains("'SetIGPUModeStatus'", script, StringComparison.Ordinal);
+        Assert.Contains("'SetLightControlOwner'", script, StringComparison.Ordinal);
         Assert.DoesNotContain("GetSmartFanMode", script, StringComparison.Ordinal);
         Assert.DoesNotContain("Invoke-Expression", script, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("Add-Type", script, StringComparison.OrdinalIgnoreCase);
@@ -293,7 +322,7 @@ public sealed class HardwareStateReaderTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(
-            ["battery", "thermal", "overdrive", "igpu"],
+            ["battery", "thermal", "overdrive", "igpu", "keyboard"],
             reader.Operations);
         Assert.Equal(now, snapshot.ObservedAt);
         Assert.Equal(BatteryChargeMode.Normal, snapshot.BatteryChargeMode.Value);
@@ -365,6 +394,14 @@ public sealed class HardwareStateReaderTests
         {
             Operations.Add("igpu");
             return ValueTask.FromResult(HardwareReadResult<IntegratedGpuMode>.Success(IntegratedGpuMode.Default));
+        }
+
+        public ValueTask<HardwareReadResult<FourZoneKeyboardMode>> ReadFourZoneKeyboardAsync(
+            CancellationToken cancellationToken)
+        {
+            Operations.Add("keyboard");
+            return ValueTask.FromResult(
+                HardwareReadResult<FourZoneKeyboardMode>.Success(FourZoneKeyboardMode.Unknown));
         }
     }
 

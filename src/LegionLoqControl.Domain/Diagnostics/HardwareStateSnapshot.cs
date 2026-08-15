@@ -8,4 +8,5 @@ public sealed record HardwareStateSnapshot(
     HardwareReadResult<BatteryChargeMode> BatteryChargeMode,
     HardwareReadResult<ThermalMode> ThermalMode,
     HardwareReadResult<ToggleState> DisplayOverdrive,
-    HardwareReadResult<IntegratedGpuMode> IntegratedGpuMode);
+    HardwareReadResult<IntegratedGpuMode> IntegratedGpuMode,
+    HardwareReadResult<FourZoneKeyboardMode> FourZoneKeyboard);

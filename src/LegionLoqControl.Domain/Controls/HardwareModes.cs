@@ -22,6 +22,14 @@ public enum FanMode
     FullSpeed = 1,
 }
 
+public enum FourZoneKeyboardMode
+{
+    Unknown = 0,
+    Off = 1,
+    Low = 2,
+    High = 3,
+}
+
 public readonly record struct KeyboardBrightness
 {
     public const byte Minimum = 0;

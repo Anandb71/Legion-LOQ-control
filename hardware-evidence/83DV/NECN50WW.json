@@ -41,8 +41,9 @@
     },
     {
       "capability": "FourZoneRgbKeyboard",
-      "status": "Unsupported",
-      "evidenceCode": "hid_interface_not_found"
+      "status": "Unknown",
+      "evidenceCode": "hid_interface_present_unverified",
+      "detail": "ITE 048D:C993 exposes a 33-byte feature collection; C996 does not."
     },
     {
       "capability": "SpectrumKeyboard",

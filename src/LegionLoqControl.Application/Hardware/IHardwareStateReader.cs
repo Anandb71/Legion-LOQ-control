@@ -16,4 +16,7 @@ public interface IHardwareStateReader
 
     ValueTask<HardwareReadResult<IntegratedGpuMode>> ReadIntegratedGpuModeAsync(
         CancellationToken cancellationToken);
+
+    ValueTask<HardwareReadResult<FourZoneKeyboardMode>> ReadFourZoneKeyboardAsync(
+        CancellationToken cancellationToken);
 }

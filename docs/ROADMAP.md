@@ -46,10 +46,10 @@ hardware write.
 
 ## Current milestone: first Vantage-class controls
 
-The dashboard can apply thermal mode, display overdrive, integrated-GPU mode, and battery
-charge mode. Each apply is an explicit click, one UAC prompt, an expected-state check, one
-allowlisted setter, and a readback. Battery write selectors are implemented; on-device
-write evidence is not yet recorded. Keyboard, bounded fans, profile Apply, and automation
+The dashboard can apply thermal mode, display overdrive, integrated-GPU mode, battery
+charge mode, and 4-zone keyboard brightness. Each apply is an explicit click, one UAC
+prompt, an expected-state check, one allowlisted setter, and a readback. This LOQ's ITE
+controller is `048D:C993`. Per-zone colors, bounded fans, profile Apply, and automation
 execution are next.
 
 ## Previous milestone: release-grade read-only foundation
