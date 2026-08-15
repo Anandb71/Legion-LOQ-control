@@ -62,20 +62,67 @@ public sealed class HardwareStateWriteServiceTests
         Assert.Null(writer.LastThermal);
     }
 
+    [Fact]
+    public async Task Apply_writes_battery_mode_after_the_expected_state_matches()
+    {
+        var reader = new StubReader(
+            [ThermalMode.Balanced, ThermalMode.Balanced],
+            [BatteryChargeMode.Normal, BatteryChargeMode.Conservation]);
+        var writer = new StubWriter();
+        var service = new HardwareStateWriteService(() => reader, writer);
+
+        HardwareStateSnapshot snapshot = await service.ApplyAsync(
+            HardwareWriteKind.BatteryChargeMode,
+            nameof(BatteryChargeMode.Normal),
+            nameof(BatteryChargeMode.Conservation),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(BatteryChargeMode.Conservation, snapshot.BatteryChargeMode.Value);
+        Assert.Equal(BatteryChargeMode.Conservation, writer.LastBattery);
+        Assert.Equal(BatteryChargeMode.Normal, writer.LastBatteryExpected);
+    }
+
+    [Fact]
+    public async Task Apply_does_not_write_when_battery_mode_is_already_desired()
+    {
+        var writer = new StubWriter();
+        var service = new HardwareStateWriteService(
+            () => new StubReader(
+                [ThermalMode.Balanced],
+                [BatteryChargeMode.Conservation]),
+            writer);
+
+        HardwareStateSnapshot snapshot = await service.ApplyAsync(
+            HardwareWriteKind.BatteryChargeMode,
+            nameof(BatteryChargeMode.Conservation),
+            nameof(BatteryChargeMode.Conservation),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(BatteryChargeMode.Conservation, snapshot.BatteryChargeMode.Value);
+        Assert.Null(writer.LastBattery);
+    }
+
     private sealed class StubReader : IHardwareStateReader
     {
         private readonly Queue<ThermalMode> _thermal;
+        private readonly Queue<BatteryChargeMode> _battery;
 
         public StubReader(params ThermalMode[] thermal)
+            : this(thermal, [BatteryChargeMode.Normal, BatteryChargeMode.Normal])
+        {
+        }
+
+        public StubReader(ThermalMode[] thermal, BatteryChargeMode[] battery)
         {
             _thermal = new Queue<ThermalMode>(thermal);
+            _battery = new Queue<BatteryChargeMode>(battery);
         }
 
         public int CaptureCount { get; private set; }
 
         public ValueTask<HardwareReadResult<BatteryChargeMode>> ReadBatteryChargeModeAsync(
             CancellationToken cancellationToken) =>
-            ValueTask.FromResult(HardwareReadResult<BatteryChargeMode>.Success(BatteryChargeMode.Normal));
+            ValueTask.FromResult(HardwareReadResult<BatteryChargeMode>.Success(_battery.Dequeue()));
 
         public ValueTask<HardwareReadResult<ThermalMode>> ReadThermalModeAsync(
             CancellationToken cancellationToken)
@@ -98,6 +145,10 @@ public sealed class HardwareStateWriteServiceTests
     {
         public ThermalMode? LastThermal { get; private set; }
 
+        public BatteryChargeMode? LastBattery { get; private set; }
+
+        public BatteryChargeMode? LastBatteryExpected { get; private set; }
+
         public ValueTask WriteThermalModeAsync(
             ThermalMode desired,
             CancellationToken cancellationToken)
@@ -115,5 +166,15 @@ public sealed class HardwareStateWriteServiceTests
             IntegratedGpuMode desired,
             CancellationToken cancellationToken) =>
             ValueTask.CompletedTask;
+
+        public ValueTask WriteBatteryChargeModeAsync(
+            BatteryChargeMode expected,
+            BatteryChargeMode desired,
+            CancellationToken cancellationToken)
+        {
+            LastBatteryExpected = expected;
+            LastBattery = desired;
+            return ValueTask.CompletedTask;
+        }
     }
 }

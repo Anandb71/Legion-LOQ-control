@@ -2,8 +2,10 @@
 
 ## Current release gate
 
-No model is approved for hardware writes. The rebuild is read-only, and every write
-control remains disabled.
+No model is approved as `Supported` for hardware writes. Typed apply exists for thermal
+mode, display overdrive, integrated-GPU mode, and battery charge mode, but no feature has
+reached the `Supported` evidence level. Battery apply still has no recorded on-device
+write evidence.
 
 Capability evidence terms:
 
@@ -24,7 +26,8 @@ feature is unsupported.
 Inventory captured read-only on 2026-08-08:
 
 - manufacturer, model, machine type, and BIOS were observed;
-- battery mode's Energy driver transport remains unverified;
+- battery mode's Energy driver read was later observed through the elevated broker; the
+  write selectors are implemented but not yet recorded as on-device evidence;
 - thermal mode, fan table, white keyboard, display overdrive, hybrid graphics, and GPU mode
   WMI method sets were present but remain unverified candidates;
 - the fan interface exposes table methods, not the legacy prototype's full-speed methods;

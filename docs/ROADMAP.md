@@ -46,10 +46,11 @@ hardware write.
 
 ## Current milestone: first Vantage-class controls
 
-The dashboard can apply the three WMI states already validated on the recorded LOQ:
-thermal mode, display overdrive, and integrated-GPU mode. Each apply is an explicit
-click, one UAC prompt, an expected-state check, one allowlisted setter, and a readback.
-Battery writes, keyboard, fans, profile Apply, and automation execution are next.
+The dashboard can apply thermal mode, display overdrive, integrated-GPU mode, and battery
+charge mode. Each apply is an explicit click, one UAC prompt, an expected-state check, one
+allowlisted setter, and a readback. Battery write selectors are implemented; on-device
+write evidence is not yet recorded. Keyboard, bounded fans, profile Apply, and automation
+execution are next.
 
 ## Previous milestone: release-grade read-only foundation
 

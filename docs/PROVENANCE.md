@@ -153,6 +153,33 @@ Legion + LOQ Control.
 - **Reviewer:** Pending
 - **Date:** 2026-08-09
 
+## Implementation record: EnergyDrv battery-mode write
+
+- **Feature:** Apply Normal, Conservation, and Rapid Charge
+- **Local files:**
+  `src/LegionLoqControl.Infrastructure.Windows/Hardware/EnergyDriverBatteryWriter.cs`
+  and `src/LegionLoqControl.Application/Hardware/HardwareStateWriteService.cs`
+- **Classification:** Original implementation with protocol cross-check
+- **External project and URL:** Lenovo Legion Toolkit,
+  <https://github.com/LenovoLegionToolkit-Team/LenovoLegionToolkit>
+- **Source commit:** `6f19ef48095a32afe439474a65e5b95cf8fa1b24`
+- **External files examined:** `LenovoLegionToolkit.Lib/Features/BatteryFeature.cs`
+- **License:** GPL-3.0 with LLT-specific plugin exception
+- **Local implementation:** Independently written typed writer for the same IOCTL as the
+  reader. Selectors are fixed: Conservation `0x03`, leave-conservation `0x05`, Rapid
+  `0x07`, leave-rapid `0x08`. The handle requests `GENERIC_READ | GENERIC_WRITE` only on
+  this path. There is no generic IOCTL entry point and no caller-controlled control code.
+- **Protocol facts cross-checked:** Same control code `0x831020F8`; write selectors are
+  distinct from the `0xFF` read selector.
+- **Independent evidence:** Pending an explicit elevated apply on LOQ 15IRX9, machine type
+  `83DV`, BIOS `NECN50WW`.
+- **Test fixtures:** Selector-mapping and access-mask invariants in
+  `tests/LegionLoqControl.Platform.Tests/HardwareStateReaderTests.cs`
+- **Hardware validation:** Not yet recorded. Do not treat the protocol cross-check as a
+  successful on-device write.
+- **Reviewer:** Pending
+- **Date:** 2026-08-15
+
 ## Implementation record: read-only elevated broker
 
 - **Feature:** One-request privileged hardware-state read boundary
@@ -171,10 +198,10 @@ Legion + LOQ Control.
   mutual peer-process checks, 256-bit one-time nonce, anonymous impersonation level,
   strict 64 KiB length-prefixed JSON, explicit wire DTO validation, UAC launch, and bounded
   broker lifetime
-- **Security boundary:** The broker accepts only one hardware-state read request. It has no
-  hardware-write request, dispatcher, legacy Core reference, generic/writable EnergyDrv
-  access, or HID access. Its only driver operation is the exact battery read documented
-  above.
+- **Security boundary:** The original 2026-08-08 record accepted only one hardware-state
+  read request. A later `--write` path adds one allowlisted WMI setter or the typed
+  EnergyDrv battery write documented above. The broker still has no legacy Core reference,
+  generic IOCTL entry point, HID access, or caller-supplied WMI names.
 - **Independent evidence:** Same-process named-pipe integration tests verify ACL creation,
   server/client process-ID APIs, framing, request binding, and response validation on
   Windows 10. An explicit UAC-assisted run verified the cross-integrity pipe and one-shot

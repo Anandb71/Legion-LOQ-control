@@ -96,6 +96,31 @@ public sealed class HardwareStateReaderTests
         Assert.Equal(0u, EnergyDriverBatteryReader.DesiredAccessForValidation);
     }
 
+    [Theory]
+    [InlineData(BatteryChargeMode.Normal, BatteryChargeMode.Conservation, 0x03u)]
+    [InlineData(BatteryChargeMode.Conservation, BatteryChargeMode.Normal, 0x05u)]
+    [InlineData(BatteryChargeMode.Normal, BatteryChargeMode.RapidCharge, 0x07u)]
+    [InlineData(BatteryChargeMode.RapidCharge, BatteryChargeMode.Normal, 0x08u)]
+    [InlineData(BatteryChargeMode.Conservation, BatteryChargeMode.RapidCharge, 0x07u)]
+    public void Energy_driver_write_selectors_are_fixed(
+        BatteryChargeMode expected,
+        BatteryChargeMode desired,
+        uint selector)
+    {
+        Assert.Equal(selector, EnergyDriverBatteryWriter.ResolveSelector(expected, desired));
+    }
+
+    [Fact]
+    public void Energy_driver_writer_is_locked_to_the_write_contract()
+    {
+        Assert.Equal(0x831020F8u, EnergyDriverBatteryWriter.ControlCodeForValidation);
+        Assert.Equal(0xC0000000u, EnergyDriverBatteryWriter.DesiredAccessForValidation);
+        Assert.Throws<HardwareWriteException>(
+            () => EnergyDriverBatteryWriter.ResolveSelector(
+                BatteryChargeMode.Normal,
+                BatteryChargeMode.Normal));
+    }
+
     [Fact]
     public void Getter_output_contract_requires_true_status_and_UInt32_data()
     {

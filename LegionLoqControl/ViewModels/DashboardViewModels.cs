@@ -212,9 +212,15 @@ public sealed partial class MainWindowViewModel : ObservableObject
             "Current graphics topology",
             "Elevation required by Lenovo WMI");
 
+        AddOptions(
+            Battery,
+            ("Normal", nameof(BatteryChargeMode.Normal)),
+            ("Conservation", nameof(BatteryChargeMode.Conservation)),
+            ("Rapid charge", nameof(BatteryChargeMode.RapidCharge)));
         AddOptions(Thermal, ("Quiet", nameof(ThermalMode.Quiet)), ("Balanced", nameof(ThermalMode.Balanced)), ("Performance", nameof(ThermalMode.Performance)), ("Extreme", nameof(ThermalMode.Extreme)));
         AddOptions(DisplayOverdrive, ("Off", nameof(ToggleState.Disabled)), ("On", nameof(ToggleState.Enabled)));
         AddOptions(IntegratedGpu, ("Default", nameof(IntegratedGpuMode.Default)), ("Integrated only", nameof(IntegratedGpuMode.IntegratedOnly)), ("Automatic", nameof(IntegratedGpuMode.Automatic)));
+        Battery.ApplyAsync = token => ApplyWriteAsync(HardwareWriteTarget.BatteryChargeMode, token);
         Thermal.ApplyAsync = token => ApplyWriteAsync(HardwareWriteTarget.ThermalMode, token);
         DisplayOverdrive.ApplyAsync = token => ApplyWriteAsync(HardwareWriteTarget.DisplayOverdrive, token);
         IntegratedGpu.ApplyAsync = token => ApplyWriteAsync(HardwareWriteTarget.IntegratedGpuMode, token);
@@ -407,6 +413,10 @@ public sealed partial class MainWindowViewModel : ObservableObject
             "thermal_readback_mismatch" or "overdrive_readback_mismatch" or
                 "integrated_gpu_readback_mismatch" =>
                 "The setter ran, but readback did not match the requested value.",
+            "battery_expected_mismatch" =>
+                "Battery mode changed before the write. Refresh, then apply again.",
+            "battery_readback_mismatch" =>
+                "The battery setter ran, but readback did not match the requested value.",
             "thermal_custom_unsupported" =>
                 "Custom thermal mode is not writable from this app.",
             _ => "The broker could not complete the privileged request.",
@@ -452,6 +462,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
                 value.ToString(),
             HardwareWriteTarget.IntegratedGpuMode when
                 current.IntegratedGpuMode is { Status: HardwareReadStatus.Success, Value: { } value } =>
+                value.ToString(),
+            HardwareWriteTarget.BatteryChargeMode when
+                current.BatteryChargeMode is { Status: HardwareReadStatus.Success, Value: { } value } =>
                 value.ToString(),
             _ => null,
         };

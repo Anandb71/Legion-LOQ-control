@@ -2,27 +2,31 @@
 
 ## Safety status
 
-The current rebuild is intentionally read-only. Hardware writes remain disabled until the
-isolated broker, capability validation, serialization, readback, and recovery controls in
-[SAFETY.md](SAFETY.md) pass their release gates.
+The current rebuild is write-gated. Inventory, refresh, preview, and export stay
+read-only. Dashboard apply may change thermal mode, display overdrive, integrated-GPU
+mode, or battery charge mode only after an explicit click, a UAC prompt, an expected-state
+check, and a readback. Fan, keyboard, profile Apply, and automation execution remain
+disabled until the remaining controls in [SAFETY.md](SAFETY.md) pass their release gates.
 
 Do not publish a build that bypasses `HardwareWritePolicy`.
 Do not publish the elevated broker until it is signed and installed in an
 administrator-protected directory. The install policy in
 [`docs/BROKER_INSTALL.md`](docs/BROKER_INSTALL.md) distinguishes a development sibling
 from a production install and refuses production-mode launches from user-writable or
-unsigned locations. The current broker is a read-only development validation path and
-must not gain a write dispatcher before the gates in [SAFETY.md](SAFETY.md) pass review.
+unsigned locations. The current broker is a development validation path. `--write` may
+run one allowlisted setter or the typed battery write; it must not gain a generic IOCTL
+or caller-supplied WMI name.
 
 The temporary CIM bridge may launch only the built-in system Windows PowerShell executable
 with profiles disabled, a system-only module path, and the repository's static encoded
 script. Caller-provided PowerShell, WMI identifiers, arguments, modules, or paths are
 security violations.
 
-The broker's battery adapter may issue only IOCTL `0x831020F8` with selector `0xFF` through
-an EnergyDrv handle opened with zero requested access. A generic driver API, caller-provided
-control code/input, writable handle, or use outside the elevated read broker is a security
-violation.
+The broker's battery reader may issue only IOCTL `0x831020F8` with selector `0xFF` through
+an EnergyDrv handle opened with zero requested access. The typed battery writer uses the
+same control code with only selectors `0x03`, `0x05`, `0x07`, and `0x08` on a
+`GENERIC_READ | GENERIC_WRITE` handle. A generic driver API, caller-provided control
+code/input, or use outside the elevated broker is a security violation.
 
 Local profile and automation JSON is untrusted input. The stores cap file size and entry
 count, reject unknown members and numeric enums, validate all domain values, and replace

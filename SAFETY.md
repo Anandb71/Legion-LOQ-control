@@ -5,13 +5,13 @@ failed state is never treated as a usable default.
 
 ## Current rebuild status
 
-The C# migration prototype is deliberately **read-only**:
+The rebuild is write-gated. Inventory, refresh, preview, and export stay read-only:
 
 - the GUI runs as the current user (`asInvoker`), not as administrator;
-- the dashboard can apply thermal mode, display overdrive, and integrated-GPU mode
-  only after an explicit click and a UAC prompt;
+- the dashboard can apply thermal mode, display overdrive, integrated-GPU mode, and
+  battery charge mode only after an explicit click and a UAC prompt;
 - each apply is one typed broker write with a fresh expected-state check and readback;
-- custom thermal mode, battery writes, fan tables, and keyboard writes remain disabled;
+- custom thermal mode, fan tables, and keyboard writes remain disabled;
 - `HardwareWritePolicy` in the quarantined Core assembly still has no unlock path;
 - legacy or write-capable EnergyDrv, WMI mutation, and HID feature-write entry points
   reject commands before opening a driver or selecting a device;
@@ -25,10 +25,12 @@ The C# migration prototype is deliberately **read-only**:
   current-user ACL, mutual process-ID checks, a one-time nonce, and anonymous client
   impersonation;
 - the elevated broker has one fixed EnergyDrv battery read (`0x831020F8`, selector `0xFF`,
-  zero requested device access) and no caller-controlled or generic driver operation;
+  zero requested device access) and one typed EnergyDrv battery write using only
+  selectors `0x03`, `0x05`, `0x07`, and `0x08`;
 - the elevated broker may run one allowlisted WMI setter (`SetSmartFanMode`,
-  `SetODStatus`, or `SetIGPUModeStatus`) when launched with `--write`;
-- the elevated broker still has no legacy Core reference, writable EnergyDrv handle,
+  `SetODStatus`, or `SetIGPUModeStatus`) or the typed battery write when launched with
+  `--write`;
+- the elevated broker still has no legacy Core reference, generic IOCTL entry point,
   HID access, or caller-supplied WMI names;
 - profile drafts use a bounded, strict, versioned local JSON store with a
   cross-process file lock and compare only against retained typed snapshots and
@@ -45,12 +47,12 @@ The C# migration prototype is deliberately **read-only**:
   elevation, or performs a hardware write;
 - unit tests verify that battery, thermal, fan, and keyboard commands fail closed.
 
-The broker may apply the three allowlisted WMI setters after an explicit UAC prompt.
-That is not authorization for battery, fan, keyboard, or unsigned production installs.
-Development
-mode may launch an unsigned sibling broker after an explicit UAC prompt. Production mode
-refuses that launch unless the sibling directory is administrator-protected and the
-broker is Authenticode-signed. See [`docs/BROKER_INSTALL.md`](docs/BROKER_INSTALL.md).
+The broker may apply the three allowlisted WMI setters and the typed battery-mode write
+after an explicit UAC prompt. That is not authorization for fan, keyboard, or unsigned
+production installs. Development mode may launch an unsigned sibling broker after an
+explicit UAC prompt. Production mode refuses that launch unless the sibling directory is
+administrator-protected and the broker is Authenticode-signed. See
+[`docs/BROKER_INSTALL.md`](docs/BROKER_INSTALL.md).
 Current device detection is only a candidate-device heuristic. It does
 **not** authorize hardware writes or prove feature compatibility. A getter name is not
 assumed harmless without allowlisting and provenance.

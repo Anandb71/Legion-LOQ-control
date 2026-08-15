@@ -8,17 +8,19 @@ always-running management suite.
 
 ## Can it replace Lenovo Vantage today?
 
-No. The current `main` rebuild provides serial-free diagnostics and atomic export, an
-explicit read-only hardware-state dashboard, local battery/thermal profile previews, and
-deterministic AC/battery automation previews. Hardware controls, profile application, and
-automation execution remain disabled until their safety gates pass.
+Not yet. The current `main` rebuild provides serial-free diagnostics and atomic export, an
+explicit hardware-state dashboard, local battery/thermal profile previews, and
+deterministic AC/battery automation previews. Thermal, overdrive, integrated-GPU, and
+battery apply require an explicit click and a UAC prompt. Keyboard, fans, profile
+application, and automation execution remain disabled.
 
 ## What is being built next?
 
-The release-grade read-only foundation now has hardened CI and preview packaging,
-accessibility contracts, diagnostics export, and release documentation. Remaining work
-includes Authenticode signing, a protected installer, and
-supported Windows/scaling validation. See the [rebuild roadmap](ROADMAP.md).
+The release-grade foundation now has hardened CI, preview packaging, accessibility
+contracts, diagnostics export, and the first typed apply path. Remaining work includes
+keyboard and bounded fans, profile Apply, opt-in automation, Authenticode signing, a
+protected installer, and supported Windows/scaling validation. See the
+[rebuild roadmap](ROADMAP.md).
 
 ## Can a saved profile change my hardware?
 
@@ -34,19 +36,19 @@ command.
 
 ## Is the current build safe to run?
 
-It is designed to send zero hardware writes: the UI has no legacy writer reference, the
-legacy assembly is globally locked, inventory only inspects WMI metadata and HID IDs, and
-the optional state commands invoke a fixed allowlist of Lenovo getters. The elevated broker
-accepts one read request and contains no writer. It is still pre-release software; review
+Inventory, refresh, preview, and export send no hardware writes. Dashboard apply can
+change four typed states after an explicit click and a UAC prompt. The UI has no legacy
+writer reference, the legacy assembly is globally locked, and the broker has no generic
+IOCTL or caller-supplied WMI name. It is still pre-release software; review
 [SAFETY.md](../SAFETY.md).
 
 ## Does it require administrator privileges?
 
 No for builds, tests, inventory diagnostics, or the WPF shell. Keep the UI and inventory
 unelevated. The optional `state` command also runs unelevated, but some Lenovo providers
-return `AccessDenied`. `state-elevated` explicitly prompts through UAC and uses the
-short-lived read-only broker. This is a development validation path; production broker use
-is blocked on signing and protected installation, and hardware writes remain disabled.
+return `AccessDenied`. `state-elevated` and dashboard apply explicitly prompt through UAC
+and use the short-lived broker. This is a development validation path; production broker
+use is blocked on signing and protected installation.
 
 ## What data does diagnostics collect?
 
@@ -76,9 +78,9 @@ does not open that device.
 
 ## Can I run it alongside Lenovo Vantage?
 
-The current read-only build does not take ownership or change settings. Future write
-features will need explicit conflict detection and ownership rules before this answer can
-change.
+Yes, but dashboard apply can change the same thermal, overdrive, GPU, and battery settings
+Vantage owns. Use one owner at a time. Profile Apply and automation execution are still
+disabled.
 
 ## Why is my keyboard listed as unsupported?
 

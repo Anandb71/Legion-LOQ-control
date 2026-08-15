@@ -324,15 +324,24 @@ internal sealed class PowerShellLenovoWmiWriteInvoker : ILenovoWmiWriteInvoker
 internal sealed class WindowsHardwareStateWriter : IHardwareStateWriter
 {
     private readonly ILenovoWmiWriteInvoker _invoker;
+    private readonly IEnergyDriverBatteryWriter _batteryWriter;
 
     public WindowsHardwareStateWriter()
-        : this(new PowerShellLenovoWmiWriteInvoker())
+        : this(new PowerShellLenovoWmiWriteInvoker(), new EnergyDriverBatteryWriter())
     {
     }
 
     internal WindowsHardwareStateWriter(ILenovoWmiWriteInvoker invoker)
+        : this(invoker, new EnergyDriverBatteryWriter())
+    {
+    }
+
+    internal WindowsHardwareStateWriter(
+        ILenovoWmiWriteInvoker invoker,
+        IEnergyDriverBatteryWriter batteryWriter)
     {
         _invoker = invoker ?? throw new ArgumentNullException(nameof(invoker));
+        _batteryWriter = batteryWriter ?? throw new ArgumentNullException(nameof(batteryWriter));
     }
 
     public ValueTask WriteThermalModeAsync(
@@ -375,6 +384,12 @@ internal sealed class WindowsHardwareStateWriter : IHardwareStateWriter
         };
         return WriteAsync(LenovoWmiWriteOperation.IntegratedGpuMode, data, cancellationToken);
     }
+
+    public ValueTask WriteBatteryChargeModeAsync(
+        BatteryChargeMode expected,
+        BatteryChargeMode desired,
+        CancellationToken cancellationToken) =>
+        _batteryWriter.WriteAsync(expected, desired, cancellationToken);
 
     private async ValueTask WriteAsync(
         LenovoWmiWriteOperation operation,

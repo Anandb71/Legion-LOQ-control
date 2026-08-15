@@ -108,7 +108,29 @@ public sealed class DashboardViewModelTests
 
         Assert.Equal("Hardware change verified", viewModel.BannerTitle);
         Assert.Equal(DashboardStateKind.Success, viewModel.BannerState);
+        Assert.Equal(HardwareWriteTarget.ThermalMode, source.LastWriteTarget);
+        Assert.Equal(nameof(ThermalMode.Performance), source.LastWriteExpected);
+        Assert.Equal(nameof(ThermalMode.Quiet), source.LastWriteDesired);
         Assert.True(viewModel.Thermal.CanApply);
+    }
+
+    [Fact]
+    public async Task Applying_a_battery_option_uses_the_verified_expected_state()
+    {
+        var source = new StubDashboardDataSource(CreateMachineSnapshot(), CreateHardwareSnapshot());
+        var viewModel = new MainWindowViewModel(source);
+        await viewModel.InitializeAsync();
+        await viewModel.RefreshHardwareStateCommand.ExecuteAsync(null);
+
+        await viewModel.Battery.ApplyOptionCommand.ExecuteAsync(
+            nameof(BatteryChargeMode.RapidCharge));
+
+        Assert.Equal("Hardware change verified", viewModel.BannerTitle);
+        Assert.Equal(DashboardStateKind.Success, viewModel.BannerState);
+        Assert.Equal(HardwareWriteTarget.BatteryChargeMode, source.LastWriteTarget);
+        Assert.Equal(nameof(BatteryChargeMode.Conservation), source.LastWriteExpected);
+        Assert.Equal(nameof(BatteryChargeMode.RapidCharge), source.LastWriteDesired);
+        Assert.True(viewModel.Battery.CanApply);
     }
 
     [Fact]
@@ -206,6 +228,12 @@ public sealed class DashboardViewModelTests
             return BrokerInstall;
         }
 
+        public HardwareWriteTarget? LastWriteTarget { get; private set; }
+
+        public string? LastWriteExpected { get; private set; }
+
+        public string? LastWriteDesired { get; private set; }
+
         public ValueTask<HardwareStateSnapshot> ApplyHardwareWriteAsync(
             HardwareWriteTarget target,
             string expected,
@@ -213,6 +241,9 @@ public sealed class DashboardViewModelTests
             CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            LastWriteTarget = target;
+            LastWriteExpected = expected;
+            LastWriteDesired = desired;
             if (ReadException is not null)
                 return ValueTask.FromException<HardwareStateSnapshot>(ReadException);
 

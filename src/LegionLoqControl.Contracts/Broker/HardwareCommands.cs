@@ -42,6 +42,7 @@ public enum HardwareWriteTarget
     ThermalMode = 0,
     DisplayOverdrive = 1,
     IntegratedGpuMode = 2,
+    BatteryChargeMode = 3,
 }
 
 public enum BrokerCommandStatus

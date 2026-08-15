@@ -3,14 +3,14 @@
 [![License](https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg)](LICENSE)
 ![Platform](https://img.shields.io/badge/platform-Windows-0078D6.svg)
 ![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)
-![Status](https://img.shields.io/badge/status-read--only%20rebuild-orange.svg)
+![Status](https://img.shields.io/badge/status-write--gated%20rebuild-orange.svg)
 
 A safety-first, free and open-source Lenovo Vantage alternative for Legion and LOQ laptops.
 
 ## Current status
 
-The next-generation rebuild is now active on `main`. It remains intentionally
-**read-only** while the privileged boundary and per-model verification system are built.
+The next-generation rebuild is now active on `main`. Inventory, refresh, preview, and
+export stay read-only. Dashboard apply is an explicit click plus one UAC prompt.
 
 Working today:
 
@@ -23,11 +23,11 @@ Working today:
 - a redacted JSON diagnostics CLI with inventory, direct-state, and brokered-state commands;
 - a versioned, explicitly allowlisted diagnostics report with atomic in-app export of
   retained snapshots and no export-triggered read or elevation;
-- a short-lived, read-only UAC broker with strict framing, a one-time nonce, peer-process
-  checks, a current-user pipe ACL, no write dispatcher, and an install policy that keeps
-  unsigned sibling launches in development mode;
-- an unelevated precision dashboard with explicit brokered state refresh and no reference
-  to legacy hardware writers;
+- a short-lived UAC broker with strict framing, a one-time nonce, peer-process checks, a
+  current-user pipe ACL, one allowlisted write per `--write` launch, and an install policy
+  that keeps unsigned sibling launches in development mode;
+- an unelevated precision dashboard with explicit brokered state refresh and apply for
+  thermal mode, display overdrive, integrated-GPU mode, and battery charge mode;
 - strict, versioned local battery and thermal drafts with typed current-versus-target
   previews and no Apply path;
 - strict, versioned AC/battery automation rules with deterministic priority evaluation,
@@ -45,8 +45,8 @@ The unelevated `state` command intentionally does not open EnergyDrv.
 
 Not enabled today:
 
-- battery, thermal, fan, GPU, display, or keyboard writes;
-- production broker signing, installer ACLs, or hardware-write UI;
+- keyboard, fan, or custom-thermal writes;
+- production broker signing or installer ACLs;
 - profile application or automation execution;
 - any claim of production-ready model support.
 

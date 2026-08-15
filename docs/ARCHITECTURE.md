@@ -39,7 +39,7 @@ its behavior is replaced feature by feature.
   future write path plus the bounded read-only wire protocol. Raw IOCTL values, WMI names,
   and HID packets are not IPC contracts.
 - `src/LegionLoqControl.Broker`: short-lived `requireAdministrator` process that serves one
-  authenticated, typed hardware-state read and exits. It contains no write dispatcher.
+  authenticated, typed hardware-state read or one allowlisted write and exits.
 - `src/LegionLoqControl.Diagnostics`: versioned serial-free JSON report, direct state probe,
   and explicit brokered state-validation client.
 - `LegionLoqControl`: unelevated WPF composition root, precision dashboard, and local
@@ -100,10 +100,10 @@ Boolean WMI return status and UInt32 data, rejects unknown enum values, caps out
 malformed output, and timeout remain distinct from real hardware values.
 
 On the recorded 83DV machine, the Lenovo WMI getters require elevation. The CLI can expose
-the unelevated denial, while the CLI and WPF dashboard can explicitly launch the read-only
-broker through UAC. The dashboard never elevates at startup; its hardware-state refresh is
-a direct user action. Battery mode remains unavailable in the unelevated reader; the broker
-adds one exact zero-access EnergyDrv read.
+the unelevated denial, while the CLI and WPF dashboard can explicitly launch the broker
+through UAC. The dashboard never elevates at startup; refresh and apply are direct user
+actions. Battery mode remains unavailable in the unelevated reader; the broker adds one
+exact zero-access EnergyDrv read and, on `--write`, one typed EnergyDrv battery write.
 
 ## Current brokered read flow
 
@@ -111,7 +111,7 @@ adds one exact zero-access EnergyDrv read.
 flowchart LR
     Client[Unelevated UI or diagnostics client] --> Pipe[Random single-instance pipe]
     Client --> Uac[UAC launch]
-    Uac --> Broker[Read-only elevated broker]
+    Uac --> Broker[One-request elevated broker]
     Broker --> Pipe
     Pipe --> Validate[Version nonce and peer PID checks]
     Validate --> CimBatch[Static built-in PowerShell CIM batch]

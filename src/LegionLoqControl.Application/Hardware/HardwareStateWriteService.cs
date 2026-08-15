@@ -9,6 +9,7 @@ public enum HardwareWriteKind
     ThermalMode = 0,
     DisplayOverdrive = 1,
     IntegratedGpuMode = 2,
+    BatteryChargeMode = 3,
 }
 
 public enum HardwareWriteStatus
@@ -50,6 +51,11 @@ public interface IHardwareStateWriter
 
     ValueTask WriteIntegratedGpuModeAsync(
         IntegratedGpuMode desired,
+        CancellationToken cancellationToken);
+
+    ValueTask WriteBatteryChargeModeAsync(
+        BatteryChargeMode expected,
+        BatteryChargeMode desired,
         CancellationToken cancellationToken);
 }
 
@@ -116,7 +122,7 @@ public sealed class HardwareStateWriteService
                     "overdrive_readback_mismatch",
                     cancellationToken)
                     .ConfigureAwait(false);
-            default:
+            case HardwareWriteKind.IntegratedGpuMode:
                 IntegratedGpuMode expectedGpu = ParseGpu(expected);
                 IntegratedGpuMode desiredGpu = ParseGpu(desired);
                 EnsureMatch(
@@ -132,6 +138,30 @@ public sealed class HardwareStateWriteService
                     "integrated_gpu_readback_mismatch",
                     cancellationToken)
                     .ConfigureAwait(false);
+            case HardwareWriteKind.BatteryChargeMode:
+                BatteryChargeMode expectedBattery = ParseBattery(expected);
+                BatteryChargeMode desiredBattery = ParseBattery(desired);
+                EnsureMatch(
+                    before.BatteryChargeMode,
+                    expectedBattery,
+                    "battery_expected_mismatch");
+                if (expectedBattery == desiredBattery)
+                    return before;
+
+                await _writer
+                    .WriteBatteryChargeModeAsync(
+                        expectedBattery,
+                        desiredBattery,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                return await VerifyAsync(
+                    snapshot => snapshot.BatteryChargeMode,
+                    desiredBattery,
+                    "battery_readback_mismatch",
+                    cancellationToken)
+                    .ConfigureAwait(false);
+            default:
+                throw new ArgumentOutOfRangeException(nameof(kind));
         }
     }
 
@@ -182,6 +212,9 @@ public sealed class HardwareStateWriteService
 
     private static IntegratedGpuMode ParseGpu(string value) =>
         ParseEnum<IntegratedGpuMode>(value, "integrated_gpu_value_invalid");
+
+    private static BatteryChargeMode ParseBattery(string value) =>
+        ParseEnum<BatteryChargeMode>(value, "battery_value_invalid");
 
     private static T ParseEnum<T>(string value, string errorCode)
         where T : struct, Enum
