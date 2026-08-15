@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.Input;
 using LegionLoqControl.Application.Automation;
 using LegionLoqControl.Application.Broker;
 using LegionLoqControl.Application.Diagnostics;
+using LegionLoqControl.Application.Hardware;
 using LegionLoqControl.Application.Profiles;
 using LegionLoqControl.Contracts.Broker;
 using LegionLoqControl.Domain.Capabilities;
@@ -189,7 +190,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         ProfileWorkspace = new ProfileWorkspaceViewModel(
             sharedProfileStore,
             new ProfilePreviewService(),
-            Session);
+            Session,
+            ApplyProfileBatchAsync);
         AutomationWorkspace = new AutomationWorkspaceViewModel(
             automationRuleStore ?? JsonAutomationRuleStore.CreateDefault(),
             sharedProfileStore,
@@ -413,13 +415,20 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     private void ApplyBrokerFailure(string errorCode)
     {
-        BannerTitle = errorCode == "broker_elevation_cancelled"
-            ? "Elevation cancelled"
-            : "Hardware state unavailable";
+        BannerTitle = errorCode switch
+        {
+            "broker_elevation_cancelled" => "Elevation cancelled",
+            "write_in_progress" => "Write already running",
+            _ => "Hardware state unavailable",
+        };
         BannerMessage = errorCode switch
         {
             "broker_elevation_cancelled" =>
                 "Windows approval was cancelled. No privileged hardware read ran.",
+            "write_in_progress" =>
+                "Another hardware write is already running. Wait for it to finish.",
+            "write_batch_invalid" or "profile_apply_blocked" =>
+                "The write batch was rejected before any setter ran.",
             "broker_not_found" =>
                 "The read broker is not included in this package or is missing from the " +
                 "application directory.",
@@ -448,7 +457,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
                 "Custom thermal mode is not writable from this app.",
             _ => "The broker could not complete the privileged request.",
         };
-        BannerState = errorCode == "broker_elevation_cancelled"
+        BannerState = errorCode is "broker_elevation_cancelled" or "write_in_progress"
             ? DashboardStateKind.Warning
             : DashboardStateKind.Error;
     }
@@ -512,17 +521,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
             HardwareStateSnapshot snapshot = await _dataSource
                 .ApplyHardwareWriteAsync(target, expected, desired, _lifetime.Token)
                 .ConfigureAwait(true);
-            Session.UpdateHardwareStateSnapshot(snapshot);
-            Battery.Apply(snapshot.BatteryChargeMode, FormatBatteryMode);
-            Thermal.Apply(snapshot.ThermalMode, FormatThermalMode);
-            DisplayOverdrive.Apply(snapshot.DisplayOverdrive, FormatToggle);
-            IntegratedGpu.Apply(snapshot.IntegratedGpuMode, FormatGpuMode);
-            Keyboard.Apply(snapshot.FourZoneKeyboard, FormatKeyboardMode);
-            Fans.Apply(
-                snapshot.FanTable,
-                FormatFanTable,
-                "Read-only OEM table. Curve writes stay disabled.");
-            LastUpdated = snapshot.ObservedAt.ToLocalTime().ToString("HH:mm:ss");
+            ApplyVerifiedSnapshot(snapshot);
             BannerTitle = "Hardware change verified";
             BannerMessage = $"Applied {desired} · read back at {LastUpdated}";
             BannerState = DashboardStateKind.Success;
@@ -544,6 +543,84 @@ public sealed partial class MainWindowViewModel : ObservableObject
             IsBusy = false;
         }
     }
+
+    private async ValueTask<HardwareStateSnapshot> ApplyProfileBatchAsync(
+        IReadOnlyList<HardwareWritePlanItem> operations,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(operations);
+        HardwareWriteOperation[] batch = operations
+            .Select(static item => new HardwareWriteOperation(
+                MapWriteTarget(item.Kind),
+                item.Expected,
+                item.Desired))
+            .ToArray();
+
+        IsBusy = true;
+        RefreshButtonText = "Waiting for Windows approval…";
+        BannerTitle = "Privileged change requested";
+        BannerMessage = operations.Count == 1
+            ? "Windows will ask for approval. The broker applies one typed change, then reads it back."
+            : "Windows will ask for approval. The broker applies the would-change targets, then reads them back.";
+        BannerState = DashboardStateKind.Warning;
+        try
+        {
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(
+                cancellationToken,
+                _lifetime.Token);
+            HardwareStateSnapshot snapshot = await _dataSource
+                .ApplyHardwareWriteBatchAsync(batch, linked.Token)
+                .ConfigureAwait(true);
+            ApplyVerifiedSnapshot(snapshot);
+            BannerTitle = "Hardware change verified";
+            BannerMessage = operations.Count == 1
+                ? $"Applied {operations[0].Desired} · read back at {LastUpdated}"
+                : $"Applied {operations.Count} profile targets · read back at {LastUpdated}";
+            BannerState = DashboardStateKind.Success;
+            return snapshot;
+        }
+        catch (DashboardDataSourceException exception)
+        {
+            ApplyBrokerFailure(exception.ErrorCode);
+            throw;
+        }
+        catch (Exception)
+        {
+            ApplyBrokerFailure("broker_write_failed");
+            throw;
+        }
+        finally
+        {
+            RefreshButtonText = "Read hardware state";
+            IsBusy = false;
+        }
+    }
+
+    private void ApplyVerifiedSnapshot(HardwareStateSnapshot snapshot)
+    {
+        Session.UpdateHardwareStateSnapshot(snapshot);
+        Battery.Apply(snapshot.BatteryChargeMode, FormatBatteryMode);
+        Thermal.Apply(snapshot.ThermalMode, FormatThermalMode);
+        DisplayOverdrive.Apply(snapshot.DisplayOverdrive, FormatToggle);
+        IntegratedGpu.Apply(snapshot.IntegratedGpuMode, FormatGpuMode);
+        Keyboard.Apply(snapshot.FourZoneKeyboard, FormatKeyboardMode);
+        Fans.Apply(
+            snapshot.FanTable,
+            FormatFanTable,
+            "Read-only OEM table. Curve writes stay disabled.");
+        LastUpdated = snapshot.ObservedAt.ToLocalTime().ToString("HH:mm:ss");
+    }
+
+    private static HardwareWriteTarget MapWriteTarget(HardwareWriteKind kind) =>
+        kind switch
+        {
+            HardwareWriteKind.ThermalMode => HardwareWriteTarget.ThermalMode,
+            HardwareWriteKind.DisplayOverdrive => HardwareWriteTarget.DisplayOverdrive,
+            HardwareWriteKind.IntegratedGpuMode => HardwareWriteTarget.IntegratedGpuMode,
+            HardwareWriteKind.BatteryChargeMode => HardwareWriteTarget.BatteryChargeMode,
+            HardwareWriteKind.FourZoneKeyboard => HardwareWriteTarget.FourZoneKeyboard,
+            _ => throw new ArgumentOutOfRangeException(nameof(kind)),
+        };
 
     private static void AddOptions(
         HardwareStateCardViewModel card,

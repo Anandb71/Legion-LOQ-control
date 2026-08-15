@@ -58,7 +58,8 @@ foreach ($file in $files) {
     foreach ($node in $commands) {
         $command = $node.GetAttribute("Command")
         if ($command -match "(?i)(Apply|Execute|Write).*Command" -and
-            $command -notmatch "ApplyOptionCommand") {
+            $command -notmatch "ApplyOptionCommand" -and
+            $command -notmatch "ApplyProfileCommand") {
             $failures.Add(
                 "$($file.Name): prohibited write-capable command binding '$command'.")
         }

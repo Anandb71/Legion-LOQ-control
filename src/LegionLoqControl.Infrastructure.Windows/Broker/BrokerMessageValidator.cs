@@ -49,12 +49,21 @@ internal static class BrokerMessageValidator
             expectedClientProcessId);
         if (!identity.IsValid)
             return identity;
-        if (!Enum.IsDefined(request.Target))
-            return BrokerValidationResult.Invalid("write_target_invalid");
-        if (string.IsNullOrWhiteSpace(request.Expected) ||
-            string.IsNullOrWhiteSpace(request.Desired))
+        if (request.Operations is not { Count: >= 1 and <= 2 })
+            return BrokerValidationResult.Invalid("write_batch_invalid");
+
+        HashSet<HardwareWriteTarget> targets = [];
+        foreach (HardwareWriteOperation operation in request.Operations)
         {
-            return BrokerValidationResult.Invalid("write_value_invalid");
+            if (!Enum.IsDefined(operation.Target) ||
+                string.IsNullOrWhiteSpace(operation.Expected) ||
+                string.IsNullOrWhiteSpace(operation.Desired) ||
+                operation.Expected.Length > 64 ||
+                operation.Desired.Length > 64 ||
+                !targets.Add(operation.Target))
+            {
+                return BrokerValidationResult.Invalid("write_batch_invalid");
+            }
         }
 
         return BrokerValidationResult.Valid;

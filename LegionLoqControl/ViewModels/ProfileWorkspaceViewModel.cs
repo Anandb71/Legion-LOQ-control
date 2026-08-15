@@ -2,9 +2,12 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using LegionLoqControl.Application.Hardware;
 using LegionLoqControl.Application.Profiles;
 using LegionLoqControl.Domain.Controls;
+using LegionLoqControl.Domain.Diagnostics;
 using LegionLoqControl.Domain.Profiles;
+using LegionLoqControl.Services;
 
 namespace LegionLoqControl.ViewModels;
 
@@ -26,6 +29,8 @@ public sealed partial class ProfileWorkspaceViewModel : ObservableObject, IDispo
     private readonly IProfileStore _store;
     private readonly ProfilePreviewService _previewService;
     private readonly MachineSessionViewModel _session;
+    private readonly Func<IReadOnlyList<HardwareWritePlanItem>, CancellationToken, ValueTask<HardwareStateSnapshot>>?
+        _applyAsync;
     private ProfileId _draftId = ProfileId.New();
     private bool _initialized;
     private bool _isHydratingDraft;
@@ -35,6 +40,7 @@ public sealed partial class ProfileWorkspaceViewModel : ObservableObject, IDispo
     [NotifyCanExecuteChangedFor(nameof(SaveDraftCommand))]
     [NotifyCanExecuteChangedFor(nameof(DeleteDraftCommand))]
     [NotifyCanExecuteChangedFor(nameof(PreviewDraftCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ApplyProfileCommand))]
     private bool _isBusy;
 
     [ObservableProperty]
@@ -44,11 +50,13 @@ public sealed partial class ProfileWorkspaceViewModel : ObservableObject, IDispo
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(SaveDraftCommand))]
     [NotifyCanExecuteChangedFor(nameof(PreviewDraftCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ApplyProfileCommand))]
     private string _draftName = "New profile";
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(SaveDraftCommand))]
     [NotifyCanExecuteChangedFor(nameof(PreviewDraftCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ApplyProfileCommand))]
     private bool _includeBattery = true;
 
     [ObservableProperty]
@@ -57,32 +65,37 @@ public sealed partial class ProfileWorkspaceViewModel : ObservableObject, IDispo
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(SaveDraftCommand))]
     [NotifyCanExecuteChangedFor(nameof(PreviewDraftCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ApplyProfileCommand))]
     private bool _includeThermal = true;
 
     [ObservableProperty]
     private ThermalMode _selectedThermalMode = ThermalMode.Balanced;
 
     [ObservableProperty]
-    private string _workspaceTitle = "Preview only";
+    private string _workspaceTitle = "Preview, then apply";
 
     [ObservableProperty]
     private string _workspaceMessage =
-        "Drafts are local plans. No profile action can elevate or change hardware.";
+        "Drafts are local plans. Apply requests Windows approval only for would-change targets.";
 
     [ObservableProperty]
     private DashboardStateKind _workspaceState = DashboardStateKind.Warning;
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ApplyProfileCommand))]
     private ProfilePreview? _lastPreview;
 
     public ProfileWorkspaceViewModel(
         IProfileStore store,
         ProfilePreviewService previewService,
-        MachineSessionViewModel session)
+        MachineSessionViewModel session,
+        Func<IReadOnlyList<HardwareWritePlanItem>, CancellationToken, ValueTask<HardwareStateSnapshot>>?
+            applyAsync = null)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
         _previewService = previewService ?? throw new ArgumentNullException(nameof(previewService));
         _session = session ?? throw new ArgumentNullException(nameof(session));
+        _applyAsync = applyAsync;
         _session.PropertyChanged += Session_PropertyChanged;
     }
 
@@ -124,7 +137,7 @@ public sealed partial class ProfileWorkspaceViewModel : ObservableObject, IDispo
                 ? "Create a local draft"
                 : "Profile drafts loaded";
             WorkspaceMessage =
-                $"{profiles.Count} local draft{(profiles.Count == 1 ? string.Empty : "s")} · preview only · no hardware writes";
+                $"{profiles.Count} local draft{(profiles.Count == 1 ? string.Empty : "s")} · preview compares typed state · Apply uses one Windows approval";
             WorkspaceState = DashboardStateKind.Warning;
         }
         catch (ProfileStoreException exception)
@@ -169,7 +182,8 @@ public sealed partial class ProfileWorkspaceViewModel : ObservableObject, IDispo
     {
         HydrateDraft(profile: null);
         WorkspaceTitle = "New local draft";
-        WorkspaceMessage = "Choose bounded targets, then preview or save. No elevation is used.";
+        WorkspaceMessage =
+            "Choose bounded targets, then preview or apply. Apply uses one Windows approval.";
         WorkspaceState = DashboardStateKind.Warning;
     }
 
@@ -250,11 +264,106 @@ public sealed partial class ProfileWorkspaceViewModel : ObservableObject, IDispo
         }
     }
 
+    [RelayCommand(CanExecute = nameof(CanApplyProfile))]
+    private async Task ApplyProfileAsync()
+    {
+        if (_applyAsync is null)
+            return;
+
+        ProfilePreview preview;
+        IReadOnlyList<HardwareWritePlanItem> operations;
+        try
+        {
+            preview = _previewService.Create(
+                BuildDraft(),
+                _session.HardwareStateSnapshot,
+                _session.MachineSnapshot?.Capabilities ?? []);
+            ApplyPreview(preview);
+            operations = ProfileApplyPlanner.Plan(preview);
+        }
+        catch (ArgumentException)
+        {
+            ApplyInvalidDraft();
+            return;
+        }
+        catch (HardwareWriteException exception)
+        {
+            ApplyWriteFailure(exception.ErrorCode);
+            return;
+        }
+
+        if (operations.Count == 0)
+        {
+            WorkspaceTitle = "Draft already matches";
+            WorkspaceMessage = "No Windows approval was requested.";
+            WorkspaceState = DashboardStateKind.Success;
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            HardwareStateSnapshot snapshot = await _applyAsync(
+                    operations,
+                    CancellationToken.None)
+                .ConfigureAwait(true);
+            _session.UpdateHardwareStateSnapshot(snapshot);
+            ApplyPreview(_previewService.Create(
+                BuildDraft(),
+                snapshot,
+                _session.MachineSnapshot?.Capabilities ?? []));
+            WorkspaceTitle = "Profile applied";
+            WorkspaceMessage = operations.Count == 1
+                ? "Windows approval applied one would-change target and read it back."
+                : "Windows approval applied the would-change targets and read them back.";
+            WorkspaceState = DashboardStateKind.Success;
+        }
+        catch (HardwareWriteException exception)
+        {
+            ApplyWriteFailure(exception.ErrorCode);
+        }
+        catch (DashboardDataSourceException exception)
+        {
+            ApplyWriteFailure(exception.ErrorCode);
+        }
+        catch (Exception)
+        {
+            ApplyWriteFailure("broker_write_failed");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
     private bool CanSaveDraft() => !IsBusy && HasValidDraftShape();
 
     private bool CanDeleteDraft() => !IsBusy && SelectedProfile is not null;
 
     private bool CanPreviewDraft() => !IsBusy && HasValidDraftShape();
+
+    private bool CanApplyProfile()
+    {
+        if (IsBusy || _applyAsync is null || !HasValidDraftShape())
+            return false;
+
+        try
+        {
+            ProfilePreview preview = LastPreview ?? _previewService.Create(
+                BuildDraft(),
+                _session.HardwareStateSnapshot,
+                _session.MachineSnapshot?.Capabilities ?? []);
+            return ProfileApplyPlanner.Plan(preview).Count > 0;
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
+        catch (HardwareWriteException)
+        {
+            return false;
+        }
+    }
 
     private bool HasValidDraftShape()
     {
@@ -349,7 +458,7 @@ public sealed partial class ProfileWorkspaceViewModel : ObservableObject, IDispo
             ProfileTargetPreviewState.Matches =>
                 ("ALREADY MATCHES", "No change would be required", DashboardStateKind.Success),
             ProfileTargetPreviewState.WouldChange =>
-                ("WOULD CHANGE", "Comparison only; applying profiles is disabled", DashboardStateKind.Warning),
+                ("WOULD CHANGE", "Windows approval applies this target in one broker batch", DashboardStateKind.Warning),
             ProfileTargetPreviewState.Stale =>
                 ("REFRESH REQUIRED", preview.ReasonCode!, DashboardStateKind.Warning),
             ProfileTargetPreviewState.Unverified =>
@@ -375,7 +484,7 @@ public sealed partial class ProfileWorkspaceViewModel : ObservableObject, IDispo
         {
             return (
                 "Draft already matches",
-                "All selected targets match the latest verified state. No action is available.",
+                "All selected targets match the latest verified state. Apply stays idle.",
                 DashboardStateKind.Success);
         }
 
@@ -405,7 +514,7 @@ public sealed partial class ProfileWorkspaceViewModel : ObservableObject, IDispo
 
         return (
             "Changes previewed",
-            "The comparison is local and read-only. Profile application remains disabled.",
+            "Apply requests one Windows approval for the would-change targets.",
             DashboardStateKind.Warning);
     }
 
@@ -429,6 +538,34 @@ public sealed partial class ProfileWorkspaceViewModel : ObservableObject, IDispo
         WorkspaceMessage =
             $"Use a name up to {HardwareProfile.MaximumNameLength} characters and select at least one target.";
         WorkspaceState = DashboardStateKind.Warning;
+    }
+
+    private void ApplyWriteFailure(string errorCode)
+    {
+        WorkspaceTitle = errorCode == "broker_elevation_cancelled"
+            ? "Elevation cancelled"
+            : errorCode == "write_in_progress"
+                ? "Write already running"
+                : "Profile apply blocked";
+        WorkspaceMessage = errorCode switch
+        {
+            "broker_elevation_cancelled" =>
+                "Windows approval was cancelled. No profile write ran.",
+            "write_in_progress" =>
+                "Another hardware write is already running. Wait, then apply again.",
+            "profile_apply_blocked" =>
+                "The preview is blocked, so no hardware write ran.",
+            "thermal_custom_unsupported" =>
+                "Custom thermal mode is not writable from this app.",
+            "thermal_expected_mismatch" or "battery_expected_mismatch" =>
+                "Hardware changed before the write. Refresh, then apply again.",
+            "thermal_readback_mismatch" or "battery_readback_mismatch" =>
+                "The setter ran, but readback did not match the requested value.",
+            _ => "The broker could not apply this profile without a verified readback.",
+        };
+        WorkspaceState = errorCode is "broker_elevation_cancelled" or "write_in_progress"
+            ? DashboardStateKind.Warning
+            : DashboardStateKind.Error;
     }
 
     private void ApplyStoreFailure(string errorCode)

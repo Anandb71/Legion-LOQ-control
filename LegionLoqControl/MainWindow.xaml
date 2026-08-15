@@ -494,7 +494,7 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0">
                             <TextBlock Style="{StaticResource EyebrowTextStyle}"
-                                       Text="PROFILE PREVIEW / READ-ONLY PLANNING" />
+                                       Text="PROFILE PREVIEW / APPLY WOULD-CHANGE TARGETS" />
                             <TextBlock Margin="0,6,0,0"
                                        FontFamily="{StaticResource DisplayFont}"
                                        FontSize="28"
@@ -509,11 +509,11 @@
                                     VerticalAlignment="Center">
                             <TextBlock HorizontalAlignment="Right"
                                        Style="{StaticResource EyebrowTextStyle}"
-                                       Text="LOCAL DRAFTS · NO APPLY PATH" />
+                                       Text="LOCAL DRAFTS · ONE UAC BATCH" />
                             <TextBlock Margin="0,6,0,0"
                                        HorizontalAlignment="Right"
                                        Foreground="{StaticResource MutedTextBrush}"
-                                       Text="No profile action requests elevation" />
+                                       Text="Apply requests Windows approval for would-change targets" />
                         </StackPanel>
                     </Grid>
 
@@ -700,26 +700,33 @@
                                         <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0"
                                                Margin="0,0,16,0"
                                                VerticalAlignment="Center"
                                                FontSize="10"
                                                Foreground="{StaticResource MutedTextBrush}"
-                                               Text="No Apply command exists in this build." />
+                                               Text="Apply uses one Windows approval for would-change battery and thermal targets." />
                                     <Button Grid.Column="1"
                                             Margin="0,0,8,0"
                                             automation:AutomationProperties.Name="Preview draft against typed hardware state"
                                             Command="{Binding PreviewDraftCommand}"
                                             Content="Preview draft"
-                                            Style="{StaticResource PrimaryButtonStyle}" />
+                                            Style="{StaticResource BaseButtonStyle}" />
                                     <Button Grid.Column="2"
+                                            Margin="0,0,8,0"
+                                            automation:AutomationProperties.Name="Apply would-change profile targets with Windows approval"
+                                            Command="{Binding ApplyProfileCommand}"
+                                            Content="Apply"
+                                            Style="{StaticResource PrimaryButtonStyle}" />
+                                    <Button Grid.Column="3"
                                             Margin="0,0,8,0"
                                             automation:AutomationProperties.Name="Save profile draft locally"
                                             Command="{Binding SaveDraftCommand}"
                                             Content="Save"
                                             Style="{StaticResource BaseButtonStyle}" />
-                                    <Button Grid.Column="3"
+                                    <Button Grid.Column="4"
                                             automation:AutomationProperties.Name="Delete selected local profile draft"
                                             Command="{Binding DeleteDraftCommand}"
                                             Content="Delete"

@@ -11,7 +11,8 @@ namespace LegionLoqControl.Broker;
 
 internal static class BrokerHost
 {
-    private static readonly TimeSpan LifetimeTimeout = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan ReadLifetimeTimeout = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan WriteLifetimeTimeout = TimeSpan.FromSeconds(90);
 
     public static async Task<int> RunAsync(
         string[] args,
@@ -22,7 +23,7 @@ internal static class BrokerHost
             return 64;
 
         using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        lifetime.CancelAfter(LifetimeTimeout);
+        lifetime.CancelAfter(options.Write ? WriteLifetimeTimeout : ReadLifetimeTimeout);
 
         try
         {
@@ -194,13 +195,24 @@ internal static class BrokerHost
             var service = new HardwareStateWriteService(
                 WindowsHardwareStateReader.CreatePrivilegedReadOnly,
                 new WindowsHardwareStateWriter());
-            HardwareStateSnapshot snapshot = await service
-                .ApplyAsync(
-                    (HardwareWriteKind)request.Target,
-                    request.Expected,
-                    request.Desired,
-                    cancellationToken)
-                .ConfigureAwait(false);
+            (HardwareWriteKind Kind, string Expected, string Desired)[] operations =
+                request.Operations
+                    .Select(static operation => (
+                        MapWriteKind(operation.Target),
+                        operation.Expected,
+                        operation.Desired))
+                    .ToArray();
+            HardwareStateSnapshot snapshot = operations.Length == 1
+                ? await service
+                    .ApplyAsync(
+                        operations[0].Kind,
+                        operations[0].Expected,
+                        operations[0].Desired,
+                        cancellationToken)
+                    .ConfigureAwait(false)
+                : await service
+                    .ApplyManyAsync(operations, cancellationToken)
+                    .ConfigureAwait(false);
             var response = new HardwareStateWriteResponse(
                 BrokerProtocol.MajorVersion,
                 request.RequestId,
@@ -235,12 +247,26 @@ internal static class BrokerHost
         }
     }
 
+    private static HardwareWriteKind MapWriteKind(HardwareWriteTarget target) =>
+        target switch
+        {
+            HardwareWriteTarget.ThermalMode => HardwareWriteKind.ThermalMode,
+            HardwareWriteTarget.DisplayOverdrive => HardwareWriteKind.DisplayOverdrive,
+            HardwareWriteTarget.IntegratedGpuMode => HardwareWriteKind.IntegratedGpuMode,
+            HardwareWriteTarget.BatteryChargeMode => HardwareWriteKind.BatteryChargeMode,
+            HardwareWriteTarget.FourZoneKeyboard => HardwareWriteKind.FourZoneKeyboard,
+            _ => throw new HardwareWriteException(
+                "write_target_invalid",
+                HardwareWriteStatus.Failed),
+        };
+
     private static BrokerCommandStatus MapWriteStatus(HardwareWriteStatus status) =>
         status switch
         {
             HardwareWriteStatus.Unsupported => BrokerCommandStatus.Unsupported,
             HardwareWriteStatus.Conflict => BrokerCommandStatus.Conflict,
             HardwareWriteStatus.Unverified => BrokerCommandStatus.Unverified,
+            HardwareWriteStatus.Busy => BrokerCommandStatus.Busy,
             _ => BrokerCommandStatus.Failed,
         };
 

@@ -11,6 +11,7 @@ public sealed class ElevatedHardwareStateBrokerClient
     public const string BrokerExecutableName = "LegionLoqControl.Broker.exe";
 
     private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(45);
+    private static readonly TimeSpan WriteRequestTimeout = TimeSpan.FromSeconds(90);
     private static readonly TimeSpan ResponseDrainTimeout = TimeSpan.FromSeconds(2);
     private static readonly TimeSpan ExitTimeout = TimeSpan.FromSeconds(5);
     private readonly string _brokerExecutablePath;
@@ -162,7 +163,7 @@ public sealed class ElevatedHardwareStateBrokerClient
         }
     }
 
-    public async ValueTask<HardwareStateWriteResponse> WriteAsync(
+    public ValueTask<HardwareStateWriteResponse> WriteAsync(
         HardwareWriteTarget target,
         string expected,
         string desired,
@@ -172,6 +173,26 @@ public sealed class ElevatedHardwareStateBrokerClient
         ArgumentException.ThrowIfNullOrWhiteSpace(desired);
         if (!Enum.IsDefined(target))
             throw new ArgumentOutOfRangeException(nameof(target));
+
+        return WriteBatchAsync(
+            [new HardwareWriteOperation(target, expected.Trim(), desired.Trim())],
+            cancellationToken);
+    }
+
+    public async ValueTask<HardwareStateWriteResponse> WriteBatchAsync(
+        IReadOnlyList<HardwareWriteOperation> operations,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(operations);
+        if (operations.Count is < 1 or > 2)
+            throw new ArgumentOutOfRangeException(nameof(operations));
+        foreach (HardwareWriteOperation operation in operations)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(operation.Expected);
+            ArgumentException.ThrowIfNullOrWhiteSpace(operation.Desired);
+            if (!Enum.IsDefined(operation.Target))
+                throw new ArgumentOutOfRangeException(nameof(operations));
+        }
 
         WindowsPlatform.EnsureSupported();
         cancellationToken.ThrowIfCancellationRequested();
@@ -191,13 +212,11 @@ public sealed class ElevatedHardwareStateBrokerClient
             requestId,
             nonce,
             Environment.ProcessId,
-            target,
-            expected.Trim(),
-            desired.Trim());
+            operations);
 
         using var pipe = BrokerPipeFactory.CreateServer(pipeName);
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(RequestTimeout);
+        timeout.CancelAfter(WriteRequestTimeout);
 
         Process? process = null;
         try

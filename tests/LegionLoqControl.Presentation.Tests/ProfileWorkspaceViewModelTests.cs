@@ -1,3 +1,4 @@
+using LegionLoqControl.Application.Hardware;
 using LegionLoqControl.Application.Profiles;
 using LegionLoqControl.Domain.Capabilities;
 using LegionLoqControl.Domain.Controls;
@@ -140,24 +141,57 @@ public sealed class ProfileWorkspaceViewModelTests
     }
 
     [Fact]
-    public void Workspace_exposes_no_apply_command()
+    public void Apply_stays_disabled_without_an_apply_callback()
     {
-        string[] publicMembers = typeof(ProfileWorkspaceViewModel)
-            .GetMembers()
-            .Select(member => member.Name)
-            .ToArray();
+        using var viewModel = CreateViewModel(
+            new StubProfileStore(),
+            new MachineSessionViewModel());
 
-        Assert.DoesNotContain(publicMembers, name =>
-            name.Contains("Apply", StringComparison.OrdinalIgnoreCase));
+        Assert.False(viewModel.ApplyProfileCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public async Task Apply_sends_only_would_change_targets()
+    {
+        HardwareProfile profile = CreateProfile("Quiet", ThermalMode.Quiet);
+        var store = new StubProfileStore(profile);
+        var session = new MachineSessionViewModel();
+        session.UpdateMachineSnapshot(CreateMachineSnapshot(CapabilitySupport.Unknown));
+        session.UpdateHardwareStateSnapshot(CreateHardwareSnapshot(ThermalMode.Balanced));
+        List<HardwareWritePlanItem> applied = [];
+        HardwareStateSnapshot after = CreateHardwareSnapshot(ThermalMode.Quiet);
+        using var viewModel = CreateViewModel(
+            store,
+            session,
+            (operations, _) =>
+            {
+                applied.AddRange(operations);
+                return ValueTask.FromResult(after);
+            });
+        await viewModel.InitializeAsync();
+
+        Assert.True(viewModel.ApplyProfileCommand.CanExecute(null));
+        await viewModel.ApplyProfileCommand.ExecuteAsync(null);
+
+        HardwareWritePlanItem operation = Assert.Single(applied);
+        Assert.Equal(HardwareWriteKind.ThermalMode, operation.Kind);
+        Assert.Equal(nameof(ThermalMode.Balanced), operation.Expected);
+        Assert.Equal(nameof(ThermalMode.Quiet), operation.Desired);
+        Assert.Equal("Profile applied", viewModel.WorkspaceTitle);
+        Assert.Equal(ProfileTargetPreviewState.Matches, viewModel.LastPreview?.ThermalMode?.State);
+        Assert.Same(after, session.HardwareStateSnapshot);
     }
 
     private static ProfileWorkspaceViewModel CreateViewModel(
         IProfileStore store,
-        MachineSessionViewModel session) =>
+        MachineSessionViewModel session,
+        Func<IReadOnlyList<HardwareWritePlanItem>, CancellationToken, ValueTask<HardwareStateSnapshot>>?
+            applyAsync = null) =>
         new(
             store,
             new ProfilePreviewService(new FixedTimeProvider(Now)),
-            session);
+            session,
+            applyAsync);
 
     private static HardwareProfile CreateProfile(string name, ThermalMode thermalMode) =>
         new(

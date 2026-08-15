@@ -120,6 +120,74 @@ public sealed class HardwareStateWriteServiceTests
         Assert.Equal(FourZoneKeyboardMode.High, writer.LastKeyboard);
     }
 
+    [Fact]
+    public async Task Apply_many_writes_battery_then_thermal_and_journals_both()
+    {
+        var reader = new StubReader(
+            [ThermalMode.Balanced, ThermalMode.Balanced, ThermalMode.Balanced, ThermalMode.Quiet],
+            [
+                BatteryChargeMode.Normal,
+                BatteryChargeMode.Conservation,
+                BatteryChargeMode.Conservation,
+                BatteryChargeMode.Conservation,
+            ]);
+        var writer = new StubWriter();
+        var journal = new HardwareWriteJournal();
+        var service = new HardwareStateWriteService(() => reader, writer, journal: journal);
+
+        HardwareStateSnapshot snapshot = await service.ApplyManyAsync(
+            [
+                (HardwareWriteKind.BatteryChargeMode,
+                    nameof(BatteryChargeMode.Normal),
+                    nameof(BatteryChargeMode.Conservation)),
+                (HardwareWriteKind.ThermalMode,
+                    nameof(ThermalMode.Balanced),
+                    nameof(ThermalMode.Quiet)),
+            ],
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(BatteryChargeMode.Conservation, snapshot.BatteryChargeMode.Value);
+        Assert.Equal(ThermalMode.Quiet, snapshot.ThermalMode.Value);
+        Assert.Equal(BatteryChargeMode.Conservation, writer.LastBattery);
+        Assert.Equal(ThermalMode.Quiet, writer.LastThermal);
+        Assert.Equal(2, journal.Snapshot().Count);
+        Assert.All(
+            journal.Snapshot(),
+            entry => Assert.Equal(HardwareWriteStatus.Succeeded, entry.Status));
+    }
+
+    [Fact]
+    public async Task Apply_rejects_a_second_write_while_one_is_running()
+    {
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var reader = new StubReader(
+            [ThermalMode.Balanced, ThermalMode.Performance],
+            [BatteryChargeMode.Normal, BatteryChargeMode.Normal]);
+        var service = new HardwareStateWriteService(
+            () => reader,
+            new HoldingWriter(entered, release));
+
+        Task<HardwareStateSnapshot> first = service.ApplyAsync(
+            HardwareWriteKind.ThermalMode,
+            nameof(ThermalMode.Balanced),
+            nameof(ThermalMode.Performance),
+            TestContext.Current.CancellationToken).AsTask();
+        await entered.Task.WaitAsync(TestContext.Current.CancellationToken);
+
+        HardwareWriteException exception = await Assert.ThrowsAsync<HardwareWriteException>(
+            () => service.ApplyAsync(
+                HardwareWriteKind.ThermalMode,
+                nameof(ThermalMode.Balanced),
+                nameof(ThermalMode.Quiet),
+                TestContext.Current.CancellationToken).AsTask());
+
+        Assert.Equal("write_in_progress", exception.ErrorCode);
+        Assert.Equal(HardwareWriteStatus.Busy, exception.Status);
+        release.SetResult();
+        await first;
+    }
+
     private sealed class StubReader : IHardwareStateReader
     {
         private readonly Queue<ThermalMode> _thermal;
@@ -215,5 +283,39 @@ public sealed class HardwareStateWriteServiceTests
             LastKeyboard = desired;
             return ValueTask.CompletedTask;
         }
+    }
+
+    private sealed class HoldingWriter(
+        TaskCompletionSource entered,
+        TaskCompletionSource release) : IHardwareStateWriter
+    {
+        public async ValueTask WriteThermalModeAsync(
+            ThermalMode desired,
+            CancellationToken cancellationToken)
+        {
+            entered.TrySetResult();
+            await release.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        public ValueTask WriteDisplayOverdriveAsync(
+            ToggleState desired,
+            CancellationToken cancellationToken) =>
+            ValueTask.CompletedTask;
+
+        public ValueTask WriteIntegratedGpuModeAsync(
+            IntegratedGpuMode desired,
+            CancellationToken cancellationToken) =>
+            ValueTask.CompletedTask;
+
+        public ValueTask WriteBatteryChargeModeAsync(
+            BatteryChargeMode expected,
+            BatteryChargeMode desired,
+            CancellationToken cancellationToken) =>
+            ValueTask.CompletedTask;
+
+        public ValueTask WriteFourZoneKeyboardAsync(
+            FourZoneKeyboardMode desired,
+            CancellationToken cancellationToken) =>
+            ValueTask.CompletedTask;
     }
 }

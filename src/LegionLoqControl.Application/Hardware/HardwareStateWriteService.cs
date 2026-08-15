@@ -20,6 +20,7 @@ public enum HardwareWriteStatus
     Conflict = 2,
     Unverified = 3,
     Failed = 4,
+    Busy = 5,
 }
 
 public sealed class HardwareWriteException : Exception
@@ -66,15 +67,26 @@ public interface IHardwareStateWriter
 
 public sealed class HardwareStateWriteService
 {
+    public const int MaximumBatchSize = 2;
+
     private readonly Func<IHardwareStateReader> _createReader;
     private readonly IHardwareStateWriter _writer;
+    private readonly HardwareWriteGate _gate;
+    private readonly IHardwareWriteJournal _journal;
+    private readonly TimeProvider _timeProvider;
 
     public HardwareStateWriteService(
         Func<IHardwareStateReader> createReader,
-        IHardwareStateWriter writer)
+        IHardwareStateWriter writer,
+        HardwareWriteGate? gate = null,
+        IHardwareWriteJournal? journal = null,
+        TimeProvider? timeProvider = null)
     {
         _createReader = createReader ?? throw new ArgumentNullException(nameof(createReader));
         _writer = writer ?? throw new ArgumentNullException(nameof(writer));
+        _gate = gate ?? new HardwareWriteGate();
+        _journal = journal ?? new HardwareWriteJournal();
+        _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
     public async ValueTask<HardwareStateSnapshot> ApplyAsync(
@@ -82,6 +94,101 @@ public sealed class HardwareStateWriteService
         string expected,
         string desired,
         CancellationToken cancellationToken = default)
+    {
+        using IDisposable lease = await _gate.EnterAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            HardwareStateSnapshot snapshot = await ApplyCoreAsync(
+                    kind,
+                    expected,
+                    desired,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            _journal.Append(new HardwareWriteJournalEntry(
+                _timeProvider.GetUtcNow(),
+                kind,
+                expected.Trim(),
+                desired.Trim(),
+                HardwareWriteStatus.Succeeded,
+                ErrorCode: null));
+            return snapshot;
+        }
+        catch (HardwareWriteException exception)
+        {
+            _journal.Append(new HardwareWriteJournalEntry(
+                _timeProvider.GetUtcNow(),
+                kind,
+                expected.Trim(),
+                desired.Trim(),
+                exception.Status,
+                exception.ErrorCode));
+            throw;
+        }
+    }
+
+    public async ValueTask<HardwareStateSnapshot> ApplyManyAsync(
+        IReadOnlyList<(HardwareWriteKind Kind, string Expected, string Desired)> operations,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(operations);
+        if (operations.Count is < 1 or > MaximumBatchSize)
+        {
+            throw new HardwareWriteException(
+                "write_batch_invalid",
+                HardwareWriteStatus.Failed);
+        }
+
+        HashSet<HardwareWriteKind> kinds = [];
+        foreach ((HardwareWriteKind kind, string expected, string desired) in operations)
+        {
+            if (!Enum.IsDefined(kind) ||
+                string.IsNullOrWhiteSpace(expected) ||
+                string.IsNullOrWhiteSpace(desired) ||
+                !kinds.Add(kind))
+            {
+                throw new HardwareWriteException(
+                    "write_batch_invalid",
+                    HardwareWriteStatus.Failed);
+            }
+        }
+
+        using IDisposable lease = await _gate.EnterAsync(cancellationToken).ConfigureAwait(false);
+        HardwareStateSnapshot? last = null;
+        foreach ((HardwareWriteKind kind, string expected, string desired) in operations)
+        {
+            try
+            {
+                last = await ApplyCoreAsync(kind, expected, desired, cancellationToken)
+                    .ConfigureAwait(false);
+                _journal.Append(new HardwareWriteJournalEntry(
+                    _timeProvider.GetUtcNow(),
+                    kind,
+                    expected.Trim(),
+                    desired.Trim(),
+                    HardwareWriteStatus.Succeeded,
+                    ErrorCode: null));
+            }
+            catch (HardwareWriteException exception)
+            {
+                _journal.Append(new HardwareWriteJournalEntry(
+                    _timeProvider.GetUtcNow(),
+                    kind,
+                    expected.Trim(),
+                    desired.Trim(),
+                    exception.Status,
+                    exception.ErrorCode));
+                throw;
+            }
+        }
+
+        return last!;
+    }
+
+    private async ValueTask<HardwareStateSnapshot> ApplyCoreAsync(
+        HardwareWriteKind kind,
+        string expected,
+        string desired,
+        CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(expected);
         ArgumentException.ThrowIfNullOrWhiteSpace(desired);

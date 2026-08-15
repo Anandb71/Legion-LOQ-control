@@ -51,7 +51,7 @@ public sealed class ProfilePreviewServiceTests
     }
 
     [Fact]
-    public void Unknown_capability_blocks_a_different_target()
+    public void Unknown_capability_with_a_typed_read_is_would_change()
     {
         ProfilePreview preview = CreateService().Create(
             CreateProfile(thermal: ThermalMode.Quiet),
@@ -63,8 +63,26 @@ public sealed class ProfilePreviewServiceTests
                     "wmi_interface_present_unverified"),
             ]);
 
-        Assert.Equal(ProfileTargetPreviewState.Unverified, preview.ThermalMode?.State);
-        Assert.Equal("wmi_interface_present_unverified", preview.ThermalMode?.ReasonCode);
+        Assert.Equal(ProfileTargetPreviewState.WouldChange, preview.ThermalMode?.State);
+        Assert.Equal(ThermalMode.Balanced, preview.ThermalMode?.Current);
+        Assert.Equal(ThermalMode.Quiet, preview.ThermalMode?.Desired);
+    }
+
+    [Fact]
+    public void Custom_thermal_cannot_be_planned_as_a_change()
+    {
+        ProfilePreview preview = CreateService().Create(
+            CreateProfile(thermal: ThermalMode.Custom),
+            CreateSnapshot(Now),
+            [
+                Evidence(
+                    HardwareCapability.ThermalMode,
+                    CapabilitySupport.Supported,
+                    "thermal_verified"),
+            ]);
+
+        Assert.Equal(ProfileTargetPreviewState.Unavailable, preview.ThermalMode?.State);
+        Assert.Equal("thermal_custom_unsupported", preview.ThermalMode?.ReasonCode);
     }
 
     [Fact]

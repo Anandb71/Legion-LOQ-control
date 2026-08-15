@@ -37,13 +37,7 @@ public sealed class ProfilePreviewService
             ? PreviewBattery(batteryTarget, snapshot, capabilities, evaluatedAt)
             : null;
         ProfileTargetPreview<ThermalMode>? thermal = profile.Targets.ThermalMode is { } thermalTarget
-            ? PreviewTarget(
-                thermalTarget,
-                snapshot?.ThermalMode,
-                snapshot?.ObservedAt,
-                [HardwareCapability.ThermalMode],
-                capabilities,
-                evaluatedAt)
+            ? PreviewThermal(thermalTarget, snapshot, capabilities, evaluatedAt)
             : null;
 
         return new ProfilePreview(profile, evaluatedAt, battery, thermal);
@@ -75,6 +69,32 @@ public sealed class ProfilePreviewService
             requiredCapabilities,
             capabilities,
             evaluatedAt);
+    }
+
+    private ProfileTargetPreview<ThermalMode> PreviewThermal(
+        ThermalMode desired,
+        HardwareStateSnapshot? snapshot,
+        IReadOnlyList<CapabilityEvidence> capabilities,
+        DateTimeOffset evaluatedAt)
+    {
+        ProfileTargetPreview<ThermalMode> preview = PreviewTarget(
+            desired,
+            snapshot?.ThermalMode,
+            snapshot?.ObservedAt,
+            [HardwareCapability.ThermalMode],
+            capabilities,
+            evaluatedAt);
+        if (desired == ThermalMode.Custom &&
+            preview.State == ProfileTargetPreviewState.WouldChange)
+        {
+            return ProfileTargetPreview<ThermalMode>.Blocked(
+                ProfileTargetPreviewState.Unavailable,
+                desired,
+                preview.Current,
+                "thermal_custom_unsupported");
+        }
+
+        return preview;
     }
 
     private ProfileTargetPreview<T> PreviewTarget<T>(
@@ -143,14 +163,11 @@ public sealed class ProfilePreviewService
 
             ProfileTargetPreview<T>? blocked = evidence[0].Support switch
             {
-                CapabilitySupport.Supported => null,
+                CapabilitySupport.Supported
+                    or CapabilitySupport.Unknown
+                    or CapabilitySupport.Degraded => null,
                 CapabilitySupport.Unsupported => ProfileTargetPreview<T>.Blocked(
                     ProfileTargetPreviewState.Unavailable,
-                    desired,
-                    current,
-                    evidence[0].EvidenceCode),
-                CapabilitySupport.Unknown or CapabilitySupport.Degraded => ProfileTargetPreview<T>.Blocked(
-                    ProfileTargetPreviewState.Unverified,
                     desired,
                     current,
                     evidence[0].EvidenceCode),

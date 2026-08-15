@@ -152,6 +152,30 @@ public sealed class DashboardViewModelTests
     }
 
     [Fact]
+    public async Task Applying_a_profile_sends_would_change_targets_in_one_batch()
+    {
+        HardwareStateSnapshot hardware = CreateHardwareSnapshot(DateTimeOffset.UtcNow);
+        var source = new StubDashboardDataSource(CreateMachineSnapshot(), hardware);
+        var session = new MachineSessionViewModel();
+        var viewModel = new MainWindowViewModel(source, session);
+        await viewModel.InitializeAsync();
+        session.UpdateHardwareStateSnapshot(hardware);
+        viewModel.ProfileWorkspace.IncludeBattery = false;
+        viewModel.ProfileWorkspace.IncludeThermal = true;
+        viewModel.ProfileWorkspace.SelectedThermalMode = ThermalMode.Quiet;
+        viewModel.ProfileWorkspace.PreviewDraftCommand.Execute(null);
+
+        await viewModel.ProfileWorkspace.ApplyProfileCommand.ExecuteAsync(null);
+
+        HardwareWriteOperation operation = Assert.Single(source.LastWriteOperations!);
+        Assert.Equal(HardwareWriteTarget.ThermalMode, operation.Target);
+        Assert.Equal(nameof(ThermalMode.Performance), operation.Expected);
+        Assert.Equal(nameof(ThermalMode.Quiet), operation.Desired);
+        Assert.Equal("Hardware change verified", viewModel.BannerTitle);
+        Assert.Equal("Profile applied", viewModel.ProfileWorkspace.WorkspaceTitle);
+    }
+
+    [Fact]
     public async Task Fan_table_card_stays_read_only_after_a_verified_refresh()
     {
         var source = new StubDashboardDataSource(CreateMachineSnapshot(), CreateHardwareSnapshot());
@@ -204,9 +228,10 @@ public sealed class DashboardViewModelTests
         return new MachineSnapshot(identity, Now, capabilities);
     }
 
-    private static HardwareStateSnapshot CreateHardwareSnapshot() =>
+    private static HardwareStateSnapshot CreateHardwareSnapshot(
+        DateTimeOffset? observedAt = null) =>
         new(
-            Now,
+            observedAt ?? Now,
             HardwareReadResult<BatteryChargeMode>.Success(
                 BatteryChargeMode.Conservation),
             HardwareReadResult<ThermalMode>.Success(ThermalMode.Performance),
@@ -270,16 +295,30 @@ public sealed class DashboardViewModelTests
 
         public string? LastWriteDesired { get; private set; }
 
+        public IReadOnlyList<HardwareWriteOperation>? LastWriteOperations { get; private set; }
+
         public ValueTask<HardwareStateSnapshot> ApplyHardwareWriteAsync(
             HardwareWriteTarget target,
             string expected,
             string desired,
+            CancellationToken cancellationToken) =>
+            ApplyHardwareWriteBatchAsync(
+                [new HardwareWriteOperation(target, expected, desired)],
+                cancellationToken);
+
+        public ValueTask<HardwareStateSnapshot> ApplyHardwareWriteBatchAsync(
+            IReadOnlyList<HardwareWriteOperation> operations,
             CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            LastWriteTarget = target;
-            LastWriteExpected = expected;
-            LastWriteDesired = desired;
+            LastWriteOperations = operations;
+            if (operations.Count == 1)
+            {
+                LastWriteTarget = operations[0].Target;
+                LastWriteExpected = operations[0].Expected;
+                LastWriteDesired = operations[0].Desired;
+            }
+
             if (ReadException is not null)
                 return ValueTask.FromException<HardwareStateSnapshot>(ReadException);
 

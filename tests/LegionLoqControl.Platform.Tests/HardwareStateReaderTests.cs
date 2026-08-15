@@ -412,7 +412,7 @@ public sealed class HardwareStateReaderTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(
-            ["battery", "thermal", "overdrive", "igpu", "keyboard", "fan"],
+            ["battery", "thermal", "fan", "overdrive", "igpu", "keyboard"],
             reader.Operations);
         Assert.Equal(now, snapshot.ObservedAt);
         Assert.Equal(BatteryChargeMode.Normal, snapshot.BatteryChargeMode.Value);
