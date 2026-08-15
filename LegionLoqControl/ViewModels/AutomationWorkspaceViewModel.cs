@@ -3,10 +3,13 @@ using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LegionLoqControl.Application.Automation;
+using LegionLoqControl.Application.Hardware;
 using LegionLoqControl.Application.Profiles;
 using LegionLoqControl.Domain.Automation;
+using LegionLoqControl.Domain.Diagnostics;
 using LegionLoqControl.Domain.Profiles;
 using LegionLoqControl.Domain.Results;
+using LegionLoqControl.Services;
 
 namespace LegionLoqControl.ViewModels;
 
@@ -23,7 +26,14 @@ public sealed partial class AutomationWorkspaceViewModel : ObservableObject, IDi
     private readonly IProfileStore _profileStore;
     private readonly PowerSourceService _powerSourceService;
     private readonly AutomationPreviewService _previewService;
+    private readonly MachineSessionViewModel? _session;
+    private readonly ProfilePreviewService _profilePreviewService;
+    private readonly AutomationRunService _runService;
+    private readonly Func<IReadOnlyList<HardwareWritePlanItem>, CancellationToken, ValueTask<HardwareStateSnapshot>>?
+        _applyAsync;
+    private readonly TimeProvider _timeProvider;
     private readonly CancellationTokenSource _lifetime = new();
+    private CancellationTokenSource? _watchCts;
     private AutomationRuleId _draftId = AutomationRuleId.New();
     private PowerSourceSnapshot? _powerSourceSnapshot;
     private bool _initialized;
@@ -35,6 +45,9 @@ public sealed partial class AutomationWorkspaceViewModel : ObservableObject, IDi
     [NotifyCanExecuteChangedFor(nameof(DeleteRuleCommand))]
     [NotifyCanExecuteChangedFor(nameof(PreviewRuleCommand))]
     [NotifyCanExecuteChangedFor(nameof(RefreshPowerSourceCommand))]
+    [NotifyCanExecuteChangedFor(nameof(StartWatchingCommand))]
+    [NotifyCanExecuteChangedFor(nameof(StopWatchingCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ResumeWatcherCommand))]
     private bool _isBusy;
 
     [ObservableProperty]
@@ -63,11 +76,11 @@ public sealed partial class AutomationWorkspaceViewModel : ObservableObject, IDi
     private bool _draftIsEnabled = true;
 
     [ObservableProperty]
-    private string _workspaceTitle = "Preview only";
+    private string _workspaceTitle = "Preview, then watch";
 
     [ObservableProperty]
     private string _workspaceMessage =
-        "Rules are local selection plans. This workspace cannot apply a profile or change hardware.";
+        "Rules stay local. Start watching to apply the winning profile with one Windows approval per change.";
 
     [ObservableProperty]
     private DashboardStateKind _workspaceState = DashboardStateKind.Warning;
@@ -100,17 +113,49 @@ public sealed partial class AutomationWorkspaceViewModel : ObservableObject, IDi
     [ObservableProperty]
     private AutomationPreview? _lastPreview;
 
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(StartWatchingCommand))]
+    [NotifyCanExecuteChangedFor(nameof(StopWatchingCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ResumeWatcherCommand))]
+    private bool _isWatching;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(StartWatchingCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ResumeWatcherCommand))]
+    private bool _isSuspended;
+
+    [ObservableProperty]
+    private string _watcherStatus = "IDLE";
+
+    [ObservableProperty]
+    private string _watcherDetail =
+        "Watching stays in this app session. Each apply asks Windows for approval.";
+
+    [ObservableProperty]
+    private DashboardStateKind _watcherState = DashboardStateKind.Pending;
+
     public AutomationWorkspaceViewModel(
         IAutomationRuleStore ruleStore,
         IProfileStore profileStore,
         PowerSourceService powerSourceService,
-        AutomationPreviewService previewService)
+        AutomationPreviewService previewService,
+        MachineSessionViewModel? session = null,
+        ProfilePreviewService? profilePreviewService = null,
+        AutomationRunService? runService = null,
+        Func<IReadOnlyList<HardwareWritePlanItem>, CancellationToken, ValueTask<HardwareStateSnapshot>>?
+            applyAsync = null,
+        TimeProvider? timeProvider = null)
     {
         _ruleStore = ruleStore ?? throw new ArgumentNullException(nameof(ruleStore));
         _profileStore = profileStore ?? throw new ArgumentNullException(nameof(profileStore));
         _powerSourceService =
             powerSourceService ?? throw new ArgumentNullException(nameof(powerSourceService));
         _previewService = previewService ?? throw new ArgumentNullException(nameof(previewService));
+        _session = session;
+        _profilePreviewService = profilePreviewService ?? new ProfilePreviewService();
+        _runService = runService ?? new AutomationRunService();
+        _applyAsync = applyAsync;
+        _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
     public ObservableCollection<AutomationRule> Rules { get; } = [];
@@ -204,6 +249,8 @@ public sealed partial class AutomationWorkspaceViewModel : ObservableObject, IDi
         if (_disposed)
             return;
 
+        _watchCts?.Cancel();
+        _watchCts?.Dispose();
         _lifetime.Cancel();
         _lifetime.Dispose();
         _disposed = true;
@@ -325,6 +372,62 @@ public sealed partial class AutomationWorkspaceViewModel : ObservableObject, IDi
         }
     }
 
+    [RelayCommand(CanExecute = nameof(CanStartWatching))]
+    private async Task StartWatchingAsync()
+    {
+        if (_applyAsync is null || IsWatching)
+            return;
+
+        _watchCts?.Dispose();
+        _watchCts = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
+        IsWatching = true;
+        WatcherStatus = "WATCHING";
+        WatcherDetail = "Observing AC/battery in this session. A power-source change can request Windows approval.";
+        WatcherState = DashboardStateKind.Warning;
+        try
+        {
+            while (!_watchCts.IsCancellationRequested)
+            {
+                await EvaluateWatcherAsync(_watchCts.Token).ConfigureAwait(true);
+                await Task
+                    .Delay(TimeSpan.FromSeconds(15), _timeProvider, _watchCts.Token)
+                    .ConfigureAwait(true);
+            }
+        }
+        catch (OperationCanceledException) when (
+            _watchCts.IsCancellationRequested || _lifetime.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            IsWatching = false;
+            if (!IsSuspended)
+            {
+                WatcherStatus = "IDLE";
+                WatcherDetail =
+                    "Watching stopped. Rules were not deleted and hardware was not reset.";
+                WatcherState = DashboardStateKind.Pending;
+            }
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanStopWatching))]
+    private void StopWatching()
+    {
+        _watchCts?.Cancel();
+        IsWatching = false;
+    }
+
+    [RelayCommand(CanExecute = nameof(CanResumeWatcher))]
+    private void ResumeWatcher()
+    {
+        _runService.Resume();
+        IsSuspended = false;
+        WatcherStatus = "IDLE";
+        WatcherDetail = "The watcher is ready. Start watching to apply the next winning profile.";
+        WatcherState = DashboardStateKind.Pending;
+    }
+
     [RelayCommand(CanExecute = nameof(CanRefreshPowerSource))]
     private async Task RefreshPowerSourceAsync()
     {
@@ -350,6 +453,161 @@ public sealed partial class AutomationWorkspaceViewModel : ObservableObject, IDi
     private bool CanPreviewRule() => !IsBusy && HasValidDraftShape();
 
     private bool CanRefreshPowerSource() => !IsBusy && _initialized;
+
+    private bool CanStartWatching() =>
+        !IsBusy &&
+        _initialized &&
+        !IsWatching &&
+        !IsSuspended &&
+        _applyAsync is not null;
+
+    private bool CanStopWatching() => IsWatching;
+
+    private bool CanResumeWatcher() => !IsWatching && IsSuspended;
+
+    public async Task EvaluateWatcherAsync(CancellationToken cancellationToken = default)
+    {
+        if (_applyAsync is null || _session is null)
+            return;
+
+        await CapturePowerSourceAsync(cancellationToken).ConfigureAwait(true);
+        AutomationPreview selection = _previewService.Create(
+            Rules.ToArray(),
+            Profiles.ToArray(),
+            _powerSourceSnapshot);
+        ApplyPreview(selection);
+        if (selection.Status != AutomationPreviewStatus.WouldSelect ||
+            selection.SelectedProfile is null ||
+            !selection.PowerSource.HasValue)
+        {
+            if (IsWatching && !IsSuspended)
+            {
+                WatcherStatus = "WATCHING";
+                WatcherDetail = selection.ReasonCode is { } reason
+                    ? $"No apply this tick · {reason}"
+                    : "No apply this tick · the current power source has no winning rule.";
+                WatcherState = DashboardStateKind.Warning;
+            }
+
+            return;
+        }
+
+        IReadOnlyList<HardwareWritePlanItem> operations;
+        try
+        {
+            operations = ProfileApplyPlanner.Plan(_profilePreviewService.Create(
+                selection.SelectedProfile,
+                _session.HardwareStateSnapshot,
+                _session.MachineSnapshot?.Capabilities ?? []));
+        }
+        catch (HardwareWriteException)
+        {
+            _runService.NoteBlocked();
+            WatcherStatus = IsWatching ? "WATCHING" : "IDLE";
+            WatcherDetail =
+                "The winning profile is blocked or stale. Refresh hardware state, then wait for cooldown.";
+            WatcherState = DashboardStateKind.Warning;
+            return;
+        }
+
+        AutomationRunVerdict verdict = _runService.Evaluate(
+            selection.SelectedProfile.Id,
+            selection.PowerSource.Value,
+            operations.Count > 0);
+        switch (verdict)
+        {
+            case AutomationRunVerdict.SkipUnchanged:
+                WatcherStatus = IsWatching ? "WATCHING" : "IDLE";
+                WatcherDetail =
+                    $"“{selection.SelectedProfile.Name}” already matches for {FormatPowerSource(selection.PowerSource.Value)}.";
+                WatcherState = DashboardStateKind.Success;
+                return;
+            case AutomationRunVerdict.SkipCooldown:
+                WatcherStatus = "COOLDOWN";
+                WatcherDetail = _runService.CooldownUntilUtc is { } until
+                    ? $"Next apply after {until.ToLocalTime():HH:mm:ss}."
+                    : "Cooldown is active.";
+                WatcherState = DashboardStateKind.Warning;
+                return;
+            case AutomationRunVerdict.Suspended:
+                IsSuspended = true;
+                WatcherStatus = "SUSPENDED";
+                WatcherDetail = _runService.SuspendReason ?? "automation_suspended";
+                WatcherState = DashboardStateKind.Error;
+                _watchCts?.Cancel();
+                return;
+            case AutomationRunVerdict.Apply:
+                break;
+            default:
+                return;
+        }
+
+        if (operations.Count == 0)
+            return;
+
+        try
+        {
+            HardwareStateSnapshot snapshot = await _applyAsync(operations, cancellationToken)
+                .ConfigureAwait(true);
+            _session.UpdateHardwareStateSnapshot(snapshot);
+            _runService.NoteSuccess(
+                selection.SelectedProfile.Id,
+                selection.PowerSource.Value);
+            WatcherStatus = "APPLIED";
+            WatcherDetail =
+                $"Applied “{selection.SelectedProfile.Name}” for {FormatPowerSource(selection.PowerSource.Value)}.";
+            WatcherState = DashboardStateKind.Success;
+            WorkspaceTitle = "Automation applied a profile";
+            WorkspaceMessage = WatcherDetail;
+            WorkspaceState = DashboardStateKind.Success;
+        }
+        catch (HardwareWriteException exception)
+        {
+            ApplyWatcherFailure(exception.ErrorCode);
+        }
+        catch (DashboardDataSourceException exception)
+        {
+            ApplyWatcherFailure(exception.ErrorCode);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            ApplyWatcherFailure("broker_write_failed");
+        }
+    }
+
+    private void ApplyWatcherFailure(string errorCode)
+    {
+        if (errorCode == "broker_elevation_cancelled")
+        {
+            _runService.NoteCancel();
+            WatcherStatus = "COOLDOWN";
+            WatcherDetail = "Windows approval was cancelled. The watcher will wait before asking again.";
+            WatcherState = DashboardStateKind.Warning;
+            return;
+        }
+
+        _runService.NoteFailure(errorCode);
+        if (_runService.IsSuspended)
+        {
+            IsSuspended = true;
+            WatcherStatus = "SUSPENDED";
+            WatcherDetail = $"Readback failed · {errorCode}. Resume after you trust hardware state.";
+            WatcherState = DashboardStateKind.Error;
+            WorkspaceTitle = "Automation suspended";
+            WorkspaceMessage = WatcherDetail;
+            WorkspaceState = DashboardStateKind.Error;
+            _watchCts?.Cancel();
+            return;
+        }
+
+        WatcherStatus = "COOLDOWN";
+        WatcherDetail = $"{errorCode} · the watcher will wait before trying again.";
+        WatcherState = DashboardStateKind.Warning;
+    }
 
     private bool HasValidDraftShape()
     {
@@ -498,7 +756,7 @@ public sealed partial class AutomationWorkspaceViewModel : ObservableObject, IDi
                     $"Priority {preview.SelectedRule!.Priority} wins for {FormatPowerSource(preview.PowerSource!.Value)}.";
                 WorkspaceTitle = "Deterministic selection previewed";
                 WorkspaceMessage =
-                    $"“{preview.SelectedRule.Name}” would select “{preview.SelectedProfile!.Name}”. Preview only; nothing was applied.";
+                    $"“{preview.SelectedRule.Name}” would select “{preview.SelectedProfile!.Name}”. Start watching to apply it with Windows approval.";
                 WorkspaceState = DashboardStateKind.Warning;
                 PreviewState = DashboardStateKind.Warning;
                 break;

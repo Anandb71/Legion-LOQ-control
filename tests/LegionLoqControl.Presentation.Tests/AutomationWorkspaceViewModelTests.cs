@@ -1,9 +1,13 @@
 using LegionLoqControl.Application.Automation;
+using LegionLoqControl.Application.Hardware;
 using LegionLoqControl.Application.Profiles;
 using LegionLoqControl.Domain.Automation;
+using LegionLoqControl.Domain.Capabilities;
 using LegionLoqControl.Domain.Controls;
+using LegionLoqControl.Domain.Diagnostics;
 using LegionLoqControl.Domain.Profiles;
 using LegionLoqControl.Domain.Results;
+using LegionLoqControl.Services;
 using LegionLoqControl.ViewModels;
 using Xunit;
 
@@ -279,37 +283,141 @@ public sealed class AutomationWorkspaceViewModelTests
     }
 
     [Fact]
-    public void Workspace_exposes_no_apply_or_execute_command()
+    public async Task Watching_stays_disabled_without_an_apply_callback()
     {
-        string[] publicMembers = typeof(AutomationWorkspaceViewModel)
-            .GetMembers()
-            .Select(member => member.Name)
-            .ToArray();
+        using var viewModel = CreateViewModel(
+            new StubRuleStore(),
+            new StubProfileStore(CreateProfile("Unused")),
+            new StubPowerSourceReader(PowerSourceKind.Ac));
+        await viewModel.InitializeAsync();
 
-        Assert.DoesNotContain(publicMembers, name =>
-            name.Contains("Apply", StringComparison.OrdinalIgnoreCase));
-        Assert.DoesNotContain(publicMembers, name =>
-            name.Contains("Execute", StringComparison.OrdinalIgnoreCase));
+        Assert.False(viewModel.StartWatchingCommand.CanExecute(null));
+        Assert.False(viewModel.ResumeWatcherCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public async Task Watcher_tick_applies_the_winning_profile_once()
+    {
+        HardwareProfile profile = CreateProfile("Quiet AC", ThermalMode.Quiet);
+        AutomationRule rule = CreateRule(
+            "Plugged in",
+            profile.Id,
+            PowerSourceKind.Ac,
+            priority: 200);
+        var session = new MachineSessionViewModel();
+        session.UpdateMachineSnapshot(CreateMachineSnapshot());
+        session.UpdateHardwareStateSnapshot(CreateHardwareSnapshot(ThermalMode.Balanced));
+        List<HardwareWritePlanItem> applied = [];
+        using var viewModel = CreateViewModel(
+            new StubRuleStore(rule),
+            new StubProfileStore(profile),
+            new StubPowerSourceReader(PowerSourceKind.Ac),
+            session,
+            (operations, _) =>
+            {
+                applied.AddRange(operations);
+                return ValueTask.FromResult(CreateHardwareSnapshot(ThermalMode.Quiet));
+            });
+        await viewModel.InitializeAsync();
+
+        await viewModel.EvaluateWatcherAsync(TestContext.Current.CancellationToken);
+
+        HardwareWritePlanItem operation = Assert.Single(applied);
+        Assert.Equal(HardwareWriteKind.ThermalMode, operation.Kind);
+        Assert.Equal(nameof(ThermalMode.Balanced), operation.Expected);
+        Assert.Equal(nameof(ThermalMode.Quiet), operation.Desired);
+        Assert.Equal("APPLIED", viewModel.WatcherStatus);
+        Assert.False(viewModel.IsSuspended);
+    }
+
+    [Fact]
+    public async Task Watcher_suspends_after_a_failed_readback()
+    {
+        HardwareProfile profile = CreateProfile("Quiet AC", ThermalMode.Quiet);
+        AutomationRule rule = CreateRule(
+            "Plugged in",
+            profile.Id,
+            PowerSourceKind.Ac,
+            priority: 200);
+        var session = new MachineSessionViewModel();
+        session.UpdateMachineSnapshot(CreateMachineSnapshot());
+        session.UpdateHardwareStateSnapshot(CreateHardwareSnapshot(ThermalMode.Balanced));
+        using var viewModel = CreateViewModel(
+            new StubRuleStore(rule),
+            new StubProfileStore(profile),
+            new StubPowerSourceReader(PowerSourceKind.Ac),
+            session,
+            (_, _) => throw new DashboardDataSourceException("thermal_readback_mismatch"));
+        await viewModel.InitializeAsync();
+
+        await viewModel.EvaluateWatcherAsync(TestContext.Current.CancellationToken);
+
+        Assert.True(viewModel.IsSuspended);
+        Assert.Equal("SUSPENDED", viewModel.WatcherStatus);
+        Assert.True(viewModel.ResumeWatcherCommand.CanExecute(null));
     }
 
     private static AutomationWorkspaceViewModel CreateViewModel(
         IAutomationRuleStore ruleStore,
         IProfileStore profileStore,
-        IPowerSourceReader powerSourceReader)
+        IPowerSourceReader powerSourceReader,
+        MachineSessionViewModel? session = null,
+        Func<IReadOnlyList<HardwareWritePlanItem>, CancellationToken, ValueTask<HardwareStateSnapshot>>?
+            applyAsync = null)
     {
         var timeProvider = new FixedTimeProvider(Now);
         return new AutomationWorkspaceViewModel(
             ruleStore,
             profileStore,
             new PowerSourceService(powerSourceReader, timeProvider),
-            new AutomationPreviewService(timeProvider));
+            new AutomationPreviewService(timeProvider),
+            session,
+            new ProfilePreviewService(timeProvider),
+            new AutomationRunService(timeProvider, TimeSpan.FromMinutes(2)),
+            applyAsync,
+            timeProvider);
     }
 
-    private static HardwareProfile CreateProfile(string name) =>
+    private static HardwareProfile CreateProfile(
+        string name,
+        ThermalMode thermalMode = ThermalMode.Balanced) =>
         new(
             ProfileId.New(),
             name,
-            new HardwareProfileTargets(thermalMode: ThermalMode.Balanced));
+            new HardwareProfileTargets(thermalMode: thermalMode));
+
+    private static MachineSnapshot CreateMachineSnapshot()
+    {
+        var identity = new MachineIdentity(
+            Observation.FromValue("LENOVO"),
+            Observation.FromValue("LOQ"),
+            Observation.FromValue("LOQ 15IRX9"),
+            Observation.FromValue("83DV"),
+            Observation.FromValue("NECN50WW"));
+        return new MachineSnapshot(
+            identity,
+            Now,
+            [
+                new CapabilityEvidence(
+                    HardwareCapability.ThermalMode,
+                    CapabilitySupport.Unknown,
+                    "test",
+                    Now,
+                    "wmi_interface_present_unverified"),
+            ]);
+    }
+
+    private static HardwareStateSnapshot CreateHardwareSnapshot(ThermalMode thermalMode) =>
+        new(
+            Now,
+            HardwareReadResult<BatteryChargeMode>.Success(BatteryChargeMode.Normal),
+            HardwareReadResult<ThermalMode>.Success(thermalMode),
+            HardwareReadResult<ToggleState>.Success(ToggleState.Disabled),
+            HardwareReadResult<IntegratedGpuMode>.Success(IntegratedGpuMode.Default),
+            HardwareReadResult<FourZoneKeyboardMode>.Success(FourZoneKeyboardMode.Unknown),
+            HardwareReadResult<FanTableSnapshot>.Failure(
+                HardwareReadStatus.Unavailable,
+                "fan_table_not_opened"));
 
     private static AutomationRule CreateRule(
         string name,

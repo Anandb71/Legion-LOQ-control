@@ -115,7 +115,7 @@
                 </Grid.ColumnDefinitions>
                 <StackPanel Grid.Column="0">
                     <TextBlock Style="{StaticResource EyebrowTextStyle}"
-                               Text="AUTOMATION PREVIEW / OBSERVE · EVALUATE · NEVER APPLY" />
+                               Text="AUTOMATION / OPT-IN SESSION WATCHER" />
                     <TextBlock Margin="0,6,0,0"
                                FontFamily="{StaticResource DisplayFont}"
                                FontSize="28"
@@ -130,11 +130,11 @@
                             VerticalAlignment="Center">
                     <TextBlock HorizontalAlignment="Right"
                                Style="{StaticResource EyebrowTextStyle}"
-                               Text="LOCAL RULES · NO RUNNER" />
-                    <TextBlock Margin="0,6,0,0"
-                               HorizontalAlignment="Right"
-                               Foreground="{StaticResource MutedTextBrush}"
-                               Text="No background watcher or profile execution" />
+                                       Text="{Binding WatcherStatus, StringFormat=WATCHER · {0}}" />
+                            <TextBlock Margin="0,6,0,0"
+                                       HorizontalAlignment="Right"
+                                       Foreground="{StaticResource MutedTextBrush}"
+                                       Text="Watching stays in this process and asks Windows before each change" />
                 </StackPanel>
             </Grid>
 
@@ -399,8 +399,8 @@
                                 BorderBrush="{StaticResource BorderBrush}"
                                 BorderThickness="1"
                                 CornerRadius="2">
-                            <CheckBox automation:AutomationProperties.Name="Include this rule in automation previews"
-                                      Content="Enabled for deterministic preview selection"
+                            <CheckBox automation:AutomationProperties.Name="Include this rule in automation selection"
+                                      Content="Enabled for watcher selection"
                                       IsChecked="{Binding DraftIsEnabled, Mode=TwoWay}" />
                         </Border>
 
@@ -410,26 +410,47 @@
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0"
                                        Margin="0,0,16,0"
                                        VerticalAlignment="Center"
                                        FontSize="10"
                                        Foreground="{StaticResource MutedTextBrush}"
-                                       Text="No Apply command, scheduler, or background runner exists." />
+                                       Text="{Binding WatcherDetail}" />
                             <Button Grid.Column="1"
+                                    Margin="0,0,8,0"
+                                    automation:AutomationProperties.Name="Start watching AC and battery in this session"
+                                    Command="{Binding StartWatchingCommand}"
+                                    Content="Start watching"
+                                    Style="{StaticResource PrimaryButtonStyle}" />
+                            <Button Grid.Column="2"
+                                    Margin="0,0,8,0"
+                                    automation:AutomationProperties.Name="Stop the session automation watcher"
+                                    Command="{Binding StopWatchingCommand}"
+                                    Content="Stop"
+                                    Style="{StaticResource BaseButtonStyle}" />
+                            <Button Grid.Column="3"
+                                    Margin="0,0,8,0"
+                                    automation:AutomationProperties.Name="Resume the automation watcher after a failed readback"
+                                    Command="{Binding ResumeWatcherCommand}"
+                                    Content="Resume"
+                                    Style="{StaticResource BaseButtonStyle}" />
+                            <Button Grid.Column="4"
                                     Margin="0,0,8,0"
                                     automation:AutomationProperties.Name="Preview deterministic rule selection"
                                     Command="{Binding PreviewRuleCommand}"
                                     Content="Preview rule"
-                                    Style="{StaticResource PrimaryButtonStyle}" />
-                            <Button Grid.Column="2"
+                                    Style="{StaticResource BaseButtonStyle}" />
+                            <Button Grid.Column="5"
                                     Margin="0,0,8,0"
                                     automation:AutomationProperties.Name="Save automation rule locally"
                                     Command="{Binding SaveRuleCommand}"
                                     Content="Save"
                                     Style="{StaticResource BaseButtonStyle}" />
-                            <Button Grid.Column="3"
+                            <Button Grid.Column="6"
                                     automation:AutomationProperties.Name="Delete selected local automation rule"
                                     Command="{Binding DeleteRuleCommand}"
                                     Content="Delete"
@@ -458,7 +479,7 @@
                                Text="SAFETY BOUNDARY" />
                     <TextBlock Grid.Column="1"
                                Foreground="{StaticResource SecondaryTextBrush}"
-                               Text="The app observes AC/battery state, evaluates local rules, and stops. It does not watch, schedule, elevate, apply profiles, or write hardware." />
+                                       Text="Opt-in watching stays in this process. Each apply asks Windows for approval. A failed readback suspends the watcher. There is no SYSTEM service or scheduled task." />
                 </Grid>
             </Border>
         </Grid>

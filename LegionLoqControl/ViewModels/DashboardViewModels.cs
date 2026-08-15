@@ -187,16 +187,21 @@ public sealed partial class MainWindowViewModel : ObservableObject
             GetProductVersion());
         IProfileStore sharedProfileStore =
             profileStore ?? JsonProfileStore.CreateDefault();
+        var profilePreviewService = new ProfilePreviewService();
         ProfileWorkspace = new ProfileWorkspaceViewModel(
             sharedProfileStore,
-            new ProfilePreviewService(),
+            profilePreviewService,
             Session,
             ApplyProfileBatchAsync);
         AutomationWorkspace = new AutomationWorkspaceViewModel(
             automationRuleStore ?? JsonAutomationRuleStore.CreateDefault(),
             sharedProfileStore,
             powerSourceService ?? new PowerSourceService(new WindowsPowerSourceReader()),
-            automationPreviewService ?? new AutomationPreviewService());
+            automationPreviewService ?? new AutomationPreviewService(),
+            Session,
+            profilePreviewService,
+            new AutomationRunService(),
+            ApplyProfileBatchAsync);
         ProfileWorkspace.Profiles.CollectionChanged += Profiles_CollectionChanged;
 
         Battery = new HardwareStateCardViewModel(
