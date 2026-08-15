@@ -471,7 +471,7 @@
                                     Background="{StaticResource CanvasBrush}"
                                     BorderBrush="{StaticResource BorderBrush}"
                                     BorderThickness="0,0,0,1">
-                                <TabPanel Margin="0"
+                                <TabPanel Margin="16,0,8,0"
                                           IsItemsHost="True"
                                           KeyboardNavigation.TabIndex="1"
                                           Panel.ZIndex="1" />
@@ -488,12 +488,11 @@
         </Style>
 
         <Style x:Key="NavigationTabItemStyle" TargetType="TabItem">
-            <Setter Property="MinWidth" Value="64" />
             <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}" />
             <Setter Property="FontFamily" Value="{StaticResource DisplayFont}" />
             <Setter Property="FontSize" Value="11" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Padding" Value="12,12" />
+            <Setter Property="Padding" Value="10,12" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TabItem">
@@ -504,7 +503,14 @@
                                 BorderThickness="0,0,0,2">
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center"
-                                              ContentSource="Header" />
+                                              ContentSource="Header">
+                                <ContentPresenter.Resources>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="TextWrapping" Value="NoWrap" />
+                                        <Setter Property="TextTrimming" Value="None" />
+                                    </Style>
+                                </ContentPresenter.Resources>
+                            </ContentPresenter>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">

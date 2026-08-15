@@ -236,8 +236,7 @@
     <TabControl automation:AutomationProperties.Name="Primary application navigation"
                 Background="{StaticResource CanvasBrush}"
                 BorderThickness="0">
-        <TabItem Margin="32,0,0,0"
-                 Header="DASHBOARD"
+        <TabItem Header="DASHBOARD"
                  Style="{StaticResource NavigationTabItemStyle}">
             <ScrollViewer Background="{StaticResource CanvasBrush}"
                           VerticalScrollBarVisibility="Auto"

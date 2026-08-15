@@ -15,6 +15,24 @@ No ads, store, Lena, warranty upsell, serial numbers, or telemetry.
 
 **Current public release: [0.3.0](https://github.com/Anandb71/Legion-LOQ-control/releases/tag/v0.3.0)** — unsigned development preview. Windows asks once for the session broker. Linux ships portable libraries only; there is no Linux hardware GUI.
 
+## Screenshots
+
+Captured on a LOQ 15IRX9 (machine type `83DV`, BIOS `NECN50WW`).
+
+<p align="center">
+  <img src="docs/screenshots/dashboard.png" alt="Dashboard: live charge, thermal mode, CPU/RAM/disk, and hardware session" width="880" />
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/lighting.png" alt="Lighting: 4-zone effect, brightness, and speed" width="430" />
+  &nbsp;
+  <img src="docs/screenshots/power.png" alt="Power: conservation charge and overnight charge" width="430" />
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/device.png" alt="Device: serial-free identity and capability evidence" width="880" />
+</p>
+
 ## Download
 
 | Artifact | What it is |
@@ -106,6 +124,12 @@ Pack a public-style Windows folder (unsigned, development mode):
 ./scripts/export-app-icon.ps1
 $out = "$env:TEMP/LegionLoqControl-windows"
 ./scripts/build-windows-release.ps1 -OutputPath $out -Version 0.3.0
+```
+
+Refresh README screenshots after UI changes:
+
+```powershell
+./scripts/capture-readme-screenshots.ps1
 ```
 
 ## Project goals
