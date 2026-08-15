@@ -8,7 +8,7 @@ using LegionLoqControl.Infrastructure.Windows.Diagnostics;
 
 namespace LegionLoqControl.Services;
 
-public interface IDashboardDataSource
+public interface IDashboardDataSource : IDisposable
 {
     Task<MachineSnapshot> CaptureMachineAsync(CancellationToken cancellationToken);
 
@@ -55,17 +55,17 @@ public sealed class DashboardDataSource : IDashboardDataSource
     private readonly Func<BrokerInstallAssessment> _assessBrokerInstall;
     private readonly Func<IReadOnlyList<HardwareWriteOperation>, CancellationToken, ValueTask<HardwareStateWriteResponse>>
         _writeHardwareStateAsync;
+    private readonly ElevatedHardwareStateBrokerClient? _broker;
 
     public DashboardDataSource()
-        : this(
-            new MachineDiagnosticsService(
-                new WindowsMachineIdentitySource(),
-                [new WindowsCapabilityProbe()]),
-            static cancellationToken =>
-                new ElevatedHardwareStateBrokerClient().ReadAsync(cancellationToken),
-            AssessLocalBrokerInstall,
-            WriteLocalBroker)
     {
+        _broker = new ElevatedHardwareStateBrokerClient();
+        _diagnostics = new MachineDiagnosticsService(
+            new WindowsMachineIdentitySource(),
+            [new WindowsCapabilityProbe()]);
+        _readHardwareStateAsync = _broker.ReadAsync;
+        _assessBrokerInstall = AssessLocalBrokerInstall;
+        _writeHardwareStateAsync = _broker.WriteBatchAsync;
     }
 
     internal DashboardDataSource(
@@ -79,13 +79,12 @@ public sealed class DashboardDataSource : IDashboardDataSource
         _readHardwareStateAsync = readHardwareStateAsync ??
             throw new ArgumentNullException(nameof(readHardwareStateAsync));
         _assessBrokerInstall = assessBrokerInstall ?? AssessLocalBrokerInstall;
-        _writeHardwareStateAsync = writeHardwareStateAsync ?? WriteLocalBroker;
+        _writeHardwareStateAsync = writeHardwareStateAsync ??
+            ((_, _) => throw new BrokerTransportException("broker_not_found"));
+        _broker = null;
     }
 
-    private static ValueTask<HardwareStateWriteResponse> WriteLocalBroker(
-        IReadOnlyList<HardwareWriteOperation> operations,
-        CancellationToken cancellationToken) =>
-        new ElevatedHardwareStateBrokerClient().WriteBatchAsync(operations, cancellationToken);
+    public void Dispose() => _broker?.Dispose();
 
     private static BrokerInstallAssessment AssessLocalBrokerInstall() =>
         WindowsBrokerInstallInspector.Assess(

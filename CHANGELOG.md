@@ -37,11 +37,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Selected built-in Windows PowerShell CIM cmdlets instead of a restricted MI runtime
 - Selected WPF software rendering while the failing hardware-composition path is qualified
 - Replaced reflection-based inventory JSON with an explicit privacy-bounded export contract
+- Keep one elevated broker for the app session so Windows asks once at start
 
 ### Security
 
-- Fan-table writes, per-zone colors, profile application, and automation execution remain
-  absent
+- Fan-table writes and per-zone colors remain absent
 - Broker IPC uses a random pipe, current-user ACL, one-time nonce, strict framing, and
   mutual process-ID checks
 - WMI reads use fixed getter names, static script text, capped output, and bounded execution

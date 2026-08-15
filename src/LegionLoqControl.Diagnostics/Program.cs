@@ -36,14 +36,14 @@ try
         Console.WriteLine(DiagnosticsCliParser.Usage);
         Console.WriteLine("  inventory  Collect serial-free identity and interface evidence (default).");
         Console.WriteLine("  state      Invoke allowlisted Lenovo getters and return typed read results.");
-        Console.WriteLine("  state-elevated  Request the same reads through the short-lived UAC broker.");
+        Console.WriteLine("  state-elevated  Request the same reads through the elevated UAC broker.");
         Console.WriteLine("  --output   Write inventory through the atomic export writer. Inventory only.");
         return 0;
     }
 
     if (parsed.Verb == DiagnosticsCliVerb.StateElevated)
     {
-        var broker = new ElevatedHardwareStateBrokerClient();
+        using var broker = new ElevatedHardwareStateBrokerClient();
         HardwareStateReadResponse response = await broker.ReadAsync(cancellation.Token);
         if (response.Status != BrokerReadStatus.Succeeded)
         {

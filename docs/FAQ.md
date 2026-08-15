@@ -11,7 +11,8 @@ always-running management suite.
 Not yet. The current `main` rebuild provides serial-free diagnostics and atomic export, an
 explicit hardware-state dashboard, local battery/thermal profile previews, and
 deterministic AC/battery automation previews. Thermal, overdrive, integrated-GPU, and
-battery apply, and 4-zone keyboard brightness require an explicit click and a UAC prompt.
+battery apply, and 4-zone keyboard brightness require an explicit click on the session
+broker. Windows asks once when that session starts.
 The OEM fan table is read-only. Per-zone colors, fan-table writes, profile application,
 and automation execution remain disabled.
 
@@ -37,7 +38,7 @@ command.
 ## Is the current build safe to run?
 
 Inventory, refresh, preview, and export send no hardware writes. Dashboard apply can
-change five typed states after an explicit click and a UAC prompt. The UI has no legacy
+change five typed states after an explicit click on the session broker. The UI has no legacy
 writer reference, the legacy assembly is globally locked, and the broker has no generic
 IOCTL or caller-supplied WMI name. It is still pre-release software; review
 [SAFETY.md](../SAFETY.md).
@@ -46,8 +47,9 @@ IOCTL or caller-supplied WMI name. It is still pre-release software; review
 
 No for builds, tests, inventory diagnostics, or the WPF shell. Keep the UI and inventory
 unelevated. The optional `state` command also runs unelevated, but some Lenovo providers
-return `AccessDenied`. `state-elevated` and dashboard apply explicitly prompt through UAC
-and use the short-lived broker. This is a development validation path; production broker
+return `AccessDenied`. `state-elevated` prompts through UAC for that command. The
+dashboard asks once for a session-lived broker, then reuses it. This is a development
+validation path; production broker
 use is blocked on signing and protected installation.
 
 ## What data does diagnostics collect?

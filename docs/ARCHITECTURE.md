@@ -38,8 +38,9 @@ its behavior is replaced feature by feature.
 - `src/LegionLoqControl.Contracts`: versioned, typed compare-and-set commands for the
   future write path plus the bounded read-only wire protocol. Raw IOCTL values, WMI names,
   and HID packets are not IPC contracts.
-- `src/LegionLoqControl.Broker`: short-lived `requireAdministrator` process that serves one
-  authenticated, typed hardware-state read or one allowlisted write and exits.
+- `src/LegionLoqControl.Broker`: `requireAdministrator` process that serves a session of
+  authenticated, typed hardware-state reads and allowlisted writes, then exits with the
+  parent. One-shot launches still serve one request and exit.
 - `src/LegionLoqControl.Diagnostics`: versioned serial-free JSON report, direct state probe,
   and explicit brokered state-validation client.
 - `LegionLoqControl`: unelevated WPF composition root, precision dashboard, and local
@@ -74,7 +75,7 @@ flowchart LR
 The dashboard export view model depends on the retained session and export writer, not the
 dashboard data source or broker client. Export therefore cannot trigger a new hardware
 read, UAC prompt, profile-store read, or hardware write. Hardware state is marked
-`notCaptured` until an explicit brokered read has already succeeded.
+`notCaptured` until the hardware session has already succeeded.
 
 The report DTO is an allowlist rather than a serialized domain graph. Observation details,
 dynamic source strings, profile and rule data, transport identifiers, and future domain
@@ -101,9 +102,10 @@ malformed output, and timeout remain distinct from real hardware values.
 
 On the recorded 83DV machine, the Lenovo WMI getters require elevation. The CLI can expose
 the unelevated denial, while the CLI and WPF dashboard can explicitly launch the broker
-through UAC. The dashboard never elevates at startup; refresh and apply are direct user
-actions. Battery mode remains unavailable in the unelevated reader; the broker adds one
-exact zero-access EnergyDrv read and, on `--write`, one typed EnergyDrv battery write.
+through UAC. After inventory, the dashboard starts one hardware session so Windows asks
+once; later refresh and apply reuse that connection. Battery mode remains unavailable in
+the unelevated reader; the broker adds one exact zero-access EnergyDrv read and, on a
+session write or `--write`, one typed EnergyDrv battery write.
 
 ## Current brokered read flow
 
@@ -111,7 +113,7 @@ exact zero-access EnergyDrv read and, on `--write`, one typed EnergyDrv battery 
 flowchart LR
     Client[Unelevated UI or diagnostics client] --> Pipe[Random single-instance pipe]
     Client --> Uac[UAC launch]
-    Uac --> Broker[One-request elevated broker]
+    Uac --> Broker[Session-lived elevated broker]
     Broker --> Pipe
     Pipe --> Validate[Version nonce and peer PID checks]
     Validate --> CimBatch[Static built-in PowerShell CIM batch]
@@ -125,8 +127,9 @@ flowchart LR
 The unelevated process owns the pipe so the high-integrity broker writes down to a
 medium-integrity object. Its DACL grants only the initiating user SID. Both ends verify the
 other process ID, the request includes a 256-bit one-time nonce, the elevated client uses
-anonymous impersonation, and the frame is strict JSON capped at 64 KiB. The broker accepts
-one request and has a 30-second lifetime.
+anonymous impersonation, and the frame is strict JSON capped at 64 KiB. The dashboard
+broker accepts many session requests, bounds each request, and exits when the parent
+process exits. One-shot launches still accept a single read or `--write`.
 
 .NET's `PipeOptions.CurrentUserOnly` is not used because it also enforces equal elevation
 levels, which would reject this split-token connection. Before launch, the client assesses

@@ -6,7 +6,7 @@ The diagnostics CLI has three deliberately separate read-only paths:
   methods, opening HID devices, or sending hardware writes;
 - `state` invokes only three fixed Lenovo `Get*` methods and returns typed results. It has no
   setter names, caller-provided WMI identifiers, Energy driver access, or HID access;
-- `state-elevated` sends the same typed request to a short-lived UAC broker, which adds one
+- `state-elevated` sends the same typed request to the elevated UAC broker, which adds one
   fixed EnergyDrv battery read with zero requested device access.
 
 The dashboard can also export the inventory and latest retained hardware snapshot. Export
@@ -89,8 +89,8 @@ This command explicitly displays a UAC prompt. The unelevated CLI creates a rand
 single-instance pipe restricted to the current user, launches the sibling broker, verifies
 the connected broker process ID, and exchanges one 64 KiB-bounded message. The broker
 checks the parent process ID and one-time nonce, connects with anonymous impersonation,
-executes only the fixed getters, returns typed wire values, and exits within a bounded
-lifetime.
+executes only the fixed getters, returns typed wire values, and exits when the command
+finishes.
 
 `PipeOptions.CurrentUserOnly` is deliberately not used because .NET also requires equal
 elevation levels for that option. A specific current-user ACL permits the same split-token
@@ -99,8 +99,7 @@ being accepted.
 
 This remains a development validation path. The broker is unsigned and copied from the
 local build output. Development mode may launch that sibling after UAC; production mode
-refuses it before the prompt. See [`BROKER_INSTALL.md`](BROKER_INSTALL.md). The diagnostics CLI still has no write request. Dashboard apply uses a separate `--write`
-broker launch.
+refuses it before the prompt. See [`BROKER_INSTALL.md`](BROKER_INSTALL.md). The diagnostics CLI still has no write request. Dashboard apply reuses the session broker.
 
 On LOQ 15IRX9 `83DV`, BIOS `NECN50WW`, the broker validated Boolean-success/UInt32-data
 responses for Performance thermal mode (raw `3`), disabled display overdrive (raw `0`),

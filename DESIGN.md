@@ -76,7 +76,8 @@ Color never carries meaning alone. Every semantic color is paired with a label o
 - **Header:** Device identity and safety state above all controls.
 - **Primary canvas:** A 2 × 2 state matrix for battery, thermal, display, and GPU state.
 - **Secondary region:** Capability evidence and model/BIOS details.
-- **Primary action:** One explicit elevated refresh. It always explains why UAC is required.
+- **Primary action:** One Windows approval after inventory opens the hardware session.
+  Later refresh and apply reuse it.
 - **Responsive behavior:** Collapse the state matrix to one column before reducing text
   below the defined scale.
 
@@ -93,10 +94,11 @@ Color never carries meaning alone. Every semantic color is paired with a label o
 - Keyboard access and visible focus are required for every action.
 - Minimum text contrast is WCAG AA; observed values target AAA where practical.
 - Loading, unavailable, denied, stale, and failed are distinct states.
-- UAC is never triggered on launch. Privileged refresh is always a direct user action.
+- Windows asks once after inventory so the session broker can stay elevated. Later
+  reads and applies do not prompt unless that session dropped.
 - Unsupported controls are omitted or explained, not shown as unexplained disabled chrome.
-- Hardware writes are explicit: the user chooses a value, Windows elevation runs, and
-  the broker reads the result back. There is no write on launch, refresh, or preview.
+- Hardware writes are explicit: the user chooses a value, the session broker applies
+  it, and the broker reads the result back. There is no write on launch, refresh, or preview.
 
 ## Safe choices
 
@@ -123,3 +125,6 @@ Color never carries meaning alone. Every semantic color is paired with a label o
   Off/Low/High only; no RGB color picker or effect chrome.
 - **2026-08-15:** The OEM fan table sits in a fourth full-width row. It is read-only: no
   apply chrome, no freeform curve editor, and no invented full-speed control.
+- **2026-08-15:** Windows approval happens once when the hardware session starts after
+  inventory. The elevated broker stays alive for the app process and exits with it.
+  Refresh and apply reuse that connection.

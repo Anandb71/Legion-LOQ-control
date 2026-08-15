@@ -31,6 +31,50 @@ internal static class BrokerMessageValidator
         return BrokerValidationResult.Valid;
     }
 
+    public static BrokerValidationResult ValidateSessionRequest(
+        BrokerSessionRequest? request,
+        string expectedNonce,
+        int expectedClientProcessId)
+    {
+        if (request is null)
+            return BrokerValidationResult.Invalid("request_missing");
+        if (!Enum.IsDefined(request.Kind))
+            return BrokerValidationResult.Invalid("session_kind_invalid");
+
+        if (request.Kind == BrokerSessionKind.Write)
+        {
+            if (request.Write is null || request.Read is not null)
+                return BrokerValidationResult.Invalid("write_request_missing");
+            return ValidateWriteRequest(request.Write, expectedNonce, expectedClientProcessId);
+        }
+
+        if (request.Read is null || request.Write is not null)
+            return BrokerValidationResult.Invalid("request_missing");
+        return ValidateRequest(request.Read, expectedNonce, expectedClientProcessId);
+    }
+
+    public static void ValidateSessionResponse(
+        BrokerSessionResponse response,
+        BrokerSessionRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(response);
+        ArgumentNullException.ThrowIfNull(request);
+        if (response.Kind != request.Kind || !Enum.IsDefined(response.Kind))
+            throw new InvalidDataException("The broker session response kind does not match.");
+
+        if (request.Kind == BrokerSessionKind.Write)
+        {
+            if (response.Write is null || response.Read is not null || request.Write is null)
+                throw new InvalidDataException("A write session response has an invalid shape.");
+            ValidateWriteResponse(response.Write, request.Write.RequestId);
+            return;
+        }
+
+        if (response.Read is null || response.Write is not null || request.Read is null)
+            throw new InvalidDataException("A read session response has an invalid shape.");
+        ValidateResponse(response.Read, request.Read.RequestId);
+    }
+
     public static BrokerValidationResult ValidateWriteRequest(
         HardwareStateWriteRequest? request,
         string expectedNonce,

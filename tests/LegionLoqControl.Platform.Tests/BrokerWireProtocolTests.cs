@@ -47,6 +47,31 @@ public sealed class BrokerWireProtocolTests
     }
 
     [Fact]
+    public async Task Session_request_round_trips_through_a_length_bounded_frame()
+    {
+        var expected = new BrokerSessionRequest(
+            BrokerSessionKind.Read,
+            new HardwareStateReadRequest(
+                BrokerProtocol.MajorVersion,
+                Guid.NewGuid(),
+                new string('b', 64),
+                4321),
+            null);
+        using var stream = new MemoryStream();
+
+        await BrokerWireProtocol.WriteAsync(
+            stream,
+            expected,
+            TestContext.Current.CancellationToken);
+        stream.Position = 0;
+        BrokerSessionRequest actual = await BrokerWireProtocol.ReadAsync<BrokerSessionRequest>(
+            stream,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Fact]
     public async Task Oversized_declared_payload_is_rejected_before_allocation()
     {
         using var stream = CreateFrame(

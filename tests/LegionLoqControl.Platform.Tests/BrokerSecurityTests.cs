@@ -55,6 +55,21 @@ public sealed class BrokerSecurityTests
         Assert.Equal(new BrokerArguments(pipeName, nonce, 1234), result);
         Assert.True(BrokerArguments.TryParse([.. valid, "--write"], out BrokerArguments? write));
         Assert.True(write!.Write);
+        Assert.False(write.Session);
+        Assert.True(BrokerArguments.TryParse([.. valid, "--session"], out BrokerArguments? session));
+        Assert.True(session!.Session);
+        Assert.False(session.Write);
+        Assert.True(BrokerMessageValidator.ValidateSessionRequest(
+            new BrokerSessionRequest(
+                BrokerSessionKind.Read,
+                new HardwareStateReadRequest(
+                    BrokerProtocol.MajorVersion,
+                    Guid.NewGuid(),
+                    nonce,
+                    1234),
+                null),
+            nonce,
+            1234).IsValid);
         Assert.False(BrokerArguments.TryParse([.. valid, "--extra"], out _));
         Assert.False(BrokerArguments.TryParse(
             ["--pipe", "known", "--nonce", nonce, "--parent-pid", "1234"],

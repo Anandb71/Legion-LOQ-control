@@ -80,7 +80,7 @@ public sealed partial class AutomationWorkspaceViewModel : ObservableObject, IDi
 
     [ObservableProperty]
     private string _workspaceMessage =
-        "Rules stay local. Start watching to apply the winning profile with one Windows approval per change.";
+        "Rules stay local. Start watching to apply the winning profile through the session broker.";
 
     [ObservableProperty]
     private DashboardStateKind _workspaceState = DashboardStateKind.Warning;
@@ -129,7 +129,7 @@ public sealed partial class AutomationWorkspaceViewModel : ObservableObject, IDi
 
     [ObservableProperty]
     private string _watcherDetail =
-        "Watching stays in this app session. Each apply asks Windows for approval.";
+        "Watching stays in this app session. Applies reuse the hardware session.";
 
     [ObservableProperty]
     private DashboardStateKind _watcherState = DashboardStateKind.Pending;
@@ -382,7 +382,7 @@ public sealed partial class AutomationWorkspaceViewModel : ObservableObject, IDi
         _watchCts = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
         IsWatching = true;
         WatcherStatus = "WATCHING";
-        WatcherDetail = "Observing AC/battery in this session. A power-source change can request Windows approval.";
+        WatcherDetail = "Observing AC/battery in this session. A power-source change can apply through the session broker.";
         WatcherState = DashboardStateKind.Warning;
         try
         {
@@ -756,7 +756,7 @@ public sealed partial class AutomationWorkspaceViewModel : ObservableObject, IDi
                     $"Priority {preview.SelectedRule!.Priority} wins for {FormatPowerSource(preview.PowerSource!.Value)}.";
                 WorkspaceTitle = "Deterministic selection previewed";
                 WorkspaceMessage =
-                    $"“{preview.SelectedRule.Name}” would select “{preview.SelectedProfile!.Name}”. Start watching to apply it with Windows approval.";
+                    $"“{preview.SelectedRule.Name}” would select “{preview.SelectedProfile!.Name}”. Start watching to apply it through the session broker.";
                 WorkspaceState = DashboardStateKind.Warning;
                 PreviewState = DashboardStateKind.Warning;
                 break;

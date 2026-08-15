@@ -479,7 +479,7 @@
                                Text="SAFETY BOUNDARY" />
                     <TextBlock Grid.Column="1"
                                Foreground="{StaticResource SecondaryTextBrush}"
-                                       Text="Opt-in watching stays in this process. Each apply asks Windows for approval. A failed readback suspends the watcher. There is no SYSTEM service or scheduled task." />
+                                       Text="Opt-in watching stays in this process. Applies reuse the hardware session. A failed readback suspends the watcher. There is no SYSTEM service or scheduled task." />
                 </Grid>
             </Border>
         </Grid>

@@ -10,7 +10,8 @@ A safety-first, free and open-source Lenovo Vantage alternative for Legion and L
 ## Current status
 
 The next-generation rebuild is now active on `main`. Inventory, refresh, preview, and
-export stay read-only. Dashboard apply is an explicit click plus one UAC prompt.
+export stay read-only. Dashboard apply is an explicit click on the session broker.
+Windows asks once when that session starts.
 
 Working today:
 
@@ -23,9 +24,9 @@ Working today:
 - a redacted JSON diagnostics CLI with inventory, direct-state, and brokered-state commands;
 - a versioned, explicitly allowlisted diagnostics report with atomic in-app export of
   retained snapshots and no export-triggered read or elevation;
-- a short-lived UAC broker with strict framing, a one-time nonce, peer-process checks, a
-  current-user pipe ACL, one allowlisted write per `--write` launch, and an install policy
-  that keeps unsigned sibling launches in development mode;
+- a session-lived UAC broker with strict framing, a connect-time nonce, peer-process
+  checks, a current-user pipe ACL, reused reads and writes after one approval, and an
+  install policy that keeps unsigned sibling launches in development mode;
 - an unelevated precision dashboard with explicit brokered state refresh and apply for
   thermal mode, display overdrive, integrated-GPU mode, battery charge mode, and 4-zone
   keyboard brightness, plus a read-only OEM fan table;
@@ -87,7 +88,7 @@ Probe typed hardware state without writing:
 dotnet run --project src/LegionLoqControl.Diagnostics --configuration Release -- state
 ```
 
-Explicitly request the same reads through the short-lived UAC broker:
+Explicitly request the same reads through the elevated UAC broker:
 
 ```powershell
 dotnet run --project src/LegionLoqControl.Diagnostics --configuration Release -- state-elevated

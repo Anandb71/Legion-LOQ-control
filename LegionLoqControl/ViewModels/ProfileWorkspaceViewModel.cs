@@ -76,7 +76,7 @@ public sealed partial class ProfileWorkspaceViewModel : ObservableObject, IDispo
 
     [ObservableProperty]
     private string _workspaceMessage =
-        "Drafts are local plans. Apply requests Windows approval only for would-change targets.";
+        "Drafts are local plans. Apply uses the session broker only for would-change targets.";
 
     [ObservableProperty]
     private DashboardStateKind _workspaceState = DashboardStateKind.Warning;
@@ -137,7 +137,7 @@ public sealed partial class ProfileWorkspaceViewModel : ObservableObject, IDispo
                 ? "Create a local draft"
                 : "Profile drafts loaded";
             WorkspaceMessage =
-                $"{profiles.Count} local draft{(profiles.Count == 1 ? string.Empty : "s")} · preview compares typed state · Apply uses one Windows approval";
+                $"{profiles.Count} local draft{(profiles.Count == 1 ? string.Empty : "s")} · preview compares typed state · Apply uses the session broker";
             WorkspaceState = DashboardStateKind.Warning;
         }
         catch (ProfileStoreException exception)
@@ -183,7 +183,7 @@ public sealed partial class ProfileWorkspaceViewModel : ObservableObject, IDispo
         HydrateDraft(profile: null);
         WorkspaceTitle = "New local draft";
         WorkspaceMessage =
-            "Choose bounded targets, then preview or apply. Apply uses one Windows approval.";
+            "Choose bounded targets, then preview or apply. Apply uses the session broker.";
         WorkspaceState = DashboardStateKind.Warning;
     }
 
@@ -295,7 +295,7 @@ public sealed partial class ProfileWorkspaceViewModel : ObservableObject, IDispo
         if (operations.Count == 0)
         {
             WorkspaceTitle = "Draft already matches";
-            WorkspaceMessage = "No Windows approval was requested.";
+            WorkspaceMessage = "No hardware write was requested.";
             WorkspaceState = DashboardStateKind.Success;
             return;
         }
@@ -314,8 +314,8 @@ public sealed partial class ProfileWorkspaceViewModel : ObservableObject, IDispo
                 _session.MachineSnapshot?.Capabilities ?? []));
             WorkspaceTitle = "Profile applied";
             WorkspaceMessage = operations.Count == 1
-                ? "Windows approval applied one would-change target and read it back."
-                : "Windows approval applied the would-change targets and read them back.";
+                ? "The session broker applied one would-change target and read it back."
+                : "The session broker applied the would-change targets and read them back.";
             WorkspaceState = DashboardStateKind.Success;
         }
         catch (HardwareWriteException exception)
@@ -458,7 +458,7 @@ public sealed partial class ProfileWorkspaceViewModel : ObservableObject, IDispo
             ProfileTargetPreviewState.Matches =>
                 ("ALREADY MATCHES", "No change would be required", DashboardStateKind.Success),
             ProfileTargetPreviewState.WouldChange =>
-                ("WOULD CHANGE", "Windows approval applies this target in one broker batch", DashboardStateKind.Warning),
+                ("WOULD CHANGE", "The session broker applies this target in one batch", DashboardStateKind.Warning),
             ProfileTargetPreviewState.Stale =>
                 ("REFRESH REQUIRED", preview.ReasonCode!, DashboardStateKind.Warning),
             ProfileTargetPreviewState.Unverified =>
@@ -514,7 +514,7 @@ public sealed partial class ProfileWorkspaceViewModel : ObservableObject, IDispo
 
         return (
             "Changes previewed",
-            "Apply requests one Windows approval for the would-change targets.",
+            "Apply uses the session broker for the would-change targets.",
             DashboardStateKind.Warning);
     }
 

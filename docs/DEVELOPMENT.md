@@ -40,7 +40,7 @@ privileged boundary explicitly:
 dotnet run --project src/LegionLoqControl.Diagnostics --configuration Release -- state-elevated
 ```
 
-This displays UAC and runs the copied sibling broker for one read request. Do not automate
+This displays UAC and runs the copied sibling broker for that command. Do not automate
 the prompt or use the development broker for writes. The default install mode is
 `development`, which permits that unsigned sibling after the prompt. Set
 `LEGIONLOQ_BROKER_INSTALL_MODE=production` only to verify that unsigned or user-writable
@@ -62,7 +62,7 @@ Preview packaging and production release blockers are documented in
 ## Repository layout
 
 - `src/`: new layered platform code
-- `src/LegionLoqControl.Broker/`: short-lived read-only elevated process
+- `src/LegionLoqControl.Broker/`: session-lived elevated process that exits with the parent
 - `tests/`: safety, domain, contract, diagnostics, and evidence-redaction tests
 - `hardware-evidence/`: redacted exact machine/BIOS observations
 - `LegionLoqControl/`: WPF shell

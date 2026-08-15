@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO.Pipes;
 using System.Security.Principal;
 using LegionLoqControl.Application.Hardware;
@@ -23,10 +24,12 @@ internal static class BrokerHost
             return 64;
 
         using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        lifetime.CancelAfter(options.Write ? WriteLifetimeTimeout : ReadLifetimeTimeout);
+        if (!options.Session)
+            lifetime.CancelAfter(options.Write ? WriteLifetimeTimeout : ReadLifetimeTimeout);
 
         try
         {
+            using IDisposable parentWatch = WatchParent(options.ParentProcessId, lifetime);
             using var pipe = new NamedPipeClientStream(
                 ".",
                 options.PipeName,
@@ -38,6 +41,13 @@ internal static class BrokerHost
             int serverProcessId = NamedPipePeerProcess.GetServerProcessId(pipe);
             if (serverProcessId != options.ParentProcessId)
                 return 77;
+
+            if (options.Session)
+            {
+                await RunSessionAsync(pipe, options, serverProcessId, lifetime.Token)
+                    .ConfigureAwait(false);
+                return 0;
+            }
 
             if (options.Write)
             {
@@ -126,10 +136,126 @@ internal static class BrokerHost
         }
     }
 
+    private static async ValueTask RunSessionAsync(
+        Stream stream,
+        BrokerArguments options,
+        int serverProcessId,
+        CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            BrokerSessionRequest sessionRequest = await BrokerWireProtocol
+                .ReadAsync<BrokerSessionRequest>(stream, cancellationToken)
+                .ConfigureAwait(false);
+            using var requestLifetime = CancellationTokenSource.CreateLinkedTokenSource(
+                cancellationToken);
+            requestLifetime.CancelAfter(WriteLifetimeTimeout);
+            if (sessionRequest.Kind == BrokerSessionKind.Shutdown)
+            {
+                BrokerValidationResult shutdown = BrokerMessageValidator.ValidateSessionRequest(
+                    sessionRequest,
+                    options.Nonce,
+                    serverProcessId);
+                if (shutdown.IsValid)
+                    return;
+
+                await WriteSessionFailureAsync(
+                    stream,
+                    sessionRequest,
+                    shutdown,
+                    requestLifetime.Token).ConfigureAwait(false);
+                continue;
+            }
+
+            BrokerValidationResult validation = BrokerMessageValidator.ValidateSessionRequest(
+                sessionRequest,
+                options.Nonce,
+                serverProcessId);
+            if (!validation.IsValid)
+            {
+                await WriteSessionFailureAsync(
+                    stream,
+                    sessionRequest,
+                    validation,
+                    requestLifetime.Token).ConfigureAwait(false);
+                continue;
+            }
+
+            if (sessionRequest.Kind == BrokerSessionKind.Write)
+            {
+                await ExecuteWriteAsync(
+                    stream,
+                    sessionRequest.Write!,
+                    requestLifetime.Token,
+                    session: true).ConfigureAwait(false);
+                continue;
+            }
+
+            await ExecuteReadAsync(
+                stream,
+                sessionRequest.Read!,
+                requestLifetime.Token,
+                session: true).ConfigureAwait(false);
+        }
+    }
+
+    private static async ValueTask WriteSessionFailureAsync(
+        Stream stream,
+        BrokerSessionRequest request,
+        BrokerValidationResult validation,
+        CancellationToken cancellationToken)
+    {
+        if (request.Kind == BrokerSessionKind.Write)
+        {
+            await WriteCommandFailureAsync(
+                stream,
+                request.Write?.RequestId ?? request.Read?.RequestId ?? Guid.Empty,
+                BrokerCommandStatus.InvalidRequest,
+                validation.ErrorCode ?? "write_request_invalid",
+                cancellationToken,
+                session: true).ConfigureAwait(false);
+            return;
+        }
+
+        await WriteFailureAsync(
+            stream,
+            request.Read?.RequestId ?? Guid.Empty,
+            validation.Status,
+            validation.ErrorCode ?? "request_invalid",
+            cancellationToken,
+            session: true).ConfigureAwait(false);
+    }
+
+    private static IDisposable WatchParent(int parentProcessId, CancellationTokenSource lifetime)
+    {
+        Process parent;
+        try
+        {
+            parent = Process.GetProcessById(parentProcessId);
+        }
+        catch (Exception)
+        {
+            lifetime.Cancel();
+            return new EmptyDisposable();
+        }
+
+        if (parent.HasExited)
+        {
+            parent.Dispose();
+            lifetime.Cancel();
+            return new EmptyDisposable();
+        }
+
+        parent.EnableRaisingEvents = true;
+        parent.Exited += (_, _) => lifetime.Cancel();
+        return parent;
+    }
+
     private static async ValueTask ExecuteReadAsync(
         Stream stream,
         HardwareStateReadRequest request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool session = false)
     {
         try
         {
@@ -140,7 +266,8 @@ internal static class BrokerHost
                     request.RequestId,
                     BrokerReadStatus.Unauthorized,
                     "broker_not_elevated",
-                    cancellationToken).ConfigureAwait(false);
+                    cancellationToken,
+                    session).ConfigureAwait(false);
                 return;
             }
 
@@ -155,8 +282,7 @@ internal static class BrokerHost
                 BrokerReadStatus.Succeeded,
                 HardwareStateReadPayload.FromSnapshot(snapshot),
                 null);
-            await BrokerWireProtocol
-                .WriteAsync(stream, response, cancellationToken)
+            await WriteReadResponseAsync(stream, response, session, cancellationToken)
                 .ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -170,14 +296,16 @@ internal static class BrokerHost
                 request.RequestId,
                 BrokerReadStatus.Failed,
                 ClassifyFailure(exception),
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken,
+                session).ConfigureAwait(false);
         }
     }
 
     private static async ValueTask ExecuteWriteAsync(
         Stream stream,
         HardwareStateWriteRequest request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool session = false)
     {
         try
         {
@@ -188,7 +316,8 @@ internal static class BrokerHost
                     request.RequestId,
                     BrokerCommandStatus.Failed,
                     "broker_not_elevated",
-                    cancellationToken).ConfigureAwait(false);
+                    cancellationToken,
+                    session).ConfigureAwait(false);
                 return;
             }
 
@@ -219,8 +348,7 @@ internal static class BrokerHost
                 BrokerCommandStatus.Succeeded,
                 HardwareStateReadPayload.FromSnapshot(snapshot),
                 null);
-            await BrokerWireProtocol
-                .WriteAsync(stream, response, cancellationToken)
+            await WriteWriteResponseAsync(stream, response, session, cancellationToken)
                 .ConfigureAwait(false);
         }
         catch (HardwareWriteException exception)
@@ -230,7 +358,8 @@ internal static class BrokerHost
                 request.RequestId,
                 MapWriteStatus(exception.Status),
                 exception.ErrorCode,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken,
+                session).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -243,7 +372,8 @@ internal static class BrokerHost
                 request.RequestId,
                 BrokerCommandStatus.Failed,
                 ClassifyFailure(exception),
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken,
+                session).ConfigureAwait(false);
         }
     }
 
@@ -275,7 +405,8 @@ internal static class BrokerHost
         Guid requestId,
         BrokerCommandStatus status,
         string errorCode,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool session = false)
     {
         var response = new HardwareStateWriteResponse(
             BrokerProtocol.MajorVersion,
@@ -283,8 +414,7 @@ internal static class BrokerHost
             status,
             null,
             errorCode);
-        await BrokerWireProtocol
-            .WriteAsync(stream, response, cancellationToken)
+        await WriteWriteResponseAsync(stream, response, session, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -304,7 +434,8 @@ internal static class BrokerHost
         Guid requestId,
         BrokerReadStatus status,
         string errorCode,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool session = false)
     {
         var response = new HardwareStateReadResponse(
             BrokerProtocol.MajorVersion,
@@ -312,9 +443,39 @@ internal static class BrokerHost
             status,
             null,
             errorCode);
-        await BrokerWireProtocol
-            .WriteAsync(stream, response, cancellationToken)
+        await WriteReadResponseAsync(stream, response, session, cancellationToken)
             .ConfigureAwait(false);
+    }
+
+    private static ValueTask WriteReadResponseAsync(
+        Stream stream,
+        HardwareStateReadResponse response,
+        bool session,
+        CancellationToken cancellationToken) =>
+        session
+            ? BrokerWireProtocol.WriteAsync(
+                stream,
+                new BrokerSessionResponse(BrokerSessionKind.Read, response, null),
+                cancellationToken)
+            : BrokerWireProtocol.WriteAsync(stream, response, cancellationToken);
+
+    private static ValueTask WriteWriteResponseAsync(
+        Stream stream,
+        HardwareStateWriteResponse response,
+        bool session,
+        CancellationToken cancellationToken) =>
+        session
+            ? BrokerWireProtocol.WriteAsync(
+                stream,
+                new BrokerSessionResponse(BrokerSessionKind.Write, null, response),
+                cancellationToken)
+            : BrokerWireProtocol.WriteAsync(stream, response, cancellationToken);
+
+    private sealed class EmptyDisposable : IDisposable
+    {
+        public void Dispose()
+        {
+        }
     }
 
     private static bool IsElevated()

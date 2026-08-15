@@ -26,7 +26,7 @@ workspace:
 3. treats a fresh typed read as enough evidence to plan a change when the capability is
    not `Unsupported`;
 4. persists versioned local drafts with strict validation; and
-5. applies only would-change battery and thermal targets in one UAC batch.
+5. applies only would-change battery and thermal targets in one session-broker batch.
 
 Custom thermal mode stays non-writable. Empty plans do not launch the broker.
 
@@ -37,7 +37,7 @@ Automation evaluates deterministic AC/battery rules, then can watch in this app 
 1. observes the current power source through `GetSystemPowerStatus` without elevation;
 2. persists bounded, versioned rules with strict JSON validation;
 3. selects only one unique highest-priority rule for the observed source;
-4. applies the winning profile through the same one-UAC batch used by profile Apply;
+4. applies the winning profile through the same session-broker batch used by profile Apply;
 5. cools down after an apply or cancelled elevation; and
 6. suspends after a failed readback until the user resumes.
 
@@ -48,8 +48,8 @@ an explicit click.
 
 The dashboard can apply thermal mode, display overdrive, integrated-GPU mode, battery
 charge mode, and 4-zone keyboard brightness. Profile Apply and the opt-in AC/battery
-watcher reuse one elevated broker launch for would-change battery and thermal targets.
-Each apply is an explicit click or watcher tick, one UAC prompt, an expected-state check,
+watcher reuse one elevated broker session for would-change battery and thermal targets.
+Each apply is an explicit click or watcher tick on that session, an expected-state check,
 allowlisted setters, and a readback. This LOQ's ITE controller is `048D:C993`. The same
 privileged refresh now reads the OEM fan table through `Fan_Get_Table`; this BIOS has no
 full-speed methods, and curve writes stay disabled. Per-zone colors remain out of scope.

@@ -34,7 +34,9 @@ public sealed class DashboardViewModelTests
             viewModel.BrokerInstallStatus);
         Assert.False(viewModel.IsBusy);
         Assert.Equal(1, source.InventoryReadCount);
+        Assert.Equal(1, source.HardwareReadCount);
         Assert.Equal(1, source.BrokerInstallAssessCount);
+        Assert.Equal("Hardware session ready", viewModel.BannerTitle);
     }
 
     [Fact]
@@ -54,7 +56,7 @@ public sealed class DashboardViewModelTests
         Assert.Equal("Disabled", viewModel.DisplayOverdrive.Value);
         Assert.Equal("Integrated only", viewModel.IntegratedGpu.Value);
         Assert.Equal("Hardware state verified", viewModel.BannerTitle);
-        Assert.Equal(1, source.HardwareReadCount);
+        Assert.Equal(2, source.HardwareReadCount);
     }
 
     [Fact]
@@ -74,7 +76,7 @@ public sealed class DashboardViewModelTests
         Assert.Same(hardware, session.HardwareStateSnapshot);
         Assert.Equal("Elevation cancelled", viewModel.BannerTitle);
         Assert.Equal(DashboardStateKind.Warning, viewModel.BannerState);
-        Assert.Equal(2, source.HardwareReadCount);
+        Assert.Equal(3, source.HardwareReadCount);
     }
 
     [Fact]
@@ -323,6 +325,10 @@ public sealed class DashboardViewModelTests
                 return ValueTask.FromException<HardwareStateSnapshot>(ReadException);
 
             return ValueTask.FromResult(hardwareStateSnapshot);
+        }
+
+        public void Dispose()
+        {
         }
     }
 }

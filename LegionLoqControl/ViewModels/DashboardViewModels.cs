@@ -90,7 +90,7 @@ public sealed partial class HardwareStateCardViewModel : ObservableObject
         {
             Value = formatter(result.Value.Value);
             Detail = successDetail ??
-                "Verified. Choose a value to apply it through Windows elevation.";
+                "Verified. Choose a value to apply it through the session broker.";
             State = DashboardStateKind.Success;
             CanApply = ApplyAsync is not null;
             ApplyOptionCommand.NotifyCanExecuteChanged();
@@ -151,7 +151,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     [ObservableProperty]
     private string _bannerMessage =
-        "Inventory runs without elevation. Hardware state is read only after you approve Windows elevation.";
+        "Inventory is unelevated. Windows will ask once so the session broker can read and apply hardware.";
 
     [ObservableProperty]
     private DashboardStateKind _bannerState = DashboardStateKind.Warning;
@@ -291,6 +291,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
                 evidence.Support is CapabilitySupport.Unknown or CapabilitySupport.Supported);
             InventoryStatus = $"Inventory complete · {candidateCount} candidate interfaces";
             ApplyBrokerInstall(_dataSource.AssessBrokerInstall());
+            await StartHardwareSessionAsync().ConfigureAwait(true);
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
@@ -317,16 +318,16 @@ public sealed partial class MainWindowViewModel : ObservableObject
         DiagnosticsExport.Dispose();
         ProfileWorkspace.Dispose();
         AutomationWorkspace.Dispose();
+        _dataSource.Dispose();
     }
 
     [RelayCommand(CanExecute = nameof(CanRefreshHardwareState))]
     private async Task RefreshHardwareStateAsync()
     {
         IsBusy = true;
-        RefreshButtonText = "Waiting for Windows approval…";
-        BannerTitle = "Privileged read requested";
-        BannerMessage =
-            "Windows will ask for approval. The broker accepts one read request and cannot change hardware.";
+        RefreshButtonText = "Reading hardware…";
+        BannerTitle = "Hardware refresh";
+        BannerMessage = "Reusing the session broker. Windows will not ask again unless the session dropped.";
         BannerState = DashboardStateKind.Warning;
 
         try
@@ -334,16 +335,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
             HardwareStateSnapshot snapshot = await _dataSource
                 .ReadHardwareStateAsync(_lifetime.Token)
                 .ConfigureAwait(true);
-            Session.UpdateHardwareStateSnapshot(snapshot);
-            Battery.Apply(snapshot.BatteryChargeMode, FormatBatteryMode);
-            Thermal.Apply(snapshot.ThermalMode, FormatThermalMode);
-            DisplayOverdrive.Apply(snapshot.DisplayOverdrive, FormatToggle);
-            IntegratedGpu.Apply(snapshot.IntegratedGpuMode, FormatGpuMode);
-            Keyboard.Apply(snapshot.FourZoneKeyboard, FormatKeyboardMode);
-            Fans.Apply(
-                snapshot.FanTable,
-                FormatFanTable,
-                "Read-only OEM table. Curve writes stay disabled.");
+            ApplyVerifiedSnapshot(snapshot);
 
             HardwareReadStatus[] statuses =
             [
@@ -384,6 +376,56 @@ public sealed partial class MainWindowViewModel : ObservableObject
     }
 
     private bool CanRefreshHardwareState() => !IsBusy && _initialized;
+
+    private async Task StartHardwareSessionAsync()
+    {
+        RefreshButtonText = "Starting hardware session…";
+        BannerTitle = "Hardware session requested";
+        BannerMessage =
+            "Windows will ask once. The first read can take a few seconds; later changes reuse this session.";
+        BannerState = DashboardStateKind.Warning;
+        try
+        {
+            HardwareStateSnapshot snapshot = await _dataSource
+                .ReadHardwareStateAsync(_lifetime.Token)
+                .ConfigureAwait(true);
+            ApplyVerifiedSnapshot(snapshot);
+
+            HardwareReadStatus[] statuses =
+            [
+                snapshot.BatteryChargeMode.Status,
+                snapshot.ThermalMode.Status,
+                snapshot.DisplayOverdrive.Status,
+                snapshot.IntegratedGpuMode.Status,
+                snapshot.FourZoneKeyboard.Status,
+                snapshot.FanTable.Status,
+            ];
+            int successCount = statuses.Count(static status => status == HardwareReadStatus.Success);
+            BannerTitle = successCount == statuses.Length
+                ? "Hardware session ready"
+                : "Hardware session partially ready";
+            BannerMessage =
+                $"{successCount}/{statuses.Length} reads succeeded · later changes will not ask again unless the session drops";
+            BannerState = successCount == statuses.Length
+                ? DashboardStateKind.Success
+                : DashboardStateKind.Warning;
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (DashboardDataSourceException exception)
+        {
+            ApplyBrokerFailure(exception.ErrorCode);
+        }
+        catch (Exception)
+        {
+            ApplyBrokerFailure("broker_read_failed");
+        }
+        finally
+        {
+            RefreshButtonText = "Read hardware state";
+        }
+    }
 
     private void Profiles_CollectionChanged(
         object? sender,
@@ -516,10 +558,10 @@ public sealed partial class MainWindowViewModel : ObservableObject
             return;
 
         IsBusy = true;
-        RefreshButtonText = "Waiting for Windows approval…";
-        BannerTitle = "Privileged change requested";
+        RefreshButtonText = "Applying change…";
+        BannerTitle = "Hardware change requested";
         BannerMessage =
-            "Windows will ask for approval. The broker applies one typed change, then reads it back.";
+            "The session broker applies one typed change, then reads it back. No extra Windows prompt.";
         BannerState = DashboardStateKind.Warning;
         try
         {
@@ -562,11 +604,11 @@ public sealed partial class MainWindowViewModel : ObservableObject
             .ToArray();
 
         IsBusy = true;
-        RefreshButtonText = "Waiting for Windows approval…";
-        BannerTitle = "Privileged change requested";
+        RefreshButtonText = "Applying profile…";
+        BannerTitle = "Hardware change requested";
         BannerMessage = operations.Count == 1
-            ? "Windows will ask for approval. The broker applies one typed change, then reads it back."
-            : "Windows will ask for approval. The broker applies the would-change targets, then reads them back.";
+            ? "The session broker applies one typed change, then reads it back. No extra Windows prompt."
+            : "The session broker applies the would-change targets, then reads them back. No extra Windows prompt.";
         BannerState = DashboardStateKind.Warning;
         try
         {

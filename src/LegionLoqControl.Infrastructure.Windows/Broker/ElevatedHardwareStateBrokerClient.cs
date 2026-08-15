@@ -1,22 +1,27 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO.Pipes;
 using LegionLoqControl.Application.Broker;
 using LegionLoqControl.Contracts.Broker;
 using LegionLoqControl.Infrastructure.Windows.Platform;
 
 namespace LegionLoqControl.Infrastructure.Windows.Broker;
 
-public sealed class ElevatedHardwareStateBrokerClient
+public sealed class ElevatedHardwareStateBrokerClient : IDisposable
 {
     public const string BrokerExecutableName = "LegionLoqControl.Broker.exe";
 
+    private static readonly TimeSpan ConnectTimeout = TimeSpan.FromSeconds(120);
     private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(45);
     private static readonly TimeSpan WriteRequestTimeout = TimeSpan.FromSeconds(90);
-    private static readonly TimeSpan ResponseDrainTimeout = TimeSpan.FromSeconds(2);
-    private static readonly TimeSpan ExitTimeout = TimeSpan.FromSeconds(5);
     private readonly string _brokerExecutablePath;
     private readonly BrokerInstallMode _installMode;
     private readonly Func<string, string, BrokerInstallAssessment> _assessInstall;
+    private readonly SemaphoreSlim _sessionGate = new(1, 1);
+    private NamedPipeServerStream? _pipe;
+    private Process? _process;
+    private string? _nonce;
+    private bool _disposed;
 
     public ElevatedHardwareStateBrokerClient()
         : this(Path.Combine(AppContext.BaseDirectory, BrokerExecutableName))
@@ -48,119 +53,20 @@ public sealed class ElevatedHardwareStateBrokerClient
     public BrokerInstallAssessment AssessInstall() =>
         _assessInstall(_brokerExecutablePath, AppContext.BaseDirectory);
 
+    public bool IsSessionConnected =>
+        _pipe is { IsConnected: true } &&
+        _process is { HasExited: false };
+
     public async ValueTask<HardwareStateReadResponse> ReadAsync(
         CancellationToken cancellationToken)
     {
-        WindowsPlatform.EnsureSupported();
-        cancellationToken.ThrowIfCancellationRequested();
-
-        BrokerInstallAssessment install = AssessInstall();
-        if (!BrokerInstallPolicy.Allows(install, _installMode))
-        {
-            throw new BrokerTransportException(
-                BrokerInstallPolicy.RefusalCode(install, _installMode));
-        }
-
-        Guid requestId = Guid.NewGuid();
-        string nonce = BrokerProtocol.CreateNonce();
-        string pipeName = BrokerProtocol.CreatePipeName();
-        var request = new HardwareStateReadRequest(
-            BrokerProtocol.MajorVersion,
-            requestId,
-            nonce,
-            Environment.ProcessId);
-
-        using var pipe = BrokerPipeFactory.CreateServer(pipeName);
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(RequestTimeout);
-
-        Process? process = null;
-        try
-        {
-            process = LaunchBroker(pipeName, nonce, request.ClientProcessId, write: false);
-            Task<HardwareStateReadResponse> exchange = BrokerPipeExchange
-                .ExchangeAsync(pipe, process.Id, request, timeout.Token)
-                .AsTask();
-            Task processExit = process.WaitForExitAsync(CancellationToken.None);
-            Task firstCompleted = await Task
-                .WhenAny(exchange, processExit)
-                .ConfigureAwait(false);
-            HardwareStateReadResponse response;
-            if (firstCompleted == processExit && !exchange.IsCompleted)
-            {
-                try
-                {
-                    response = await exchange
-                        .WaitAsync(ResponseDrainTimeout, cancellationToken)
-                        .ConfigureAwait(false);
-                }
-                catch (TimeoutException)
-                {
-                    string errorCode = ResolvePipeFailureCode(process);
-                    timeout.Cancel();
-                    await ObserveFailureAsync(exchange).ConfigureAwait(false);
-                    throw new BrokerTransportException(errorCode);
-                }
-            }
-            else
-            {
-                response = await exchange.ConfigureAwait(false);
-            }
-
-            await processExit
-                .WaitAsync(ExitTimeout, CancellationToken.None)
-                .ConfigureAwait(false);
-            if (process.ExitCode != 0)
-                throw new BrokerTransportException("broker_exit_failed");
-
-            return response;
-        }
-        catch (Win32Exception exception) when (exception.NativeErrorCode == 1223)
-        {
-            throw new BrokerTransportException("broker_elevation_cancelled", exception);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            TryTerminate(process);
-            throw;
-        }
-        catch (OperationCanceledException) when (
-            !cancellationToken.IsCancellationRequested &&
-            timeout.IsCancellationRequested)
-        {
-            TryTerminate(process);
-            throw new BrokerTransportException("broker_timeout");
-        }
-        catch (UnauthorizedAccessException exception)
-        {
-            TryTerminate(process);
-            throw new BrokerTransportException("broker_peer_mismatch", exception);
-        }
-        catch (InvalidDataException exception)
-        {
-            TryTerminate(process);
-            throw new BrokerTransportException("broker_response_invalid", exception);
-        }
-        catch (TimeoutException exception)
-        {
-            TryTerminate(process);
-            throw new BrokerTransportException("broker_exit_timeout", exception);
-        }
-        catch (IOException exception)
-        {
-            string errorCode = ResolvePipeFailureCode(process);
-            TryTerminate(process);
-            throw new BrokerTransportException(errorCode, exception);
-        }
-        catch (Win32Exception exception)
-        {
-            TryTerminate(process);
-            throw new BrokerTransportException("broker_transport_failed", exception);
-        }
-        finally
-        {
-            process?.Dispose();
-        }
+        HardwareStateReadRequest request = CreateIdentity();
+        BrokerSessionResponse response = await SendAsync(
+            new BrokerSessionRequest(BrokerSessionKind.Read, request, null),
+            RequestTimeout,
+            cancellationToken).ConfigureAwait(false);
+        return response.Read
+            ?? throw new BrokerTransportException("broker_response_invalid");
     }
 
     public ValueTask<HardwareStateWriteResponse> WriteAsync(
@@ -194,9 +100,125 @@ public sealed class ElevatedHardwareStateBrokerClient
                 throw new ArgumentOutOfRangeException(nameof(operations));
         }
 
+        HardwareStateReadRequest identity = CreateIdentity();
+        var request = new HardwareStateWriteRequest(
+            identity.ProtocolMajorVersion,
+            identity.RequestId,
+            identity.Nonce,
+            identity.ClientProcessId,
+            operations);
+        BrokerSessionResponse response = await SendAsync(
+            new BrokerSessionRequest(BrokerSessionKind.Write, null, request),
+            WriteRequestTimeout,
+            cancellationToken).ConfigureAwait(false);
+        return response.Write
+            ?? throw new BrokerTransportException("broker_response_invalid");
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+            return;
+
+        _disposed = true;
+        TryTerminate(_process);
+        _process?.Dispose();
+        _pipe?.Dispose();
+        _sessionGate.Dispose();
+    }
+
+    private HardwareStateReadRequest CreateIdentity() =>
+        new(
+            BrokerProtocol.MajorVersion,
+            Guid.NewGuid(),
+            _nonce ?? BrokerProtocol.CreateNonce(),
+            Environment.ProcessId);
+
+    private async ValueTask<BrokerSessionResponse> SendAsync(
+        BrokerSessionRequest request,
+        TimeSpan timeout,
+        CancellationToken cancellationToken)
+    {
         WindowsPlatform.EnsureSupported();
         cancellationToken.ThrowIfCancellationRequested();
+        ObjectDisposedException.ThrowIf(_disposed, this);
 
+        await _sessionGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await EnsureConnectedUnlockedAsync(cancellationToken).ConfigureAwait(false);
+            if (_nonce is not null)
+            {
+                request = request.Kind switch
+                {
+                    BrokerSessionKind.Read when request.Read is { } read =>
+                        request with
+                        {
+                            Read = read with { Nonce = _nonce },
+                        },
+                    BrokerSessionKind.Write when request.Write is { } write =>
+                        request with
+                        {
+                            Write = write with { Nonce = _nonce },
+                        },
+                    BrokerSessionKind.Shutdown when request.Read is { } shutdown =>
+                        request with
+                        {
+                            Read = shutdown with { Nonce = _nonce },
+                        },
+                    _ => request,
+                };
+            }
+
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            linked.CancelAfter(timeout);
+            return await BrokerPipeExchange
+                .ExchangeSessionAsync(_pipe!, request, linked.Token)
+                .ConfigureAwait(false);
+        }
+        catch (Win32Exception exception) when (exception.NativeErrorCode == 1223)
+        {
+            DisconnectUnlocked();
+            throw new BrokerTransportException("broker_elevation_cancelled", exception);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            DisconnectUnlocked();
+            throw new BrokerTransportException("broker_timeout");
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            DisconnectUnlocked();
+            throw new BrokerTransportException("broker_peer_mismatch", exception);
+        }
+        catch (InvalidDataException exception)
+        {
+            DisconnectUnlocked();
+            throw new BrokerTransportException("broker_response_invalid", exception);
+        }
+        catch (IOException exception)
+        {
+            string errorCode = ResolvePipeFailureCode(_process);
+            DisconnectUnlocked();
+            throw new BrokerTransportException(errorCode, exception);
+        }
+        catch (Win32Exception exception)
+        {
+            DisconnectUnlocked();
+            throw new BrokerTransportException("broker_transport_failed", exception);
+        }
+    }
+
+    private async ValueTask EnsureConnectedUnlockedAsync(CancellationToken cancellationToken)
+    {
+        if (IsSessionConnected)
+            return;
+
+        DisconnectUnlocked();
         BrokerInstallAssessment install = AssessInstall();
         if (!BrokerInstallPolicy.Allows(install, _installMode))
         {
@@ -204,114 +226,46 @@ public sealed class ElevatedHardwareStateBrokerClient
                 BrokerInstallPolicy.RefusalCode(install, _installMode));
         }
 
-        Guid requestId = Guid.NewGuid();
         string nonce = BrokerProtocol.CreateNonce();
         string pipeName = BrokerProtocol.CreatePipeName();
-        var request = new HardwareStateWriteRequest(
-            BrokerProtocol.MajorVersion,
-            requestId,
-            nonce,
-            Environment.ProcessId,
-            operations);
-
-        using var pipe = BrokerPipeFactory.CreateServer(pipeName);
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(WriteRequestTimeout);
-
+        NamedPipeServerStream pipe = BrokerPipeFactory.CreateServer(pipeName);
         Process? process = null;
         try
         {
-            process = LaunchBroker(pipeName, nonce, request.ClientProcessId, write: true);
-            Task<HardwareStateWriteResponse> exchange = BrokerPipeExchange
-                .ExchangeWriteAsync(pipe, process.Id, request, timeout.Token)
-                .AsTask();
-            Task processExit = process.WaitForExitAsync(CancellationToken.None);
-            Task firstCompleted = await Task
-                .WhenAny(exchange, processExit)
+            process = LaunchBroker(pipeName, nonce, Environment.ProcessId);
+            using var connectTimeout = CancellationTokenSource.CreateLinkedTokenSource(
+                cancellationToken);
+            connectTimeout.CancelAfter(ConnectTimeout);
+            await BrokerPipeExchange
+                .ConnectAsync(pipe, process.Id, connectTimeout.Token)
                 .ConfigureAwait(false);
-            HardwareStateWriteResponse response;
-            if (firstCompleted == processExit && !exchange.IsCompleted)
-            {
-                try
-                {
-                    response = await exchange
-                        .WaitAsync(ResponseDrainTimeout, cancellationToken)
-                        .ConfigureAwait(false);
-                }
-                catch (TimeoutException)
-                {
-                    string errorCode = ResolvePipeFailureCode(process);
-                    timeout.Cancel();
-                    await ObserveFailureAsync(exchange).ConfigureAwait(false);
-                    throw new BrokerTransportException(errorCode);
-                }
-            }
-            else
-            {
-                response = await exchange.ConfigureAwait(false);
-            }
-
-            await processExit
-                .WaitAsync(ExitTimeout, CancellationToken.None)
-                .ConfigureAwait(false);
-            if (process.ExitCode != 0)
-                throw new BrokerTransportException("broker_exit_failed");
-
-            return response;
+            _pipe = pipe;
+            _process = process;
+            _nonce = nonce;
         }
-        catch (Win32Exception exception) when (exception.NativeErrorCode == 1223)
-        {
-            throw new BrokerTransportException("broker_elevation_cancelled", exception);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch
         {
             TryTerminate(process);
+            process?.Dispose();
+            pipe.Dispose();
             throw;
         }
-        catch (OperationCanceledException) when (
-            !cancellationToken.IsCancellationRequested &&
-            timeout.IsCancellationRequested)
-        {
-            TryTerminate(process);
-            throw new BrokerTransportException("broker_timeout");
-        }
-        catch (UnauthorizedAccessException exception)
-        {
-            TryTerminate(process);
-            throw new BrokerTransportException("broker_peer_mismatch", exception);
-        }
-        catch (InvalidDataException exception)
-        {
-            TryTerminate(process);
-            throw new BrokerTransportException("broker_response_invalid", exception);
-        }
-        catch (TimeoutException exception)
-        {
-            TryTerminate(process);
-            throw new BrokerTransportException("broker_exit_timeout", exception);
-        }
-        catch (IOException exception)
-        {
-            string errorCode = ResolvePipeFailureCode(process);
-            TryTerminate(process);
-            throw new BrokerTransportException(errorCode, exception);
-        }
-        catch (Win32Exception exception)
-        {
-            TryTerminate(process);
-            throw new BrokerTransportException("broker_transport_failed", exception);
-        }
-        finally
-        {
-            process?.Dispose();
-        }
+    }
+
+    private void DisconnectUnlocked()
+    {
+        TryTerminate(_process);
+        _process?.Dispose();
+        _pipe?.Dispose();
+        _process = null;
+        _pipe = null;
+        _nonce = null;
     }
 
     private Process LaunchBroker(
         string pipeName,
         string nonce,
-        int parentProcessId,
-        bool write)
+        int parentProcessId)
     {
         var startInfo = new ProcessStartInfo
         {
@@ -327,8 +281,7 @@ public sealed class ElevatedHardwareStateBrokerClient
         startInfo.ArgumentList.Add(nonce);
         startInfo.ArgumentList.Add("--parent-pid");
         startInfo.ArgumentList.Add(parentProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture));
-        if (write)
-            startInfo.ArgumentList.Add("--write");
+        startInfo.ArgumentList.Add("--session");
 
         try
         {
@@ -385,7 +338,7 @@ public sealed class ElevatedHardwareStateBrokerClient
         }
         catch (Exception)
         {
-            // The elevated process may deny termination; it has its own bounded timeout.
+            // The elevated process may deny termination; it exits when the parent closes.
         }
     }
 
@@ -419,18 +372,6 @@ public sealed class ElevatedHardwareStateBrokerClient
         catch (Exception)
         {
             return "broker_transport_failed";
-        }
-    }
-
-    private static async Task ObserveFailureAsync(Task task)
-    {
-        try
-        {
-            await task.ConfigureAwait(false);
-        }
-        catch (Exception)
-        {
-            // The exchange task is observed here; the early process exit is reported instead.
         }
     }
 }

@@ -7,7 +7,8 @@ internal sealed record BrokerArguments(
     string PipeName,
     string Nonce,
     int ParentProcessId,
-    bool Write = false)
+    bool Write = false,
+    bool Session = false)
 {
     public static bool TryParse(string[] args, out BrokerArguments? result)
     {
@@ -15,7 +16,9 @@ internal sealed record BrokerArguments(
         result = null;
         bool write = args.Length == 7 &&
             string.Equals(args[6], "--write", StringComparison.Ordinal);
-        if ((args.Length != 6 && !write) ||
+        bool session = args.Length == 7 &&
+            string.Equals(args[6], "--session", StringComparison.Ordinal);
+        if ((args.Length != 6 && !write && !session) ||
             !string.Equals(args[0], "--pipe", StringComparison.Ordinal) ||
             !string.Equals(args[2], "--nonce", StringComparison.Ordinal) ||
             !string.Equals(args[4], "--parent-pid", StringComparison.Ordinal))
@@ -35,7 +38,7 @@ internal sealed record BrokerArguments(
             return false;
         }
 
-        result = new BrokerArguments(args[1], args[3], parentProcessId, write);
+        result = new BrokerArguments(args[1], args[3], parentProcessId, write, session);
         return true;
     }
 }

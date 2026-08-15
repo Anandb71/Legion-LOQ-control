@@ -9,8 +9,8 @@ The rebuild is write-gated. Inventory, refresh, preview, and export stay read-on
 
 - the GUI runs as the current user (`asInvoker`), not as administrator;
 - the dashboard can apply thermal mode, display overdrive, integrated-GPU mode,
-  battery charge mode, and 4-zone keyboard brightness only after an explicit click and a
-  UAC prompt;
+  battery charge mode, and 4-zone keyboard brightness only after an explicit click
+  through the session broker;
 - each apply is one typed broker write, or one battery-then-thermal batch, with a fresh
   expected-state check and readback;
 - the elevated broker may read `LENOVO_FAN_METHOD.Fan_Get_Table` with FanID `0` and
@@ -26,14 +26,20 @@ The rebuild is write-gated. Inventory, refresh, preview, and export stay read-on
 - those getters are batched through the exact system Windows PowerShell executable with
   profiles disabled, a system-only module path, static script text, capped output, and a
   12-second process timeout;
-- the optional elevated state path uses a one-request broker (30 seconds for reads, 90
-  seconds for writes) with strict framing, current-user ACL, mutual process-ID checks, a
-  one-time nonce, and anonymous client impersonation;
+- the optional elevated state path uses a session-lived broker: Windows asks once at
+  connect, later reads and writes reuse the same pipe, each request is bounded (45
+  seconds for reads, 90 seconds for writes), and the broker exits when the parent
+  process exits; it is not a SYSTEM service or scheduled task;
+- one-shot `--write` and default read launches remain available for diagnostics; the
+  dashboard always launches `--session`;
+- the session uses strict framing, a current-user ACL, mutual process-ID checks, a
+  connect-time nonce, and anonymous client impersonation;
 - the elevated broker has one fixed EnergyDrv battery read (`0x831020F8`, selector `0xFF`,
   zero requested device access) and one typed EnergyDrv battery write using only
   selectors `0x03`, `0x05`, `0x07`, and `0x08`;
-- the elevated broker may run one or two allowlisted setters when launched with
-  `--write` (battery then thermal in one launch, or a single dashboard target);
+- the elevated broker may run one or two allowlisted setters on a session write or a
+  one-shot `--write` launch (battery then thermal in one request, or a single dashboard
+  target);
 - the elevated broker may open one allowlisted ITE HID collection (`048D` + `C935` /
   `C955` / `C993`, 33-byte feature report) for 4-zone brightness; it still has no legacy
   Core reference, generic IOCTL entry point, or caller-supplied WMI names;
@@ -42,12 +48,12 @@ The rebuild is write-gated. Inventory, refresh, preview, and export stay read-on
 - profile drafts use a bounded, strict, versioned local JSON store with a
   cross-process file lock and compare only against retained typed snapshots and
   capability evidence;
-- the profile workspace can apply a would-change preview through one UAC batch; preview,
-  save, and delete still do not launch the broker;
+- the profile workspace can apply a would-change preview through one session-broker
+  batch; preview, save, and delete still do not start a write;
 - AC/battery automation observes one typed `GetSystemPowerStatus` result, then performs
   deterministic in-memory rule evaluation;
-- an opt-in in-process watcher may apply the winning profile through that same UAC batch,
-  cools down after an attempt, and suspends after a failed readback;
+- an opt-in in-process watcher may apply the winning profile through that same session
+  broker, cools down after an attempt, and suspends after a failed readback;
 - automation rules use a separate bounded, strict, versioned local JSON store; there is
   no SYSTEM service, scheduled task, or write on launch;
 - diagnostics export uses an explicit versioned allowlist, omits local drafts and dynamic
@@ -57,7 +63,7 @@ The rebuild is write-gated. Inventory, refresh, preview, and export stay read-on
 - unit tests verify that battery, thermal, fan, and keyboard commands fail closed.
 
 The broker may apply the allowlisted WMI setters, the typed battery-mode write, and the
-typed 4-zone brightness packet after an explicit UAC prompt. That is not authorization
+typed 4-zone brightness packet after the session is elevated. That is not authorization
 for fan-table writes, per-zone color editors, or unsigned production installs. Development mode may launch an unsigned sibling broker after an
 explicit UAC prompt. Production mode refuses that launch unless the sibling directory is
 administrator-protected and the broker is Authenticode-signed. See
@@ -71,8 +77,8 @@ assumed harmless without allowlisting and provenance.
 Hardware writes may return only after all of these controls exist and pass review:
 
 1. An unelevated UI and CLI with no direct privileged WMI, EnergyDrv, or HID access.
-2. A short-lived elevated broker installed under administrator-only filesystem ACLs for
-   privileged reads and validated writes.
+2. A session-lived elevated broker installed under administrator-only filesystem ACLs for
+   privileged reads and validated writes. It exits with the unelevated parent.
 3. A versioned, local-only, typed command protocol. Raw WMI names, IOCTL values, HID
    packets, paths, and plugin-defined commands are forbidden at the IPC boundary.
 4. Independent broker-side device and per-feature capability validation.

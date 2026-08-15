@@ -58,4 +58,38 @@ internal static class BrokerPipeExchange
         BrokerMessageValidator.ValidateWriteResponse(response, request.RequestId);
         return response;
     }
+
+    public static async ValueTask ConnectAsync(
+        NamedPipeServerStream server,
+        int expectedBrokerProcessId,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(server);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(expectedBrokerProcessId);
+        if (server.IsConnected)
+            throw new InvalidOperationException("The broker pipe already has a client.");
+
+        await server.WaitForConnectionAsync(cancellationToken).ConfigureAwait(false);
+        int connectedProcessId = NamedPipePeerProcess.GetClientProcessId(server);
+        if (connectedProcessId != expectedBrokerProcessId)
+            throw new UnauthorizedAccessException("An unexpected process connected to the broker pipe.");
+    }
+
+    public static async ValueTask<BrokerSessionResponse> ExchangeSessionAsync(
+        Stream server,
+        BrokerSessionRequest request,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(server);
+        ArgumentNullException.ThrowIfNull(request);
+
+        await BrokerWireProtocol
+            .WriteAsync(server, request, cancellationToken)
+            .ConfigureAwait(false);
+        BrokerSessionResponse response = await BrokerWireProtocol
+            .ReadAsync<BrokerSessionResponse>(server, cancellationToken)
+            .ConfigureAwait(false);
+        BrokerMessageValidator.ValidateSessionResponse(response, request);
+        return response;
+    }
 }
