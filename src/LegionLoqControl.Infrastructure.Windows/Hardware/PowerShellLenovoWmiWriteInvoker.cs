@@ -332,7 +332,7 @@ internal sealed class WindowsHardwareStateWriter : IHardwareStateWriter
 
     public WindowsHardwareStateWriter()
         : this(
-            new PowerShellLenovoWmiWriteInvoker(),
+            new SystemLenovoWmiWriteInvoker(),
             new EnergyDriverBatteryWriter(),
             new FourZoneKeyboardHid())
     {

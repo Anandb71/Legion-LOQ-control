@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replaced reflection-based inventory JSON with an explicit privacy-bounded export contract
 - Keep one elevated broker for the app session so Windows asks once at start
 - Skip the fan-table probe on apply expected-state and readback captures
+- Use in-process WMI for privileged reads and writes instead of PowerShell child processes
 
 ### Security
 

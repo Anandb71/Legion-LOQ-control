@@ -3,7 +3,7 @@
 ## Requirements
 
 - Windows 10 version 1809 or later
-- Built-in Windows PowerShell 5.1 with the system `CimCmdlets` module
+- Windows Management Instrumentation (`System.Management`) for typed Lenovo getters and setters
 - .NET SDK `10.0.302` (selected by `global.json`)
 - Git
 - Visual Studio 2022 17.14+ / Visual Studio 2026, Rider, or Cursor with C# tooling

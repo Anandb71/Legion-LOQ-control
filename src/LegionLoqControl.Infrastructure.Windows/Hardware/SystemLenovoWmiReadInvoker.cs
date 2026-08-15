@@ -19,10 +19,7 @@ internal interface ILenovoWmiReadInvoker
 
 internal sealed class SystemLenovoWmiReadInvoker : ILenovoWmiReadInvoker
 {
-    private const string ScopePath = @"root\WMI";
-    private const string ClassName = "LENOVO_GAMEZONE_DATA";
     private const string OutputProperty = "Data";
-    private static readonly TimeSpan OperationTimeout = TimeSpan.FromSeconds(5);
 
     public async ValueTask<uint> ReadAsync(
         LenovoWmiReadOperation operation,
@@ -63,22 +60,12 @@ internal sealed class SystemLenovoWmiReadInvoker : ILenovoWmiReadInvoker
             _ => throw new ArgumentOutOfRangeException(nameof(operation), operation, null),
         };
 
-        using var searcher = new ManagementObjectSearcher(
-            ScopePath,
-            $"SELECT * FROM {ClassName}");
-        searcher.Options.Timeout = OperationTimeout;
-        using ManagementObjectCollection instances = searcher.Get();
-        using ManagementObject? instance = instances
-            .Cast<ManagementObject>()
-            .FirstOrDefault();
-        if (instance is null)
-            throw new LenovoWmiNoInstanceException();
-
+        using ManagementObject instance = LenovoWmiScope.GetInstance(LenovoWmiScope.GameZoneClass);
         using ManagementBaseObject? input = instance.GetMethodParameters(methodName);
         using ManagementBaseObject? output = instance.InvokeMethod(
             methodName,
             input,
-            new InvokeMethodOptions());
+            LenovoWmiScope.MethodOptions());
         if (output is null)
             throw new InvalidDataException("Lenovo WMI getter returned no output object.");
 

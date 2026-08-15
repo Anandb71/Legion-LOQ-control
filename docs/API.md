@@ -88,9 +88,9 @@ writes.
 
 `WindowsHardwareStateReader` is a separate adapter. It invokes only the fixed
 `GetSmartFanMode`, `GetODStatus`, and `GetIGPUModeStatus` methods. Its default transport
-batches them through one static, profile-free built-in Windows PowerShell/CIM invocation,
-caches the batch for the snapshot, validates Boolean return status and UInt32 data, caps
-output, and applies a 12-second process timeout. It fails closed when the provider does not
+invokes them in-process through System.Management with those fixed names, validates
+Boolean return status and UInt32 data, and applies a 5-second bound. It fails closed when
+the provider does not
 expose that complete output. The default unelevated reader reports battery mode as
 `Unavailable`; the broker-only factory adds the fixed, parameterless EnergyDrv reader with
 zero requested device access. The same privileged factory may invoke `Fan_Get_Table` on

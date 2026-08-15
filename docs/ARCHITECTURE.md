@@ -90,8 +90,8 @@ flowchart LR
     StateCli[State diagnostics command] --> StateService[HardwareStateService]
     StateService --> StatePort[IHardwareStateReader]
     StatePort --> WmiReader[WindowsHardwareStateReader]
-    WmiReader --> PowerShell[Bounded built-in PowerShell CIM batch]
-    PowerShell --> FixedGetters[Fixed Lenovo getters]
+    WmiReader --> SystemWmi[In-process System.Management]
+    SystemWmi --> FixedGetters[Fixed Lenovo getters]
     FixedGetters --> TypedResults[Typed results and stable errors]
 ```
 
@@ -116,7 +116,7 @@ flowchart LR
     Uac --> Broker[Session-lived elevated broker]
     Broker --> Pipe
     Pipe --> Validate[Version nonce and peer PID checks]
-    Validate --> CimBatch[Static built-in PowerShell CIM batch]
+    Validate --> CimBatch[In-process System.Management]
     Validate --> EnergyRead[Exact zero-access EnergyDrv battery read]
     CimBatch --> Getters[Fixed Lenovo getters]
     Getters --> Wire[Validated wire DTO]

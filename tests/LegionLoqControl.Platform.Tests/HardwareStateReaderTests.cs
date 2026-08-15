@@ -253,6 +253,21 @@ public sealed class HardwareStateReaderTests
     }
 
     [Fact]
+    public void In_process_setters_are_limited_to_the_allowlisted_methods()
+    {
+        Assert.Equal("SetSmartFanMode", SystemLenovoWmiWriteInvoker.MethodName(LenovoWmiWriteOperation.ThermalMode));
+        Assert.Equal("SetODStatus", SystemLenovoWmiWriteInvoker.MethodName(LenovoWmiWriteOperation.DisplayOverdrive));
+        Assert.Equal("SetIGPUModeStatus", SystemLenovoWmiWriteInvoker.MethodName(LenovoWmiWriteOperation.IntegratedGpuMode));
+        Assert.Equal("SetLightControlOwner", SystemLenovoWmiWriteInvoker.MethodName(LenovoWmiWriteOperation.LightControlOwner));
+        Assert.Equal("Fan_Get_Table", SystemLenovoFanTableReadInvoker.MethodName);
+        Assert.Equal(
+            new uint[] { 0, 40, 80 },
+            LenovoWmiScope.ToUInt32Array(new object[] { 0, 40, (ushort)80 }));
+        Assert.Throws<InvalidDataException>(() => LenovoWmiScope.ToUInt32Array("nope"));
+        Assert.Throws<ArgumentOutOfRangeException>(() => LenovoWmiScope.GetInstance("Win32_Process"));
+    }
+
+    [Fact]
     public void PowerShell_batch_requires_typed_success_for_every_getter()
     {
         const string json =

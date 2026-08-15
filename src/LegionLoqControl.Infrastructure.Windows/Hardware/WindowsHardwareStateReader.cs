@@ -18,7 +18,7 @@ public sealed class WindowsHardwareStateReader : IHardwareStateReader
     private readonly IFanTableReader? _fanTable;
 
     public WindowsHardwareStateReader()
-        : this(new PowerShellLenovoWmiReadInvoker(), batteryReader: null, keyboard: null, fanTable: null)
+        : this(new SystemLenovoWmiReadInvoker(), batteryReader: null, keyboard: null, fanTable: null)
     {
     }
 
@@ -56,10 +56,10 @@ public sealed class WindowsHardwareStateReader : IHardwareStateReader
 
     internal static WindowsHardwareStateReader CreatePrivilegedReadOnly() =>
         new(
-            new PowerShellLenovoWmiReadInvoker(),
+            new SystemLenovoWmiReadInvoker(),
             new EnergyDriverBatteryReader(),
             new FourZoneKeyboardHid(),
-            new PowerShellLenovoFanTableReadInvoker());
+            new SystemLenovoFanTableReadInvoker());
 
     public ValueTask<HardwareReadResult<BatteryChargeMode>> ReadBatteryChargeModeAsync(
         CancellationToken cancellationToken)
