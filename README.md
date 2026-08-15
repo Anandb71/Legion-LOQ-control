@@ -17,7 +17,7 @@ No ads, store, Lena, warranty upsell, serial numbers, or telemetry.
 
 ## Screenshots
 
-Captured on a LOQ 15IRX9 (machine type `83DV`, BIOS `NECN50WW`).
+Live session captures. Serial-free identity (model, machine type, BIOS, manufacturer) is mosaiced in the images.
 
 <p align="center">
   <img src="docs/screenshots/dashboard.png" alt="Dashboard: live charge, thermal mode, CPU/RAM/disk, and hardware session" width="880" />

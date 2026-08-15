@@ -142,3 +142,7 @@ Color never carries meaning alone. Every semantic color is paired with a label o
 - **2026-08-15:** The product mark is an L+ constructed from two instrument bars
   on canvas `#0B0D0F` with accent `#5CC8E8`. It is the Windows application icon
   and a 32 px header mark, not decorative chrome.
+- **2026-08-15:** Current hardware options are cyan chips. The header instrument
+  strip is one six-cell row with 1 px dividers. Selected tabs use only the accent
+  underline. 4-zone lighting includes a keyboard color strip. Focus rings, tooltips,
+  and the local-session badge stay on the same 1 px / 2 px radius system.

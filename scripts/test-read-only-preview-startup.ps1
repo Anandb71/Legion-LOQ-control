@@ -23,7 +23,7 @@ if ($brokerArtifacts.Count -ne 0) {
     throw "The startup smoke test accepts broker-free previews only."
 }
 
-$process = Start-Process -FilePath $executable -PassThru
+$process = Start-Process -FilePath $executable -WorkingDirectory $resolvedPreview -PassThru
 try {
     $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
     do {

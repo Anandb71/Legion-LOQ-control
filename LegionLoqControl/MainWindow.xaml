@@ -9,7 +9,6 @@
         Height="760"
         MinWidth="860"
         MinHeight="640"
-        Icon="Assets/logo.ico"
         WindowStartupLocation="CenterScreen">
     <Window.Resources>
         <DataTemplate x:Key="StateCardTemplate"
@@ -42,8 +41,9 @@
                                    Style="{StaticResource EyebrowTextStyle}"
                                    Text="{Binding Label}" />
                         <TextBlock Grid.Row="1"
-                                   Margin="0,4,0,20"
+                                   Margin="0,4,0,12"
                                    Foreground="{StaticResource MutedTextBrush}"
+                                   FontSize="12"
                                    Text="{Binding Description}" />
                         <TextBlock Grid.Row="2"
                                    Style="{StaticResource PageTitleTextStyle}"
@@ -63,14 +63,38 @@
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type vm:HardwareStateOptionViewModel}">
-                                    <Button Margin="0,0,8,0"
-                                            Padding="10,5"
+                                    <Button Padding="12,6"
                                             automation:AutomationProperties.Name="{Binding Label, StringFormat=Apply {0}}"
                                             Command="{Binding DataContext.ApplyOptionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                             CommandParameter="{Binding Token}"
                                             Content="{Binding Label}"
-                                            IsEnabled="{Binding DataContext.CanApply, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                            Style="{StaticResource BaseButtonStyle}" />
+                                            IsEnabled="{Binding DataContext.CanApply, RelativeSource={RelativeSource AncestorType=ItemsControl}}">
+                                        <Button.Style>
+                                            <Style TargetType="Button"
+                                                   BasedOn="{StaticResource ChipButtonStyle}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Value="True">
+                                                        <DataTrigger.Binding>
+                                                            <MultiBinding Converter="{StaticResource EqualityConverter}">
+                                                                <Binding Path="Label" />
+                                                                <Binding Path="Token" />
+                                                                <Binding Path="DataContext.Value"
+                                                                         RelativeSource="{RelativeSource AncestorType=ItemsControl}" />
+                                                            </MultiBinding>
+                                                        </DataTrigger.Binding>
+                                                        <Setter Property="Background"
+                                                                Value="{StaticResource ActionBrush}" />
+                                                        <Setter Property="BorderBrush"
+                                                                Value="{StaticResource ActionBrush}" />
+                                                        <Setter Property="Foreground"
+                                                                Value="{StaticResource ActionTextBrush}" />
+                                                        <Setter Property="Tag"
+                                                                Value="accent" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
@@ -107,7 +131,8 @@
 
         <DataTemplate x:Key="CapabilityItemTemplate"
                       DataType="{x:Type vm:CapabilityItemViewModel}">
-            <Grid Margin="0,10">
+            <StackPanel>
+            <Grid Margin="0,10,0,8">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
@@ -125,6 +150,8 @@
                            Style="{StaticResource EyebrowTextStyle}"
                            Text="{Binding Support}" />
             </Grid>
+            <Border Style="{StaticResource ThinSeparatorStyle}" />
+            </StackPanel>
             <DataTemplate.Triggers>
                 <DataTrigger Binding="{Binding State}"
                              Value="{x:Static vm:DashboardStateKind.Success}">
@@ -252,104 +279,56 @@
             </Grid.RowDefinitions>
 
             <Grid Grid.Row="0" Margin="0,0,0,24">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <Grid Grid.Column="0" Margin="0,0,24,0">
+                <Grid Grid.Row="0" Grid.Column="0" Margin="0,0,24,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
-                    <Image Width="32"
+                    <Image x:Name="ProductMark"
+                           Width="32"
                            Height="32"
-                           Margin="0,10,12,0"
+                           Margin="0,8,12,0"
                            VerticalAlignment="Top"
                            RenderOptions.BitmapScalingMode="HighQuality"
-                           SnapsToDevicePixels="True"
-                           Source="pack://application:,,,/Assets/logo.ico" />
+                           SnapsToDevicePixels="True" />
                     <StackPanel Grid.Column="1">
                     <TextBlock Style="{StaticResource EyebrowTextStyle}"
                                Text="LEGION + LOQ CONTROL / LIVE HARDWARE SESSION" />
-                    <TextBlock Margin="0,6,0,0"
-                               Style="{StaticResource PageTitleTextStyle}"
+                    <StackPanel Margin="0,6,0,0"
+                                automation:AutomationProperties.AutomationId="readme-redact"
+                                automation:AutomationProperties.Name="Serial-free device identity">
+                    <TextBlock Style="{StaticResource PageTitleTextStyle}"
+                               automation:AutomationProperties.AutomationId="readme-redact"
                                Text="{Binding DeviceName}" />
                     <TextBlock Margin="0,5,0,0"
                                Foreground="{StaticResource SecondaryTextBrush}"
+                               automation:AutomationProperties.AutomationId="readme-redact"
                                Text="{Binding DeviceMetadata}"
                                TextTrimming="CharacterEllipsis"
                                TextWrapping="NoWrap" />
-                    <Grid Margin="0,16,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="20" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="20" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <StackPanel Grid.Column="0">
-                            <TextBlock Style="{StaticResource EyebrowTextStyle}"
-                                       Text="POWER" />
-                            <TextBlock Margin="0,4,0,0"
-                                       Style="{StaticResource InstrumentValueTextStyle}"
-                                       Text="{Binding PowerSourceLabel}" />
-                        </StackPanel>
-                        <StackPanel Grid.Column="2">
-                            <TextBlock Style="{StaticResource EyebrowTextStyle}"
-                                       Text="CHARGE" />
-                            <TextBlock Margin="0,4,0,0"
-                                       Style="{StaticResource InstrumentValueTextStyle}"
-                                       Text="{Binding ChargeLabel}" />
-                        </StackPanel>
-                        <StackPanel Grid.Column="4">
-                            <TextBlock Style="{StaticResource EyebrowTextStyle}"
-                                       Text="CHARGING MODE" />
-                            <TextBlock Margin="0,4,0,0"
-                                       Style="{StaticResource InstrumentValueTextStyle}"
-                                       Text="{Binding ChargingModeLabel}" />
-                        </StackPanel>
-                    </Grid>
-                    <Grid Margin="0,16,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="20" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="20" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <StackPanel Grid.Column="0">
-                            <TextBlock Style="{StaticResource EyebrowTextStyle}"
-                                       Text="CPU" />
-                            <TextBlock Margin="0,4,0,0"
-                                       Style="{StaticResource InstrumentValueTextStyle}"
-                                       Text="{Binding CpuLabel}" />
-                        </StackPanel>
-                        <StackPanel Grid.Column="2">
-                            <TextBlock Style="{StaticResource EyebrowTextStyle}"
-                                       Text="RAM" />
-                            <TextBlock Margin="0,4,0,0"
-                                       Style="{StaticResource InstrumentValueTextStyle}"
-                                       Text="{Binding MemoryLabel}" />
-                        </StackPanel>
-                        <StackPanel Grid.Column="4">
-                            <TextBlock Style="{StaticResource EyebrowTextStyle}"
-                                       Text="DISK" />
-                            <TextBlock Margin="0,4,0,0"
-                                       Style="{StaticResource InstrumentValueTextStyle}"
-                                       Text="{Binding DiskLabel}" />
-                        </StackPanel>
-                    </Grid>
-                </StackPanel>
+                    </StackPanel>
+                    </StackPanel>
                 </Grid>
 
-                <StackPanel Grid.Column="1"
+                <StackPanel Grid.Row="0"
+                            Grid.Column="1"
                             MaxWidth="280"
                             HorizontalAlignment="Right"
                             VerticalAlignment="Top">
-                    <TextBlock HorizontalAlignment="Right"
-                               Style="{StaticResource EyebrowTextStyle}"
-                               Text="LOCAL · NO TELEMETRY" />
+                    <Border HorizontalAlignment="Right"
+                            Style="{StaticResource StatusBadgeBorderStyle}">
+                        <TextBlock Style="{StaticResource EyebrowTextStyle}"
+                                   Text="LOCAL · NO TELEMETRY" />
+                    </Border>
                     <TextBlock Margin="0,6,0,0"
                                HorizontalAlignment="Right"
                                Foreground="{StaticResource MutedTextBrush}"
@@ -362,6 +341,84 @@
                                TextAlignment="Right"
                                TextWrapping="Wrap" />
                 </StackPanel>
+
+                <Border Grid.Row="1"
+                        Grid.ColumnSpan="2"
+                        Margin="0,16,0,0"
+                        Padding="16,12"
+                        Style="{StaticResource SurfaceBorderStyle}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="1" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="1" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="1" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="1" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="1" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                            <TextBlock Style="{StaticResource EyebrowTextStyle}" Text="POWER" />
+                            <TextBlock Margin="0,6,0,0"
+                                       Style="{StaticResource InstrumentValueTextStyle}"
+                                       Text="{Binding PowerSourceLabel}" />
+                        </StackPanel>
+                        <Border Grid.Column="1"
+                                Width="1"
+                                Margin="0,2"
+                                Background="{StaticResource BorderBrush}" />
+                        <StackPanel Grid.Column="2" Margin="12,0">
+                            <TextBlock Style="{StaticResource EyebrowTextStyle}" Text="CHARGE" />
+                            <TextBlock Margin="0,6,0,0"
+                                       Style="{StaticResource InstrumentValueTextStyle}"
+                                       Text="{Binding ChargeLabel}" />
+                        </StackPanel>
+                        <Border Grid.Column="3"
+                                Width="1"
+                                Margin="0,2"
+                                Background="{StaticResource BorderBrush}" />
+                        <StackPanel Grid.Column="4" Margin="12,0">
+                            <TextBlock Style="{StaticResource EyebrowTextStyle}" Text="MODE" />
+                            <TextBlock Margin="0,6,0,0"
+                                       Style="{StaticResource InstrumentValueTextStyle}"
+                                       Text="{Binding ChargingModeLabel}" />
+                        </StackPanel>
+                        <Border Grid.Column="5"
+                                Width="1"
+                                Margin="0,2"
+                                Background="{StaticResource BorderBrush}" />
+                        <StackPanel Grid.Column="6" Margin="12,0">
+                            <TextBlock Style="{StaticResource EyebrowTextStyle}" Text="CPU" />
+                            <TextBlock Margin="0,6,0,0"
+                                       Style="{StaticResource InstrumentValueTextStyle}"
+                                       Text="{Binding CpuLabel}" />
+                        </StackPanel>
+                        <Border Grid.Column="7"
+                                Width="1"
+                                Margin="0,2"
+                                Background="{StaticResource BorderBrush}" />
+                        <StackPanel Grid.Column="8" Margin="12,0">
+                            <TextBlock Style="{StaticResource EyebrowTextStyle}" Text="RAM" />
+                            <TextBlock Margin="0,6,0,0"
+                                       Style="{StaticResource InstrumentValueTextStyle}"
+                                       Text="{Binding MemoryLabel}" />
+                        </StackPanel>
+                        <Border Grid.Column="9"
+                                Width="1"
+                                Margin="0,2"
+                                Background="{StaticResource BorderBrush}" />
+                        <StackPanel Grid.Column="10" Margin="12,0,0,0">
+                            <TextBlock Style="{StaticResource EyebrowTextStyle}" Text="DISK" />
+                            <TextBlock Margin="0,6,0,0"
+                                       Style="{StaticResource InstrumentValueTextStyle}"
+                                       Text="{Binding DiskLabel}" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
             </Grid>
 
             <Border Grid.Row="1"
@@ -398,7 +455,8 @@
                     </Border>
 
                     <StackPanel Grid.Column="1" Margin="20,16">
-                        <TextBlock FontWeight="SemiBold"
+                        <TextBlock FontFamily="{StaticResource DisplayFont}"
+                                   FontWeight="SemiBold"
                                    Text="{Binding BannerTitle}" />
                         <TextBlock Margin="0,4,16,0"
                                    Foreground="{StaticResource SecondaryTextBrush}"
@@ -588,12 +646,17 @@
                         <StackPanel Grid.Column="0">
                             <TextBlock Style="{StaticResource EyebrowTextStyle}"
                                        Text="PROFILE PREVIEW / APPLY WOULD-CHANGE TARGETS" />
-                            <TextBlock Margin="0,6,0,0"
-                                       Style="{StaticResource PageTitleTextStyle}"
+                            <StackPanel Margin="0,6,0,0"
+                                        automation:AutomationProperties.AutomationId="readme-redact"
+                                        automation:AutomationProperties.Name="Serial-free device identity">
+                            <TextBlock Style="{StaticResource PageTitleTextStyle}"
+                                       automation:AutomationProperties.AutomationId="readme-redact"
                                        Text="{Binding DataContext.DeviceName, RelativeSource={RelativeSource AncestorType=Window}}" />
                             <TextBlock Margin="0,5,0,0"
                                        Foreground="{StaticResource SecondaryTextBrush}"
+                                       automation:AutomationProperties.AutomationId="readme-redact"
                                        Text="{Binding DataContext.DeviceMetadata, RelativeSource={RelativeSource AncestorType=Window}}" />
+                            </StackPanel>
                         </StackPanel>
                         <StackPanel Grid.Column="1"
                                     HorizontalAlignment="Right"
@@ -644,7 +707,8 @@
                                 </Border.Style>
                             </Border>
                             <StackPanel Grid.Column="1" Margin="20,16">
-                                <TextBlock FontWeight="SemiBold"
+                                <TextBlock FontFamily="{StaticResource DisplayFont}"
+                                           FontWeight="SemiBold"
                                            Text="{Binding WorkspaceTitle}" />
                                 <TextBlock Margin="0,4,0,0"
                                            Foreground="{StaticResource SecondaryTextBrush}"

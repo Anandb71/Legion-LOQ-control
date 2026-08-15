@@ -338,9 +338,9 @@ public sealed class ElevatedHardwareStateBrokerClient : IDisposable
                 ?? throw new ArgumentException("The broker path has no directory.", nameof(value)));
         if (!string.Equals(expectedDirectory, actualDirectory, StringComparison.OrdinalIgnoreCase))
             throw new ArgumentException("The broker must be beside the client executable.", nameof(value));
-        if (!File.Exists(fullPath))
-            throw new BrokerTransportException("broker_not_found");
 
+        // A missing sibling is a runtime install status, not a construction error.
+        // Broker-free preview packages must still open the unelevated window.
         return fullPath;
     }
 

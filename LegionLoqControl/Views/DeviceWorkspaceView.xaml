@@ -17,7 +17,9 @@
 
             <Border Margin="0,0,0,20"
                     Padding="20"
-                    Style="{StaticResource SurfaceBorderStyle}">
+                    Style="{StaticResource SurfaceBorderStyle}"
+                    automation:AutomationProperties.AutomationId="readme-redact"
+                    automation:AutomationProperties.Name="Serial-free identity fields">
                 <StackPanel>
                     <Grid Margin="0,0,0,12">
                         <Grid.ColumnDefinitions>
@@ -28,15 +30,18 @@
                         <TextBlock Style="{StaticResource EyebrowTextStyle}" Text="MANUFACTURER" />
                         <TextBlock Grid.Column="1"
                                    FontWeight="SemiBold"
+                                   VerticalAlignment="Center"
+                                   automation:AutomationProperties.AutomationId="readme-redact"
                                    Text="{Binding ManufacturerLabel}" />
                         <Button Grid.Column="2"
                                 automation:AutomationProperties.Name="Copy manufacturer"
                                 Command="{Binding CopyDeviceFieldCommand}"
                                 CommandParameter="{Binding ManufacturerLabel}"
                                 Content="Copy"
-                                Style="{StaticResource BaseButtonStyle}" />
+                                Style="{StaticResource CompactButtonStyle}" />
                     </Grid>
-                    <Grid Margin="0,0,0,12">
+                    <Border Height="1" Background="{StaticResource BorderBrush}" />
+                    <Grid Margin="0,12">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="160" />
                             <ColumnDefinition Width="*" />
@@ -45,15 +50,18 @@
                         <TextBlock Style="{StaticResource EyebrowTextStyle}" Text="MODEL" />
                         <TextBlock Grid.Column="1"
                                    FontWeight="SemiBold"
+                                   VerticalAlignment="Center"
+                                   automation:AutomationProperties.AutomationId="readme-redact"
                                    Text="{Binding ModelLabel}" />
                         <Button Grid.Column="2"
                                 automation:AutomationProperties.Name="Copy model"
                                 Command="{Binding CopyDeviceFieldCommand}"
                                 CommandParameter="{Binding ModelLabel}"
                                 Content="Copy"
-                                Style="{StaticResource BaseButtonStyle}" />
+                                Style="{StaticResource CompactButtonStyle}" />
                     </Grid>
-                    <Grid Margin="0,0,0,12">
+                    <Border Height="1" Background="{StaticResource BorderBrush}" />
+                    <Grid Margin="0,12">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="160" />
                             <ColumnDefinition Width="*" />
@@ -62,15 +70,18 @@
                         <TextBlock Style="{StaticResource EyebrowTextStyle}" Text="MACHINE TYPE" />
                         <TextBlock Grid.Column="1"
                                    FontWeight="SemiBold"
+                                   VerticalAlignment="Center"
+                                   automation:AutomationProperties.AutomationId="readme-redact"
                                    Text="{Binding MachineTypeLabel}" />
                         <Button Grid.Column="2"
                                 automation:AutomationProperties.Name="Copy machine type"
                                 Command="{Binding CopyDeviceFieldCommand}"
                                 CommandParameter="{Binding MachineTypeLabel}"
                                 Content="Copy"
-                                Style="{StaticResource BaseButtonStyle}" />
+                                Style="{StaticResource CompactButtonStyle}" />
                     </Grid>
-                    <Grid>
+                    <Border Height="1" Background="{StaticResource BorderBrush}" />
+                    <Grid Margin="0,12,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="160" />
                             <ColumnDefinition Width="*" />
@@ -79,13 +90,15 @@
                         <TextBlock Style="{StaticResource EyebrowTextStyle}" Text="BIOS" />
                         <TextBlock Grid.Column="1"
                                    FontWeight="SemiBold"
+                                   VerticalAlignment="Center"
+                                   automation:AutomationProperties.AutomationId="readme-redact"
                                    Text="{Binding BiosVersionLabel}" />
                         <Button Grid.Column="2"
                                 automation:AutomationProperties.Name="Copy BIOS version"
                                 Command="{Binding CopyDeviceFieldCommand}"
                                 CommandParameter="{Binding BiosVersionLabel}"
                                 Content="Copy"
-                                Style="{StaticResource BaseButtonStyle}" />
+                                Style="{StaticResource CompactButtonStyle}" />
                     </Grid>
                 </StackPanel>
             </Border>

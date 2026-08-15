@@ -116,12 +116,17 @@
                 <StackPanel Grid.Column="0">
                     <TextBlock Style="{StaticResource EyebrowTextStyle}"
                                Text="AUTOMATION / OPT-IN SESSION WATCHER" />
-                    <TextBlock Margin="0,6,0,0"
-                               Style="{StaticResource PageTitleTextStyle}"
+                    <StackPanel Margin="0,6,0,0"
+                                automation:AutomationProperties.AutomationId="readme-redact"
+                                automation:AutomationProperties.Name="Serial-free device identity">
+                    <TextBlock Style="{StaticResource PageTitleTextStyle}"
+                               automation:AutomationProperties.AutomationId="readme-redact"
                                Text="{Binding DataContext.DeviceName, RelativeSource={RelativeSource AncestorType=Window}}" />
                     <TextBlock Margin="0,5,0,0"
                                Foreground="{StaticResource SecondaryTextBrush}"
+                               automation:AutomationProperties.AutomationId="readme-redact"
                                Text="{Binding DataContext.DeviceMetadata, RelativeSource={RelativeSource AncestorType=Window}}" />
+                    </StackPanel>
                 </StackPanel>
                 <StackPanel Grid.Column="1"
                             HorizontalAlignment="Right"
@@ -170,7 +175,8 @@
                         </Border.Style>
                     </Border>
                     <StackPanel Grid.Column="1" Margin="20,16">
-                        <TextBlock FontWeight="SemiBold"
+                        <TextBlock FontFamily="{StaticResource DisplayFont}"
+                                   FontWeight="SemiBold"
                                    Text="{Binding WorkspaceTitle}" />
                         <TextBlock Margin="0,4,0,0"
                                    Foreground="{StaticResource SecondaryTextBrush}"
