@@ -16,7 +16,8 @@ public sealed class HardwareStateService
     }
 
     public async ValueTask<HardwareStateSnapshot> CaptureAsync(
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool includeFanTable = true)
     {
         HardwareReadResult<BatteryChargeMode> battery = await _reader
             .ReadBatteryChargeModeAsync(cancellationToken)
@@ -25,8 +26,9 @@ public sealed class HardwareStateService
 
         ValueTask<HardwareReadResult<ThermalMode>> thermalTask = _reader
             .ReadThermalModeAsync(cancellationToken);
-        ValueTask<HardwareReadResult<FanTableSnapshot>> fanTask = _reader
-            .ReadFanTableAsync(cancellationToken);
+        ValueTask<HardwareReadResult<FanTableSnapshot>> fanTask = includeFanTable
+            ? _reader.ReadFanTableAsync(cancellationToken)
+            : default;
 
         HardwareReadResult<ThermalMode> thermal = await thermalTask.ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
@@ -46,7 +48,11 @@ public sealed class HardwareStateService
             .ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
 
-        HardwareReadResult<FanTableSnapshot> fanTable = await fanTask.ConfigureAwait(false);
+        HardwareReadResult<FanTableSnapshot> fanTable = includeFanTable
+            ? await fanTask.ConfigureAwait(false)
+            : HardwareReadResult<FanTableSnapshot>.Failure(
+                HardwareReadStatus.Unavailable,
+                "fan_table_not_requested");
 
         return new HardwareStateSnapshot(
             _timeProvider.GetUtcNow(),

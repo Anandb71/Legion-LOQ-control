@@ -117,6 +117,28 @@ public sealed class DashboardViewModelTests
     }
 
     [Fact]
+    public async Task Applying_keeps_the_last_verified_fan_table()
+    {
+        var source = new StubDashboardDataSource(CreateMachineSnapshot(), CreateHardwareSnapshot())
+        {
+            WriteSnapshot = CreateHardwareSnapshot() with
+            {
+                ThermalMode = HardwareReadResult<ThermalMode>.Success(ThermalMode.Quiet),
+                FanTable = HardwareReadResult<FanTableSnapshot>.Failure(
+                    HardwareReadStatus.Unavailable,
+                    "fan_table_not_requested"),
+            },
+        };
+        var viewModel = new MainWindowViewModel(source);
+        await viewModel.InitializeAsync();
+
+        await viewModel.Thermal.ApplyOptionCommand.ExecuteAsync(nameof(ThermalMode.Quiet));
+
+        Assert.Equal("Quiet", viewModel.Thermal.Value);
+        Assert.Contains("2 OEM points", viewModel.Fans.Value, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Applying_a_battery_option_uses_the_verified_expected_state()
     {
         var source = new StubDashboardDataSource(CreateMachineSnapshot(), CreateHardwareSnapshot());
@@ -299,6 +321,8 @@ public sealed class DashboardViewModelTests
 
         public IReadOnlyList<HardwareWriteOperation>? LastWriteOperations { get; private set; }
 
+        public HardwareStateSnapshot? WriteSnapshot { get; set; }
+
         public ValueTask<HardwareStateSnapshot> ApplyHardwareWriteAsync(
             HardwareWriteTarget target,
             string expected,
@@ -324,7 +348,7 @@ public sealed class DashboardViewModelTests
             if (ReadException is not null)
                 return ValueTask.FromException<HardwareStateSnapshot>(ReadException);
 
-            return ValueTask.FromResult(hardwareStateSnapshot);
+            return ValueTask.FromResult(WriteSnapshot ?? hardwareStateSnapshot);
         }
 
         public void Dispose()

@@ -419,6 +419,23 @@ public sealed class HardwareStateReaderTests
         Assert.Equal(ThermalMode.Balanced, snapshot.ThermalMode.Value);
     }
 
+    [Fact]
+    public async Task State_service_can_skip_the_fan_table_probe()
+    {
+        var reader = new OrderedStateReader();
+        var service = new HardwareStateService(reader);
+
+        HardwareStateSnapshot snapshot = await service.CaptureAsync(
+            TestContext.Current.CancellationToken,
+            includeFanTable: false);
+
+        Assert.Equal(
+            ["battery", "thermal", "overdrive", "igpu", "keyboard"],
+            reader.Operations);
+        Assert.Equal(HardwareReadStatus.Unavailable, snapshot.FanTable.Status);
+        Assert.Equal("fan_table_not_requested", snapshot.FanTable.ErrorCode);
+    }
+
     private sealed class StubInvoker : ILenovoWmiReadInvoker
     {
         public Dictionary<LenovoWmiReadOperation, uint> Values { get; } = [];

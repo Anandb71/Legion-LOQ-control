@@ -296,7 +296,7 @@ public sealed class HardwareStateWriteService
     private async ValueTask<HardwareStateSnapshot> CaptureAsync(
         CancellationToken cancellationToken) =>
         await new HardwareStateService(_createReader())
-            .CaptureAsync(cancellationToken)
+            .CaptureAsync(cancellationToken, includeFanTable: false)
             .ConfigureAwait(false);
 
     private async ValueTask<HardwareStateSnapshot> VerifyAsync<T>(

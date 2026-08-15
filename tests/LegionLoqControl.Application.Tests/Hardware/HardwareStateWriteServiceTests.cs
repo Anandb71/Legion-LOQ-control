@@ -24,6 +24,9 @@ public sealed class HardwareStateWriteServiceTests
         Assert.Equal(ThermalMode.Performance, snapshot.ThermalMode.Value);
         Assert.Equal(ThermalMode.Performance, writer.LastThermal);
         Assert.Equal(2, reader.CaptureCount);
+        Assert.Equal(0, reader.FanReadCount);
+        Assert.Equal(HardwareReadStatus.Unavailable, snapshot.FanTable.Status);
+        Assert.Equal("fan_table_not_requested", snapshot.FanTable.ErrorCode);
     }
 
     [Fact]
@@ -206,6 +209,8 @@ public sealed class HardwareStateWriteServiceTests
 
         public int CaptureCount { get; private set; }
 
+        public int FanReadCount { get; private set; }
+
         public ValueTask<HardwareReadResult<BatteryChargeMode>> ReadBatteryChargeModeAsync(
             CancellationToken cancellationToken) =>
             ValueTask.FromResult(HardwareReadResult<BatteryChargeMode>.Success(_battery.Dequeue()));
@@ -232,10 +237,13 @@ public sealed class HardwareStateWriteServiceTests
                 HardwareReadResult<FourZoneKeyboardMode>.Success(FourZoneKeyboardMode.Unknown));
 
         public ValueTask<HardwareReadResult<FanTableSnapshot>> ReadFanTableAsync(
-            CancellationToken cancellationToken) =>
-            ValueTask.FromResult(HardwareReadResult<FanTableSnapshot>.Failure(
+            CancellationToken cancellationToken)
+        {
+            FanReadCount++;
+            return ValueTask.FromResult(HardwareReadResult<FanTableSnapshot>.Failure(
                 HardwareReadStatus.Unavailable,
                 "fan_table_not_opened"));
+        }
     }
 
     private sealed class StubWriter : IHardwareStateWriter

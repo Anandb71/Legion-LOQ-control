@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Selected WPF software rendering while the failing hardware-composition path is qualified
 - Replaced reflection-based inventory JSON with an explicit privacy-bounded export contract
 - Keep one elevated broker for the app session so Windows asks once at start
+- Skip the fan-table probe on apply expected-state and readback captures
 
 ### Security
 

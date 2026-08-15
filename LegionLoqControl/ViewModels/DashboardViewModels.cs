@@ -645,6 +645,13 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     private void ApplyVerifiedSnapshot(HardwareStateSnapshot snapshot)
     {
+        HardwareStateSnapshot? current = Session.HardwareStateSnapshot;
+        if (snapshot.FanTable.Status != HardwareReadStatus.Success &&
+            current?.FanTable.Status == HardwareReadStatus.Success)
+        {
+            snapshot = snapshot with { FanTable = current.FanTable };
+        }
+
         Session.UpdateHardwareStateSnapshot(snapshot);
         Battery.Apply(snapshot.BatteryChargeMode, FormatBatteryMode);
         Thermal.Apply(snapshot.ThermalMode, FormatThermalMode);

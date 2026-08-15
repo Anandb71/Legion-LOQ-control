@@ -12,7 +12,8 @@ The rebuild is write-gated. Inventory, refresh, preview, and export stay read-on
   battery charge mode, and 4-zone keyboard brightness only after an explicit click
   through the session broker;
 - each apply is one typed broker write, or one battery-then-thermal batch, with a fresh
-  expected-state check and readback;
+  expected-state check and readback; those write captures skip `Fan_Get_Table` because
+  the fan table is not a write target;
 - the elevated broker may read `LENOVO_FAN_METHOD.Fan_Get_Table` with FanID `0` and
   SensorID `0` and show the bounded OEM table; `Fan_Set_Table` and full-speed methods
   stay disabled;
