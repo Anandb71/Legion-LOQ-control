@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using LegionLoqControl.Application.Broker;
 using LegionLoqControl.Contracts.Broker;
 using LegionLoqControl.Infrastructure.Windows.Platform;
 
@@ -13,6 +14,8 @@ public sealed class ElevatedHardwareStateBrokerClient
     private static readonly TimeSpan ResponseDrainTimeout = TimeSpan.FromSeconds(2);
     private static readonly TimeSpan ExitTimeout = TimeSpan.FromSeconds(5);
     private readonly string _brokerExecutablePath;
+    private readonly BrokerInstallMode _installMode;
+    private readonly Func<string, string, BrokerInstallAssessment> _assessInstall;
 
     public ElevatedHardwareStateBrokerClient()
         : this(Path.Combine(AppContext.BaseDirectory, BrokerExecutableName))
@@ -20,16 +23,42 @@ public sealed class ElevatedHardwareStateBrokerClient
     }
 
     internal ElevatedHardwareStateBrokerClient(string brokerExecutablePath)
+        : this(
+            brokerExecutablePath,
+            BrokerInstallPolicy.ResolveMode(
+                Environment.GetEnvironmentVariable("LEGIONLOQ_BROKER_INSTALL_MODE")))
+    {
+    }
+
+    internal ElevatedHardwareStateBrokerClient(
+        string brokerExecutablePath,
+        BrokerInstallMode installMode,
+        Func<string, string, BrokerInstallAssessment>? assessInstall = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(brokerExecutablePath);
+        if (!Enum.IsDefined(installMode))
+            throw new ArgumentOutOfRangeException(nameof(installMode));
+
         _brokerExecutablePath = ValidateBrokerPath(brokerExecutablePath);
+        _installMode = installMode;
+        _assessInstall = assessInstall ?? WindowsBrokerInstallInspector.Assess;
     }
+
+    public BrokerInstallAssessment AssessInstall() =>
+        _assessInstall(_brokerExecutablePath, AppContext.BaseDirectory);
 
     public async ValueTask<HardwareStateReadResponse> ReadAsync(
         CancellationToken cancellationToken)
     {
         WindowsPlatform.EnsureSupported();
         cancellationToken.ThrowIfCancellationRequested();
+
+        BrokerInstallAssessment install = AssessInstall();
+        if (!BrokerInstallPolicy.Allows(install, _installMode))
+        {
+            throw new BrokerTransportException(
+                BrokerInstallPolicy.RefusalCode(install, _installMode));
+        }
 
         Guid requestId = Guid.NewGuid();
         string nonce = BrokerProtocol.CreateNonce();

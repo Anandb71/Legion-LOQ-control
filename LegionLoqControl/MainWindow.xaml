@@ -259,6 +259,13 @@
                                HorizontalAlignment="Right"
                                Foreground="{StaticResource MutedTextBrush}"
                                Text="{Binding InventoryStatus}" />
+                    <TextBlock Margin="0,4,0,0"
+                               HorizontalAlignment="Right"
+                               FontSize="10"
+                               Foreground="{StaticResource MutedTextBrush}"
+                               Text="{Binding BrokerInstallStatus}"
+                               TextAlignment="Right"
+                               TextWrapping="Wrap" />
                 </StackPanel>
             </Grid>
 

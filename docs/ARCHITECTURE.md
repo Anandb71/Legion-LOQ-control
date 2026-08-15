@@ -129,8 +129,10 @@ anonymous impersonation, and the frame is strict JSON capped at 64 KiB. The brok
 one request and has a 30-second lifetime.
 
 .NET's `PipeOptions.CurrentUserOnly` is not used because it also enforces equal elevation
-levels, which would reject this split-token connection. Production use still requires a
-signed broker and administrator-protected installation directory.
+levels, which would reject this split-token connection. Before launch, the client assesses
+the sibling path: development mode may use an unsigned user-writable copy, while
+production mode requires an administrator-owned directory and an Authenticode signature.
+See [`BROKER_INSTALL.md`](BROKER_INSTALL.md).
 
 ## Profile preview flow
 

@@ -8,9 +8,11 @@ isolated broker, capability validation, serialization, readback, and recovery co
 
 Do not publish a build that bypasses `HardwareWritePolicy`.
 Do not publish the elevated broker until it is signed and installed in an
-administrator-protected directory. The current broker is a read-only development
-validation path and must not gain a write dispatcher before the gates in
-[SAFETY.md](SAFETY.md) pass review.
+administrator-protected directory. The install policy in
+[`docs/BROKER_INSTALL.md`](docs/BROKER_INSTALL.md) distinguishes a development sibling
+from a production install and refuses production-mode launches from user-writable or
+unsigned locations. The current broker is a read-only development validation path and
+must not gain a write dispatcher before the gates in [SAFETY.md](SAFETY.md) pass review.
 
 The temporary CIM bridge may launch only the built-in system Windows PowerShell executable
 with profiles disabled, a system-only module path, and the repository's static encoded

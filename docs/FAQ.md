@@ -17,7 +17,7 @@ automation execution remain disabled until their safety gates pass.
 
 The release-grade read-only foundation now has hardened CI and preview packaging,
 accessibility contracts, diagnostics export, and release documentation. Remaining work
-includes broker signing and install-ACL design, and
+includes Authenticode signing, a protected installer, and
 supported Windows/scaling validation. See the [rebuild roadmap](ROADMAP.md).
 
 ## Can a saved profile change my hardware?

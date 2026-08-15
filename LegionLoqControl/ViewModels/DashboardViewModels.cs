@@ -4,6 +4,7 @@ using System.Reflection;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LegionLoqControl.Application.Automation;
+using LegionLoqControl.Application.Broker;
 using LegionLoqControl.Application.Diagnostics;
 using LegionLoqControl.Application.Profiles;
 using LegionLoqControl.Domain.Capabilities;
@@ -114,6 +115,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private string _inventoryStatus = "Inventory pending";
 
     [ObservableProperty]
+    private string _brokerInstallStatus = "Broker install not assessed";
+
+    [ObservableProperty]
     private string _bannerTitle = "Read-only safety mode";
 
     [ObservableProperty]
@@ -220,6 +224,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
             int candidateCount = snapshot.Capabilities.Count(static evidence =>
                 evidence.Support is CapabilitySupport.Unknown or CapabilitySupport.Supported);
             InventoryStatus = $"Inventory complete · {candidateCount} candidate interfaces";
+            ApplyBrokerInstall(_dataSource.AssessBrokerInstall());
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
@@ -356,11 +361,38 @@ public sealed partial class MainWindowViewModel : ObservableObject
                 "The broker reached its time limit and stopped without changing hardware.",
             "broker_peer_mismatch" or "broker_authorization_failed" =>
                 "The broker rejected the connection because its security checks did not match.",
+            "broker_install_unprotected" =>
+                "The broker is not in an administrator-protected directory, so this " +
+                "production-mode read was refused.",
+            "broker_unsigned" =>
+                "The broker is unsigned, so this production-mode read was refused.",
+            "broker_signature_invalid" =>
+                "The broker signature is invalid, so no privileged read ran.",
             _ => "The read broker could not verify hardware state. No write was attempted.",
         };
         BannerState = errorCode == "broker_elevation_cancelled"
             ? DashboardStateKind.Warning
             : DashboardStateKind.Error;
+    }
+
+    private void ApplyBrokerInstall(BrokerInstallAssessment assessment)
+    {
+        ArgumentNullException.ThrowIfNull(assessment);
+        BrokerInstallStatus = assessment.StatusCode switch
+        {
+            "broker_not_found" =>
+                "Broker absent · preview package stays unelevated",
+            "broker_install_development" =>
+                "Development broker · unsigned sibling, not a public install",
+            "broker_install_protected" =>
+                "Protected broker · signed install directory",
+            "broker_unsigned" =>
+                "Broker layout is protected but the executable is unsigned",
+            "broker_signature_invalid" =>
+                "Broker signature is invalid · privileged reads stay blocked",
+            _ =>
+                "Broker install is unprotected · production reads stay blocked",
+        };
     }
 
     private static string Display(Observation observation) =>

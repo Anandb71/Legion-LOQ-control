@@ -59,7 +59,8 @@ A public package containing the elevated broker is prohibited until all of these
 implemented and reviewed:
 
 - Authenticode signing for the UI, broker, installer, and update metadata;
-- administrator-protected installation directories and ACL verification;
+- administrator-protected installation directories that pass
+  [`BROKER_INSTALL.md`](BROKER_INSTALL.md) in production mode;
 - a signed, versioned installer with clean install, upgrade, rollback, and uninstall tests;
 - release provenance, checksums, software bill of materials, and reproducible inputs;
 - exact supported-model and BIOS declarations;

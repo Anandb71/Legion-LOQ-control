@@ -41,8 +41,10 @@ dotnet run --project src/LegionLoqControl.Diagnostics --configuration Release --
 ```
 
 This displays UAC and runs the copied sibling broker for one read request. Do not automate
-the prompt or use the development broker for writes. Release use remains blocked on code
-signing and administrator-protected installation ACLs.
+the prompt or use the development broker for writes. The default install mode is
+`development`, which permits that unsigned sibling after the prompt. Set
+`LEGIONLOQ_BROKER_INSTALL_MODE=production` only to verify that unsigned or user-writable
+paths are refused before UAC. See [`BROKER_INSTALL.md`](BROKER_INSTALL.md).
 
 Run the read-only desktop shell:
 

@@ -34,6 +34,9 @@ public sealed class DashboardDataSourceTests
 
         Assert.Equal("broker_not_found", exception.ErrorCode);
         Assert.Equal(1, brokerReadCount);
+
+        _ = source.AssessBrokerInstall();
+        Assert.Equal(1, brokerReadCount);
     }
 
     private sealed class StubIdentitySource : IMachineIdentitySource

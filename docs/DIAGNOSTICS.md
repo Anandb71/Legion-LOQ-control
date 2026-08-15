@@ -96,8 +96,9 @@ account across the UAC boundary; mutual PID checks prevent an unrelated local pr
 being accepted.
 
 This remains a development validation path. The broker is unsigned and copied from the
-local build output; production use is blocked on code signing and administrator-protected
-installation ACLs. It has no write request type or write dispatcher.
+local build output. Development mode may launch that sibling after UAC; production mode
+refuses it before the prompt. See [`BROKER_INSTALL.md`](BROKER_INSTALL.md). The broker has
+no write request type or write dispatcher.
 
 On LOQ 15IRX9 `83DV`, BIOS `NECN50WW`, the broker validated Boolean-success/UInt32-data
 responses for Performance thermal mode (raw `3`), disabled display overdrive (raw `0`),

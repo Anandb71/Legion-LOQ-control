@@ -1,3 +1,5 @@
+using System.IO;
+using LegionLoqControl.Application.Broker;
 using LegionLoqControl.Application.Diagnostics;
 using LegionLoqControl.Contracts.Broker;
 using LegionLoqControl.Domain.Diagnostics;
@@ -12,6 +14,8 @@ public interface IDashboardDataSource
 
     ValueTask<HardwareStateSnapshot> ReadHardwareStateAsync(
         CancellationToken cancellationToken);
+
+    BrokerInstallAssessment AssessBrokerInstall();
 }
 
 public sealed class DashboardDataSourceException : Exception
@@ -38,6 +42,7 @@ public sealed class DashboardDataSource : IDashboardDataSource
     private readonly MachineDiagnosticsService _diagnostics;
     private readonly Func<CancellationToken, ValueTask<HardwareStateReadResponse>>
         _readHardwareStateAsync;
+    private readonly Func<BrokerInstallAssessment> _assessBrokerInstall;
 
     public DashboardDataSource()
         : this(
@@ -45,21 +50,33 @@ public sealed class DashboardDataSource : IDashboardDataSource
                 new WindowsMachineIdentitySource(),
                 [new WindowsCapabilityProbe()]),
             static cancellationToken =>
-                new ElevatedHardwareStateBrokerClient().ReadAsync(cancellationToken))
+                new ElevatedHardwareStateBrokerClient().ReadAsync(cancellationToken),
+            AssessLocalBrokerInstall)
     {
     }
 
     internal DashboardDataSource(
         MachineDiagnosticsService diagnostics,
-        Func<CancellationToken, ValueTask<HardwareStateReadResponse>> readHardwareStateAsync)
+        Func<CancellationToken, ValueTask<HardwareStateReadResponse>> readHardwareStateAsync,
+        Func<BrokerInstallAssessment>? assessBrokerInstall = null)
     {
         _diagnostics = diagnostics ?? throw new ArgumentNullException(nameof(diagnostics));
         _readHardwareStateAsync = readHardwareStateAsync ??
             throw new ArgumentNullException(nameof(readHardwareStateAsync));
+        _assessBrokerInstall = assessBrokerInstall ?? AssessLocalBrokerInstall;
     }
+
+    private static BrokerInstallAssessment AssessLocalBrokerInstall() =>
+        WindowsBrokerInstallInspector.Assess(
+            Path.Combine(
+                AppContext.BaseDirectory,
+                ElevatedHardwareStateBrokerClient.BrokerExecutableName),
+            AppContext.BaseDirectory);
 
     public Task<MachineSnapshot> CaptureMachineAsync(CancellationToken cancellationToken) =>
         _diagnostics.CaptureAsync(cancellationToken);
+
+    public BrokerInstallAssessment AssessBrokerInstall() => _assessBrokerInstall();
 
     public async ValueTask<HardwareStateSnapshot> ReadHardwareStateAsync(
         CancellationToken cancellationToken)

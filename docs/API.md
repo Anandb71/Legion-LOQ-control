@@ -119,3 +119,9 @@ error-code syntax; domain constructors are not exposed for deserialization.
 `LegionLoqControl.Broker.exe`, performs the one-request exchange, validates the response,
 and maps cancellation, timeout, elevation rejection, peer mismatch, and malformed response
 to stable transport error codes.
+
+`BrokerInstallPolicy` classifies that sibling as missing, development, protected, or
+unprotected from owner/DACL evidence and Authenticode state. Production mode refuses
+unsigned or user-writable installs before UAC with `broker_install_unprotected`,
+`broker_unsigned`, or `broker_signature_invalid`. The dashboard shows the assessment
+without launching the broker.

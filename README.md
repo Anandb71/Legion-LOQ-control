@@ -24,7 +24,8 @@ Working today:
 - a versioned, explicitly allowlisted diagnostics report with atomic in-app export of
   retained snapshots and no export-triggered read or elevation;
 - a short-lived, read-only UAC broker with strict framing, a one-time nonce, peer-process
-  checks, a current-user pipe ACL, and no write dispatcher;
+  checks, a current-user pipe ACL, no write dispatcher, and an install policy that keeps
+  unsigned sibling launches in development mode;
 - an unelevated precision dashboard with explicit brokered state refresh and no reference
   to legacy hardware writers;
 - strict, versioned local battery and thermal drafts with typed current-versus-target
@@ -52,7 +53,8 @@ Not enabled today:
 The manual CI preview artifact is intentionally broker-free and short-lived; it is not a
 public release. See [the preview boundary](docs/READ_ONLY_PREVIEW.md).
 
-See [SAFETY.md](SAFETY.md), [architecture](docs/ARCHITECTURE.md), and the
+See [SAFETY.md](SAFETY.md), [architecture](docs/ARCHITECTURE.md), the
+[broker install policy](docs/BROKER_INSTALL.md), and the
 [current evidence policy](docs/SUPPORTED_MODELS.md). The staged path from read-only
 profile and automation previews to validated controls is tracked in the
 [rebuild roadmap](docs/ROADMAP.md). Artifact classes and production blockers are defined in

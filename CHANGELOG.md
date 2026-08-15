@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Versioned atomic JSON stores for profiles and automation rules
 - Cross-process exclusive locking for local profile and automation JSON
 - Versioned, allowlisted diagnostics reports with atomic dashboard export
+- Broker install policy that refuses production launches from unsigned or user-writable paths
 - Locked dependency restore, comprehensive automated tests, CodeQL, and accessibility contracts
 - Manually generated, short-lived, broker-free read-only preview artifact
 
@@ -39,8 +40,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Broker IPC uses a random pipe, current-user ACL, one-time nonce, strict framing, and
   mutual process-ID checks
 - WMI reads use fixed getter names, static script text, capped output, and bounded execution
-- Public release packaging is blocked until broker signing and protected installation ACLs
-  are implemented
+- Production-mode broker launches are refused when the sibling path is unsigned or
+  user-writable; public release packaging still requires Authenticode and a protected
+  installer
 
 ---
 

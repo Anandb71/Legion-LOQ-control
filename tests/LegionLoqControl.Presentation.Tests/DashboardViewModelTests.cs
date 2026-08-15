@@ -1,3 +1,4 @@
+using LegionLoqControl.Application.Broker;
 using LegionLoqControl.Domain.Capabilities;
 using LegionLoqControl.Domain.Controls;
 using LegionLoqControl.Domain.Diagnostics;
@@ -27,8 +28,12 @@ public sealed class DashboardViewModelTests
         Assert.Equal("LOQ 15IRX9", viewModel.DeviceName);
         Assert.Equal("Machine type 83DV · BIOS NECN50WW", viewModel.DeviceMetadata);
         Assert.Equal("Inventory complete · 1 candidate interfaces", viewModel.InventoryStatus);
+        Assert.Equal(
+            "Development broker · unsigned sibling, not a public install",
+            viewModel.BrokerInstallStatus);
         Assert.False(viewModel.IsBusy);
         Assert.Equal(1, source.InventoryReadCount);
+        Assert.Equal(1, source.BrokerInstallAssessCount);
     }
 
     [Fact]
@@ -90,6 +95,25 @@ public sealed class DashboardViewModelTests
         Assert.Equal(DashboardStateKind.Error, viewModel.BannerState);
     }
 
+    [Fact]
+    public async Task Production_install_refusal_explains_the_unprotected_path()
+    {
+        var source = new StubDashboardDataSource(
+            CreateMachineSnapshot(),
+            CreateHardwareSnapshot())
+        {
+            ReadException = new DashboardDataSourceException("broker_install_unprotected"),
+        };
+        var viewModel = new MainWindowViewModel(source);
+        await viewModel.InitializeAsync();
+
+        await viewModel.RefreshHardwareStateCommand.ExecuteAsync(null);
+
+        Assert.Equal("Hardware state unavailable", viewModel.BannerTitle);
+        Assert.Contains("administrator-protected", viewModel.BannerMessage);
+        Assert.Equal(DashboardStateKind.Error, viewModel.BannerState);
+    }
+
     private static MachineSnapshot CreateMachineSnapshot()
     {
         var identity = new MachineIdentity(
@@ -128,7 +152,18 @@ public sealed class DashboardViewModelTests
 
         public int HardwareReadCount { get; private set; }
 
+        public int BrokerInstallAssessCount { get; private set; }
+
         public Exception? ReadException { get; set; }
+
+        public BrokerInstallAssessment BrokerInstall { get; set; } =
+            new(
+                BrokerInstallPlacement.SiblingDevelopment,
+                BrokerSignatureStatus.Unsigned,
+                DirectoryProtected: false,
+                AllowsDevelopmentRead: true,
+                AllowsProductionRelease: false,
+                "broker_install_development");
 
         public Task<MachineSnapshot> CaptureMachineAsync(
             CancellationToken cancellationToken)
@@ -147,6 +182,12 @@ public sealed class DashboardViewModelTests
                 return ValueTask.FromException<HardwareStateSnapshot>(ReadException);
 
             return ValueTask.FromResult(hardwareStateSnapshot);
+        }
+
+        public BrokerInstallAssessment AssessBrokerInstall()
+        {
+            BrokerInstallAssessCount++;
+            return BrokerInstall;
         }
     }
 }

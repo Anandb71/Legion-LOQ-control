@@ -48,8 +48,10 @@ hardware write.
 
 CI, broker-free preview packaging, accessibility contracts, diagnostics export, and release
 documentation are now in place. Cross-process local-store integrity uses exclusive file
-locks so two app instances cannot silently overwrite drafts. Remaining release-foundation
-work covers broker signing, install-ACL design, and supported Windows/scaling validation.
+locks so two app instances cannot silently overwrite drafts. Broker install policy now
+separates unsigned sibling development launches from administrator-protected, signed
+production installs. Remaining release-foundation work covers obtaining those signatures,
+shipping a protected installer, and supported Windows/scaling validation.
 These gates must create a useful read-only release without weakening the write-path
 boundary.
 

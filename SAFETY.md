@@ -40,9 +40,11 @@ The C# migration prototype is deliberately **read-only**:
   elevation, or performs a hardware write;
 - unit tests verify that battery, thermal, fan, and keyboard commands fail closed.
 
-The read-only broker is a validation milestone, not authorization for writes. It is not
-production-ready until the executable is signed and installed under administrator-only
-filesystem ACLs. Current device detection is only a candidate-device heuristic. It does
+The read-only broker is a validation milestone, not authorization for writes. Development
+mode may launch an unsigned sibling broker after an explicit UAC prompt. Production mode
+refuses that launch unless the sibling directory is administrator-protected and the
+broker is Authenticode-signed. See [`docs/BROKER_INSTALL.md`](docs/BROKER_INSTALL.md).
+Current device detection is only a candidate-device heuristic. It does
 **not** authorize hardware writes or prove feature compatibility. A getter name is not
 assumed harmless without allowlisting and provenance.
 
