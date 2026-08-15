@@ -37,6 +37,24 @@ public sealed class DashboardViewModelTests
         Assert.Equal(1, source.HardwareReadCount);
         Assert.Equal(1, source.BrokerInstallAssessCount);
         Assert.Equal("Hardware session ready", viewModel.BannerTitle);
+        Assert.True(viewModel.Battery.CanApply);
+        Assert.True(viewModel.Thermal.CanApply);
+    }
+
+    [Fact]
+    public async Task Applying_the_current_value_does_not_start_a_broker_write()
+    {
+        var source = new StubDashboardDataSource(CreateMachineSnapshot(), CreateHardwareSnapshot());
+        var viewModel = new MainWindowViewModel(source);
+        await viewModel.InitializeAsync();
+
+        await viewModel.Battery.ApplyOptionCommand.ExecuteAsync(
+            nameof(BatteryChargeMode.Conservation));
+
+        Assert.Equal(0, source.WriteCount);
+        Assert.Null(source.LastWriteOperations);
+        Assert.Equal("Hardware session ready", viewModel.BannerTitle);
+        Assert.False(viewModel.IsBusy);
     }
 
     [Fact]
@@ -277,6 +295,8 @@ public sealed class DashboardViewModelTests
 
         public int BrokerInstallAssessCount { get; private set; }
 
+        public int WriteCount { get; private set; }
+
         public Exception? ReadException { get; set; }
 
         public BrokerInstallAssessment BrokerInstall { get; set; } =
@@ -337,6 +357,7 @@ public sealed class DashboardViewModelTests
             CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            WriteCount++;
             LastWriteOperations = operations;
             if (operations.Count == 1)
             {

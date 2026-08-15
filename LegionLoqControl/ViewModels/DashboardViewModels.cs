@@ -134,6 +134,18 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(RefreshHardwareStateCommand))]
     private bool _isBusy;
 
+    partial void OnIsBusyChanged(bool value)
+    {
+        if (value)
+        {
+            SetAppliesEnabled(false);
+            return;
+        }
+
+        if (Session.HardwareStateSnapshot is { } snapshot)
+            ApplyVerifiedSnapshot(snapshot);
+    }
+
     [ObservableProperty]
     private string _deviceName = "Detecting machine";
 
@@ -554,7 +566,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
                 value.ToString(),
             _ => null,
         };
-        if (expected is null)
+        if (expected is null ||
+            string.Equals(expected, desired, StringComparison.Ordinal))
             return;
 
         IsBusy = true;
@@ -663,6 +676,20 @@ public sealed partial class MainWindowViewModel : ObservableObject
             FormatFanTable,
             "Read-only OEM table. Curve writes stay disabled.");
         LastUpdated = snapshot.ObservedAt.ToLocalTime().ToString("HH:mm:ss");
+        if (IsBusy)
+            SetAppliesEnabled(false);
+    }
+
+    private void SetAppliesEnabled(bool enabled)
+    {
+        if (enabled)
+            return;
+
+        Battery.CanApply = false;
+        Thermal.CanApply = false;
+        DisplayOverdrive.CanApply = false;
+        IntegratedGpu.CanApply = false;
+        Keyboard.CanApply = false;
     }
 
     private static HardwareWriteTarget MapWriteTarget(HardwareWriteKind kind) =>
