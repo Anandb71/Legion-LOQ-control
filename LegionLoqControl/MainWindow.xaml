@@ -261,7 +261,7 @@
 
                 <StackPanel Grid.Column="0">
                     <TextBlock Style="{StaticResource EyebrowTextStyle}"
-                               Text="LEGION + LOQ CONTROL / READ-ONLY REBUILD" />
+                               Text="LEGION + LOQ CONTROL / LIVE HARDWARE SESSION" />
                     <TextBlock Margin="0,6,0,0"
                                FontFamily="{StaticResource DisplayFont}"
                                FontSize="28"
@@ -270,6 +270,42 @@
                     <TextBlock Margin="0,5,0,0"
                                Foreground="{StaticResource SecondaryTextBrush}"
                                Text="{Binding DeviceMetadata}" />
+                    <Grid Margin="0,16,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="20" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="20" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Style="{StaticResource EyebrowTextStyle}"
+                                       Text="POWER" />
+                            <TextBlock Margin="0,4,0,0"
+                                       FontFamily="{StaticResource DisplayFont}"
+                                       FontSize="13"
+                                       FontWeight="SemiBold"
+                                       Text="{Binding PowerSourceLabel}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Style="{StaticResource EyebrowTextStyle}"
+                                       Text="CHARGE" />
+                            <TextBlock Margin="0,4,0,0"
+                                       FontFamily="{StaticResource DisplayFont}"
+                                       FontSize="13"
+                                       FontWeight="SemiBold"
+                                       Text="{Binding ChargeLabel}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="4">
+                            <TextBlock Style="{StaticResource EyebrowTextStyle}"
+                                       Text="CHARGING MODE" />
+                            <TextBlock Margin="0,4,0,0"
+                                       FontFamily="{StaticResource DisplayFont}"
+                                       FontSize="13"
+                                       FontWeight="SemiBold"
+                                       Text="{Binding ChargingModeLabel}" />
+                        </StackPanel>
+                    </Grid>
                 </StackPanel>
 
                 <StackPanel Grid.Column="1"
@@ -354,7 +390,7 @@
                                Text="Current hardware state" />
                     <TextBlock Margin="0,4,0,0"
                                Foreground="{StaticResource MutedTextBrush}"
-                               Text="Windows asks once at start. Later applies reuse that session and read the result back." />
+                               Text="Click a value to apply it. The broker reads live firmware first, so you do not need to refresh." />
                 </StackPanel>
                 <TextBlock Grid.Column="1"
                            VerticalAlignment="Bottom"

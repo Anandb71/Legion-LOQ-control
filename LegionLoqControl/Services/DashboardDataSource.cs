@@ -13,7 +13,8 @@ public interface IDashboardDataSource : IDisposable
     Task<MachineSnapshot> CaptureMachineAsync(CancellationToken cancellationToken);
 
     ValueTask<HardwareStateSnapshot> ReadHardwareStateAsync(
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken,
+        bool includeFanTable = true);
 
     BrokerInstallAssessment AssessBrokerInstall();
 
@@ -63,7 +64,7 @@ public sealed class DashboardDataSource : IDashboardDataSource
         _diagnostics = new MachineDiagnosticsService(
             new WindowsMachineIdentitySource(),
             [new WindowsCapabilityProbe()]);
-        _readHardwareStateAsync = _broker.ReadAsync;
+        _readHardwareStateAsync = cancellationToken => _broker.ReadAsync(cancellationToken);
         _assessBrokerInstall = AssessLocalBrokerInstall;
         _writeHardwareStateAsync = _broker.WriteBatchAsync;
     }
@@ -99,12 +100,14 @@ public sealed class DashboardDataSource : IDashboardDataSource
     public BrokerInstallAssessment AssessBrokerInstall() => _assessBrokerInstall();
 
     public async ValueTask<HardwareStateSnapshot> ReadHardwareStateAsync(
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool includeFanTable = true)
     {
         try
         {
-            HardwareStateReadResponse response = await _readHardwareStateAsync(cancellationToken)
-                .ConfigureAwait(false);
+            HardwareStateReadResponse response = _broker is not null
+                ? await _broker.ReadAsync(cancellationToken, includeFanTable).ConfigureAwait(false)
+                : await _readHardwareStateAsync(cancellationToken).ConfigureAwait(false);
             if (response.Status != BrokerReadStatus.Succeeded || response.Snapshot is null)
             {
                 throw new DashboardDataSourceException(

@@ -199,7 +199,7 @@ public sealed class HardwareStateWriteService
         switch (kind)
         {
             case HardwareWriteKind.ThermalMode:
-                ThermalMode expectedThermal = ParseThermal(expected);
+                _ = ParseThermal(expected);
                 ThermalMode desiredThermal = ParseThermal(desired);
                 if (desiredThermal == ThermalMode.Custom)
                 {
@@ -208,7 +208,12 @@ public sealed class HardwareStateWriteService
                         HardwareWriteStatus.Unsupported);
                 }
 
-                EnsureMatch(before.ThermalMode, expectedThermal, "thermal_expected_mismatch");
+                ThermalMode currentThermal = RequireCurrent(
+                    before.ThermalMode,
+                    "thermal_expected_mismatch");
+                if (currentThermal == desiredThermal)
+                    return before;
+
                 await _writer
                     .WriteThermalModeAsync(desiredThermal, cancellationToken)
                     .ConfigureAwait(false);
@@ -219,12 +224,14 @@ public sealed class HardwareStateWriteService
                     cancellationToken)
                     .ConfigureAwait(false);
             case HardwareWriteKind.DisplayOverdrive:
-                ToggleState expectedOverdrive = ParseToggle(expected);
+                _ = ParseToggle(expected);
                 ToggleState desiredOverdrive = ParseToggle(desired);
-                EnsureMatch(
+                ToggleState currentOverdrive = RequireCurrent(
                     before.DisplayOverdrive,
-                    expectedOverdrive,
                     "overdrive_expected_mismatch");
+                if (currentOverdrive == desiredOverdrive)
+                    return before;
+
                 await _writer
                     .WriteDisplayOverdriveAsync(desiredOverdrive, cancellationToken)
                     .ConfigureAwait(false);
@@ -235,12 +242,14 @@ public sealed class HardwareStateWriteService
                     cancellationToken)
                     .ConfigureAwait(false);
             case HardwareWriteKind.IntegratedGpuMode:
-                IntegratedGpuMode expectedGpu = ParseGpu(expected);
+                _ = ParseGpu(expected);
                 IntegratedGpuMode desiredGpu = ParseGpu(desired);
-                EnsureMatch(
+                IntegratedGpuMode currentGpu = RequireCurrent(
                     before.IntegratedGpuMode,
-                    expectedGpu,
                     "integrated_gpu_expected_mismatch");
+                if (currentGpu == desiredGpu)
+                    return before;
+
                 await _writer
                     .WriteIntegratedGpuModeAsync(desiredGpu, cancellationToken)
                     .ConfigureAwait(false);
@@ -251,18 +260,17 @@ public sealed class HardwareStateWriteService
                     cancellationToken)
                     .ConfigureAwait(false);
             case HardwareWriteKind.BatteryChargeMode:
-                BatteryChargeMode expectedBattery = ParseBattery(expected);
+                _ = ParseBattery(expected);
                 BatteryChargeMode desiredBattery = ParseBattery(desired);
-                EnsureMatch(
+                BatteryChargeMode currentBattery = RequireCurrent(
                     before.BatteryChargeMode,
-                    expectedBattery,
                     "battery_expected_mismatch");
-                if (expectedBattery == desiredBattery)
+                if (currentBattery == desiredBattery)
                     return before;
 
                 await _writer
                     .WriteBatteryChargeModeAsync(
-                        expectedBattery,
+                        currentBattery,
                         desiredBattery,
                         cancellationToken)
                     .ConfigureAwait(false);
@@ -273,7 +281,7 @@ public sealed class HardwareStateWriteService
                     cancellationToken)
                     .ConfigureAwait(false);
             case HardwareWriteKind.FourZoneKeyboard:
-                FourZoneKeyboardMode expectedKeyboard = ParseKeyboard(expected);
+                _ = ParseKeyboard(expected);
                 FourZoneKeyboardMode desiredKeyboard = ParseKeyboard(desired);
                 if (desiredKeyboard == FourZoneKeyboardMode.Unknown)
                 {
@@ -282,7 +290,7 @@ public sealed class HardwareStateWriteService
                         HardwareWriteStatus.Failed);
                 }
 
-                EnsureKeyboardPresence(before.FourZoneKeyboard, expectedKeyboard);
+                RequireKeyboardPresence(before.FourZoneKeyboard);
                 await _writer
                     .WriteFourZoneKeyboardAsync(desiredKeyboard, cancellationToken)
                     .ConfigureAwait(false);
@@ -318,18 +326,15 @@ public sealed class HardwareStateWriteService
         return after;
     }
 
-    private static void EnsureMatch<T>(
+    private static T RequireCurrent<T>(
         HardwareReadResult<T> result,
-        T expected,
         string errorCode)
         where T : struct
     {
-        if (result.Status != HardwareReadStatus.Success ||
-            !result.Value.HasValue ||
-            !EqualityComparer<T>.Default.Equals(result.Value.Value, expected))
-        {
+        if (result.Status != HardwareReadStatus.Success || !result.Value.HasValue)
             throw new HardwareWriteException(errorCode, HardwareWriteStatus.Conflict);
-        }
+
+        return result.Value.Value;
     }
 
     private static ThermalMode ParseThermal(string value) =>
@@ -347,20 +352,10 @@ public sealed class HardwareStateWriteService
     private static FourZoneKeyboardMode ParseKeyboard(string value) =>
         ParseEnum<FourZoneKeyboardMode>(value, "keyboard_value_invalid");
 
-    private static void EnsureKeyboardPresence(
-        HardwareReadResult<FourZoneKeyboardMode> result,
-        FourZoneKeyboardMode expected)
+    private static void RequireKeyboardPresence(
+        HardwareReadResult<FourZoneKeyboardMode> result)
     {
         if (result.Status != HardwareReadStatus.Success || !result.Value.HasValue)
-        {
-            throw new HardwareWriteException(
-                "keyboard_expected_mismatch",
-                HardwareWriteStatus.Conflict);
-        }
-
-        if (expected != FourZoneKeyboardMode.Unknown &&
-            result.Value.Value != FourZoneKeyboardMode.Unknown &&
-            result.Value.Value != expected)
         {
             throw new HardwareWriteException(
                 "keyboard_expected_mismatch",

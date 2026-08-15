@@ -47,12 +47,29 @@ an explicit click.
 ## Current milestone: first Vantage-class controls
 
 The dashboard can apply thermal mode, display overdrive, integrated-GPU mode, battery
-charge mode, and 4-zone keyboard brightness. Profile Apply and the opt-in AC/battery
-watcher reuse one elevated broker session for would-change battery and thermal targets.
-Each apply is an explicit click or watcher tick on that session, an expected-state check,
-allowlisted setters, and a readback. This LOQ's ITE controller is `048D:C993`. The same
-privileged refresh now reads the OEM fan table through `Fan_Get_Table`; this BIOS has no
-full-speed methods, and curve writes stay disabled. Per-zone colors remain out of scope.
+charge mode, and 4-zone keyboard brightness. Clicks rebase onto a fresh privileged
+capture, so Refresh is not required before a change. A live AC/battery glance updates
+without elevation, and a silent session poll keeps the cards current. Profile Apply and
+the opt-in AC/battery watcher reuse one elevated broker session for would-change battery
+and thermal targets. This LOQ's ITE controller is `048D:C993`. The same privileged
+refresh now reads the OEM fan table through `Fan_Get_Table`; this BIOS has no full-speed
+methods, and curve writes stay disabled. Per-zone colors remain out of scope.
+
+## Vantage replacement map
+
+This app replaces Vantage controls that have typed protocol evidence. It does not copy
+Vantage chrome, ads, Lena, warranty upsell, or serial numbers.
+
+| Vantage surface | Here now | Next evidenced slice |
+| --- | --- | --- |
+| Home device identity | Model, machine type, BIOS | No serial, product number, or Device ID |
+| Home / Power battery | Live %, AC/battery, Normal / Conservation / Rapid | Overnight charging stays out until a writer exists |
+| Performance thermal / GPU | Quiet–Extreme, GPU working mode, overdrive | CPU/GPU/RAM gauges only after unelevated telemetry is typed |
+| Keyboard lighting | 4-zone Off / Low / High on `048D:C993` | Spectrum colors and effects stay out on this LOQ |
+| Fans | Read-only OEM table | No `Fan_Set_Table` or invented full-speed |
+| Input / gestures / widgets | Not present | Fn lock and OSD only after a documented getter/setter |
+| Sound / Nahimic / scan | Not present | No invented audio or diagnostic writers |
+| Profiles / automation | Local drafts and AC/battery watcher | Process and hotkey sources after the rule model is proven |
 
 ## Previous milestone: release-grade read-only foundation
 

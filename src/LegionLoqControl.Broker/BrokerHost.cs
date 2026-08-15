@@ -274,7 +274,7 @@ internal static class BrokerHost
             var service = new HardwareStateService(
                 WindowsHardwareStateReader.CreatePrivilegedReadOnly());
             HardwareStateSnapshot snapshot = await service
-                .CaptureAsync(cancellationToken)
+                .CaptureAsync(cancellationToken, request.IncludeFanTable)
                 .ConfigureAwait(false);
             var response = new HardwareStateReadResponse(
                 BrokerProtocol.MajorVersion,

@@ -9,6 +9,12 @@ public interface IPowerSourceReader
         CancellationToken cancellationToken);
 }
 
+public interface ISystemPowerTelemetryReader
+{
+    ValueTask<SystemPowerTelemetry> ReadTelemetryAsync(
+        CancellationToken cancellationToken);
+}
+
 public sealed class PowerSourceService
 {
     private readonly IPowerSourceReader _reader;

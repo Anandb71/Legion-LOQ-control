@@ -27,9 +27,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Privileged read-only OEM fan table through `Fan_Get_Table`
 - Locked dependency restore, comprehensive automated tests, CodeQL, and accessibility contracts
 - Manually generated, short-lived, broker-free read-only preview artifact
+- Live AC/battery glance from `GetSystemPowerStatus`, plus silent privileged refresh
+  that skips the fan table so cards stay current without a click
 
 ### Changed
 
+- Apply rebases onto the live firmware capture, so a click does not require Refresh first
 - Migrated the active application from .NET 9 to .NET 10 WPF
 - Relicensed the active rebuild under GPL-3.0-or-later
 - Quarantined the old C# writer prototype behind a fail-closed global policy

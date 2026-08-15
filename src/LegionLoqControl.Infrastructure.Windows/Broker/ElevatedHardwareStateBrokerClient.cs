@@ -58,9 +58,10 @@ public sealed class ElevatedHardwareStateBrokerClient : IDisposable
         _process is { HasExited: false };
 
     public async ValueTask<HardwareStateReadResponse> ReadAsync(
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool includeFanTable = true)
     {
-        HardwareStateReadRequest request = CreateIdentity();
+        HardwareStateReadRequest request = CreateIdentity(includeFanTable);
         BrokerSessionResponse response = await SendAsync(
             new BrokerSessionRequest(BrokerSessionKind.Read, request, null),
             RequestTimeout,
@@ -127,12 +128,13 @@ public sealed class ElevatedHardwareStateBrokerClient : IDisposable
         _sessionGate.Dispose();
     }
 
-    private HardwareStateReadRequest CreateIdentity() =>
+    private HardwareStateReadRequest CreateIdentity(bool includeFanTable = true) =>
         new(
             BrokerProtocol.MajorVersion,
             Guid.NewGuid(),
             _nonce ?? BrokerProtocol.CreateNonce(),
-            Environment.ProcessId);
+            Environment.ProcessId,
+            includeFanTable);
 
     private async ValueTask<BrokerSessionResponse> SendAsync(
         BrokerSessionRequest request,

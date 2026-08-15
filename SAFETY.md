@@ -11,9 +11,10 @@ The rebuild is write-gated. Inventory, refresh, preview, and export stay read-on
 - the dashboard can apply thermal mode, display overdrive, integrated-GPU mode,
   battery charge mode, and 4-zone keyboard brightness only after an explicit click
   through the session broker;
-- each apply is one typed broker write, or one battery-then-thermal batch, with a fresh
-  expected-state check and readback; those write captures skip `Fan_Get_Table` because
-  the fan table is not a write target;
+- each apply is one typed broker write, or one battery-then-thermal batch; the broker
+  captures live firmware first and uses that as the expected state, then reads back;
+  those write captures skip `Fan_Get_Table` because the fan table is not a write target;
+  a stale dashboard paint is not a conflict gate;
 - the elevated broker may read `LENOVO_FAN_METHOD.Fan_Get_Table` with FanID `0` and
   SensorID `0` and show the bounded OEM table; `Fan_Set_Table` and full-speed methods
   stay disabled;
@@ -84,7 +85,7 @@ Hardware writes may return only after all of these controls exist and pass revie
    packets, paths, and plugin-defined commands are forbidden at the IPC boundary.
 4. Independent broker-side device and per-feature capability validation.
 5. Machine-wide serialization for each hardware domain.
-6. Fresh read, expected-state comparison, bounded write, and readback verification.
+6. Fresh privileged read as the expected state, bounded write, and readback verification.
 7. Typed `Unsupported`, `Unknown`, `Busy`, `Conflict`, `Unverified`, and `Failed` results.
 8. A redacted intent/result journal and crash reconciliation that never blindly replays a
    command.

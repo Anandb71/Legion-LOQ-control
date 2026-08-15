@@ -128,3 +128,6 @@ Color never carries meaning alone. Every semantic color is paired with a label o
 - **2026-08-15:** Windows approval happens once when the hardware session starts after
   inventory. The elevated broker stays alive for the app process and exits with it.
   Refresh and apply reuse that connection.
+- **2026-08-15:** The header shows a live power glance (source, charge percent, charging
+  mode) under serial-free identity. Applies rebase on live firmware, so Refresh is not
+  a prerequisite for a click.

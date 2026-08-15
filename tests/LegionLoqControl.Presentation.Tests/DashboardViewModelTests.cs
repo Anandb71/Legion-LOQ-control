@@ -1,4 +1,6 @@
+using LegionLoqControl.Application.Automation;
 using LegionLoqControl.Application.Broker;
+using LegionLoqControl.Domain.Automation;
 using LegionLoqControl.Contracts.Broker;
 using LegionLoqControl.Domain.Capabilities;
 using LegionLoqControl.Domain.Controls;
@@ -14,6 +16,27 @@ public sealed class DashboardViewModelTests
 {
     private static readonly DateTimeOffset Now =
         new(2026, 8, 9, 0, 0, 0, TimeSpan.Zero);
+
+    [Fact]
+    public async Task Initialization_shows_live_power_glance_from_unelevated_telemetry()
+    {
+        var source = new StubDashboardDataSource(CreateMachineSnapshot(), CreateHardwareSnapshot());
+        var telemetry = new StubPowerTelemetry(
+            PowerSourceKind.Ac,
+            BatteryPercent: 87,
+            Charging: true);
+        var viewModel = new MainWindowViewModel(
+            source,
+            powerTelemetry: telemetry);
+
+        await viewModel.InitializeAsync();
+
+        Assert.Equal("AC · charging", viewModel.PowerSourceLabel);
+        Assert.Equal("87%", viewModel.ChargeLabel);
+        Assert.Equal("Conservation", viewModel.ChargingModeLabel);
+        Assert.Equal(1, source.HardwareReadCount);
+        Assert.Equal(1, telemetry.ReadCount);
+    }
 
     [Fact]
     public async Task Initialization_retains_the_typed_machine_snapshot()
@@ -285,6 +308,25 @@ public sealed class DashboardViewModelTests
             HardwareReadResult<FanTableSnapshot>.Success(
                 new FanTableSnapshot(0, 0, [new FanTablePoint(0, 40), new FanTablePoint(80, 90)])));
 
+    private sealed class StubPowerTelemetry(
+        PowerSourceKind source,
+        int? BatteryPercent,
+        bool Charging) : ISystemPowerTelemetryReader
+    {
+        public int ReadCount { get; private set; }
+
+        public ValueTask<SystemPowerTelemetry> ReadTelemetryAsync(
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            ReadCount++;
+            return ValueTask.FromResult(new SystemPowerTelemetry(
+                HardwareReadResult<PowerSourceKind>.Success(source),
+                BatteryPercent,
+                Charging));
+        }
+    }
+
     private sealed class StubDashboardDataSource(
         MachineSnapshot machineSnapshot,
         HardwareStateSnapshot hardwareStateSnapshot) : IDashboardDataSource
@@ -317,9 +359,11 @@ public sealed class DashboardViewModelTests
         }
 
         public ValueTask<HardwareStateSnapshot> ReadHardwareStateAsync(
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            bool includeFanTable = true)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            _ = includeFanTable;
             HardwareReadCount++;
             if (ReadException is not null)
                 return ValueTask.FromException<HardwareStateSnapshot>(ReadException);

@@ -17,7 +17,8 @@ public sealed record HardwareStateReadRequest(
     ushort ProtocolMajorVersion,
     Guid RequestId,
     string Nonce,
-    int ClientProcessId);
+    int ClientProcessId,
+    bool IncludeFanTable = true);
 
 public sealed record HardwareStateReadResponse(
     ushort ProtocolMajorVersion,

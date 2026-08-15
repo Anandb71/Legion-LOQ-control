@@ -30,20 +30,38 @@ public sealed class HardwareStateWriteServiceTests
     }
 
     [Fact]
-    public async Task Apply_refuses_a_stale_expected_value()
+    public async Task Apply_rebases_onto_live_firmware_when_the_dashboard_is_stale()
     {
-        var reader = new StubReader(ThermalMode.Quiet, ThermalMode.Quiet);
-        var service = new HardwareStateWriteService(() => reader, new StubWriter());
+        var reader = new StubReader(ThermalMode.Quiet, ThermalMode.Balanced);
+        var writer = new StubWriter();
+        var service = new HardwareStateWriteService(() => reader, writer);
 
-        HardwareWriteException exception = await Assert.ThrowsAsync<HardwareWriteException>(
-            () => service.ApplyAsync(
-                HardwareWriteKind.ThermalMode,
-                nameof(ThermalMode.Performance),
-                nameof(ThermalMode.Quiet),
-                TestContext.Current.CancellationToken).AsTask());
+        HardwareStateSnapshot snapshot = await service.ApplyAsync(
+            HardwareWriteKind.ThermalMode,
+            nameof(ThermalMode.Performance),
+            nameof(ThermalMode.Balanced),
+            TestContext.Current.CancellationToken);
 
-        Assert.Equal("thermal_expected_mismatch", exception.ErrorCode);
-        Assert.Equal(HardwareWriteStatus.Conflict, exception.Status);
+        Assert.Equal(ThermalMode.Balanced, snapshot.ThermalMode.Value);
+        Assert.Equal(ThermalMode.Balanced, writer.LastThermal);
+    }
+
+    [Fact]
+    public async Task Apply_skips_the_setter_when_live_firmware_already_matches()
+    {
+        var writer = new StubWriter();
+        var service = new HardwareStateWriteService(
+            () => new StubReader(ThermalMode.Quiet),
+            writer);
+
+        HardwareStateSnapshot snapshot = await service.ApplyAsync(
+            HardwareWriteKind.ThermalMode,
+            nameof(ThermalMode.Performance),
+            nameof(ThermalMode.Quiet),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(ThermalMode.Quiet, snapshot.ThermalMode.Value);
+        Assert.Null(writer.LastThermal);
     }
 
     [Fact]

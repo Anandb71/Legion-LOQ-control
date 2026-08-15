@@ -6,7 +6,7 @@ using LegionLoqControl.Infrastructure.Windows.Platform;
 
 namespace LegionLoqControl.Infrastructure.Windows.Automation;
 
-public sealed class WindowsPowerSourceReader : IPowerSourceReader
+public sealed class WindowsPowerSourceReader : IPowerSourceReader, ISystemPowerTelemetryReader
 {
     public ValueTask<HardwareReadResult<PowerSourceKind>> ReadAsync(
         CancellationToken cancellationToken)
@@ -24,6 +24,26 @@ public sealed class WindowsPowerSourceReader : IPowerSourceReader
 
         return ValueTask.FromResult(MapAcLineStatus(status.AcLineStatus));
     }
+
+    public ValueTask<SystemPowerTelemetry> ReadTelemetryAsync(
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        WindowsPlatform.EnsureSupported();
+
+        if (!GetSystemPowerStatus(out SystemPowerStatus status))
+        {
+            return ValueTask.FromResult(SystemPowerTelemetry.Unavailable);
+        }
+
+        return ValueTask.FromResult(new SystemPowerTelemetry(
+            MapAcLineStatus(status.AcLineStatus),
+            MapBatteryPercent(status.BatteryLifePercent),
+            (status.BatteryFlag & 0x08) != 0));
+    }
+
+    internal static int? MapBatteryPercent(byte percent) =>
+        percent <= 100 ? percent : null;
 
     internal static HardwareReadResult<PowerSourceKind> MapAcLineStatus(
         byte acLineStatus) =>

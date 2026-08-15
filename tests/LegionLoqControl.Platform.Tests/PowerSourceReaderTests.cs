@@ -41,6 +41,24 @@ public sealed class PowerSourceReaderTests
         Assert.Equal("power_source_value_invalid", result.ErrorCode);
     }
 
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(54, 54)]
+    [InlineData(100, 100)]
+    public void Documented_battery_percents_map_to_the_same_value(byte rawValue, int expected)
+    {
+        Assert.Equal(expected, WindowsPowerSourceReader.MapBatteryPercent(rawValue));
+    }
+
+    [Theory]
+    [InlineData(101)]
+    [InlineData(254)]
+    [InlineData(255)]
+    public void Unknown_or_invalid_battery_percents_fail_closed(byte rawValue)
+    {
+        Assert.Null(WindowsPowerSourceReader.MapBatteryPercent(rawValue));
+    }
+
     [Fact]
     public async Task Windows_api_read_returns_a_typed_outcome()
     {
@@ -61,6 +79,20 @@ public sealed class PowerSourceReaderTests
             Assert.True(Enum.IsDefined(result.Value!.Value));
         else
             Assert.False(string.IsNullOrWhiteSpace(result.ErrorCode));
+    }
+
+    [Fact]
+    public async Task Windows_api_telemetry_returns_a_bounded_percent()
+    {
+        var reader = new WindowsPowerSourceReader();
+
+        SystemPowerTelemetry telemetry = await reader.ReadTelemetryAsync(
+            TestContext.Current.CancellationToken);
+
+        if (telemetry.BatteryPercent is { } percent)
+            Assert.InRange(percent, 0, 100);
+        if (telemetry.Source.Status == HardwareReadStatus.Success)
+            Assert.True(Enum.IsDefined(telemetry.Source.Value!.Value));
     }
 }
 

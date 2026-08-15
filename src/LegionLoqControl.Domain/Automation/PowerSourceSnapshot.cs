@@ -8,6 +8,19 @@ public enum PowerSourceKind
     Battery = 1,
 }
 
+public readonly record struct SystemPowerTelemetry(
+    HardwareReadResult<PowerSourceKind> Source,
+    int? BatteryPercent,
+    bool Charging)
+{
+    public static SystemPowerTelemetry Unavailable { get; } = new(
+        HardwareReadResult<PowerSourceKind>.Failure(
+            HardwareReadStatus.Failed,
+            "power_status_api_failed"),
+        null,
+        false);
+}
+
 public sealed record PowerSourceSnapshot
 {
     public PowerSourceSnapshot(

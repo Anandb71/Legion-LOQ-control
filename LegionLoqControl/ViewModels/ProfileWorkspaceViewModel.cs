@@ -558,7 +558,7 @@ public sealed partial class ProfileWorkspaceViewModel : ObservableObject, IDispo
             "thermal_custom_unsupported" =>
                 "Custom thermal mode is not writable from this app.",
             "thermal_expected_mismatch" or "battery_expected_mismatch" =>
-                "Hardware changed before the write. Refresh, then apply again.",
+                "The live firmware read failed, so this write did not run. Try again.",
             "thermal_readback_mismatch" or "battery_readback_mismatch" =>
                 "The setter ran, but readback did not match the requested value.",
             _ => "The broker could not apply this profile without a verified readback.",

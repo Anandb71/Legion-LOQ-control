@@ -9,6 +9,7 @@ using LegionLoqControl.Application.Diagnostics;
 using LegionLoqControl.Application.Hardware;
 using LegionLoqControl.Application.Profiles;
 using LegionLoqControl.Contracts.Broker;
+using LegionLoqControl.Domain.Automation;
 using LegionLoqControl.Domain.Capabilities;
 using LegionLoqControl.Domain.Controls;
 using LegionLoqControl.Domain.Diagnostics;
@@ -127,8 +128,10 @@ public sealed record CapabilityItemViewModel(
 public sealed partial class MainWindowViewModel : ObservableObject
 {
     private readonly IDashboardDataSource _dataSource;
+    private readonly ISystemPowerTelemetryReader _powerTelemetry;
     private readonly CancellationTokenSource _lifetime = new();
     private bool _initialized;
+    private bool _autoRefreshStarted;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RefreshHardwareStateCommand))]
@@ -159,7 +162,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private string _brokerInstallStatus = "Broker install not assessed";
 
     [ObservableProperty]
-    private string _bannerTitle = "Read-only safety mode";
+    private string _bannerTitle = "Session safety mode";
 
     [ObservableProperty]
     private string _bannerMessage =
@@ -174,6 +177,15 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     private string _lastUpdated = "Not read";
 
+    [ObservableProperty]
+    private string _powerSourceLabel = "Detecting";
+
+    [ObservableProperty]
+    private string _chargeLabel = "Detecting";
+
+    [ObservableProperty]
+    private string _chargingModeLabel = "Not read";
+
     public MainWindowViewModel()
         : this(
             new DashboardDataSource(),
@@ -187,9 +199,11 @@ public sealed partial class MainWindowViewModel : ObservableObject
         IProfileStore? profileStore = null,
         IAutomationRuleStore? automationRuleStore = null,
         PowerSourceService? powerSourceService = null,
-        AutomationPreviewService? automationPreviewService = null)
+        AutomationPreviewService? automationPreviewService = null,
+        ISystemPowerTelemetryReader? powerTelemetry = null)
     {
         _dataSource = dataSource ?? throw new ArgumentNullException(nameof(dataSource));
+        _powerTelemetry = powerTelemetry ?? new WindowsPowerSourceReader();
         Session = session ?? new MachineSessionViewModel();
         DiagnosticsExport = new DiagnosticsExportViewModel(
             Session,
@@ -303,6 +317,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
                 evidence.Support is CapabilitySupport.Unknown or CapabilitySupport.Supported);
             InventoryStatus = $"Inventory complete · {candidateCount} candidate interfaces";
             ApplyBrokerInstall(_dataSource.AssessBrokerInstall());
+            await RefreshPowerTelemetryAsync().ConfigureAwait(true);
+            _ = RunPowerTelemetryLoopAsync();
             await StartHardwareSessionAsync().ConfigureAwait(true);
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
@@ -364,10 +380,11 @@ public sealed partial class MainWindowViewModel : ObservableObject
                 ? "Hardware state verified"
                 : "Hardware state partially verified";
             BannerMessage =
-                $"{successCount}/{statuses.Length} reads succeeded · observed at {LastUpdated} · no writes attempted";
+                $"{successCount}/{statuses.Length} reads succeeded · observed at {LastUpdated}";
             BannerState = successCount == statuses.Length
                 ? DashboardStateKind.Success
                 : DashboardStateKind.Warning;
+            StartAutoRefresh();
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
@@ -421,6 +438,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
             BannerState = successCount == statuses.Length
                 ? DashboardStateKind.Success
                 : DashboardStateKind.Warning;
+            StartAutoRefresh();
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
@@ -504,12 +522,12 @@ public sealed partial class MainWindowViewModel : ObservableObject
                 "The broker signature is invalid, so no privileged read ran.",
             "thermal_expected_mismatch" or "overdrive_expected_mismatch" or
                 "integrated_gpu_expected_mismatch" or "keyboard_expected_mismatch" =>
-                "Hardware changed before the write. Refresh, then apply again.",
+                "The live firmware read failed, so this write did not run. Try again.",
             "thermal_readback_mismatch" or "overdrive_readback_mismatch" or
                 "integrated_gpu_readback_mismatch" or "keyboard_readback_mismatch" =>
                 "The setter ran, but readback did not match the requested value.",
             "battery_expected_mismatch" =>
-                "Battery mode changed before the write. Refresh, then apply again.",
+                "The live battery read failed, so this write did not run. Try again.",
             "battery_readback_mismatch" =>
                 "The battery setter ran, but readback did not match the requested value.",
             "thermal_custom_unsupported" =>
@@ -676,8 +694,93 @@ public sealed partial class MainWindowViewModel : ObservableObject
             FormatFanTable,
             "Read-only OEM table. Curve writes stay disabled.");
         LastUpdated = snapshot.ObservedAt.ToLocalTime().ToString("HH:mm:ss");
+        ChargingModeLabel = snapshot.BatteryChargeMode.Status == HardwareReadStatus.Success
+            ? FormatBatteryMode(snapshot.BatteryChargeMode.Value!.Value)
+            : "Unavailable";
         if (IsBusy)
             SetAppliesEnabled(false);
+    }
+
+    private void StartAutoRefresh()
+    {
+        if (_autoRefreshStarted)
+            return;
+
+        _autoRefreshStarted = true;
+        _ = RunAutoRefreshLoopAsync();
+    }
+
+    private async Task RunAutoRefreshLoopAsync()
+    {
+        try
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(8));
+            while (await timer.WaitForNextTickAsync(_lifetime.Token).ConfigureAwait(true))
+            {
+                if (IsBusy)
+                    continue;
+
+                try
+                {
+                    HardwareStateSnapshot snapshot = await _dataSource
+                        .ReadHardwareStateAsync(_lifetime.Token, includeFanTable: false)
+                        .ConfigureAwait(true);
+                    ApplyVerifiedSnapshot(snapshot);
+                }
+                catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+                {
+                    return;
+                }
+                catch (Exception)
+                {
+                }
+            }
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+    }
+
+    private async Task RunPowerTelemetryLoopAsync()
+    {
+        try
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(2));
+            while (await timer.WaitForNextTickAsync(_lifetime.Token).ConfigureAwait(true))
+                await RefreshPowerTelemetryAsync().ConfigureAwait(true);
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+    }
+
+    private async Task RefreshPowerTelemetryAsync()
+    {
+        try
+        {
+            SystemPowerTelemetry telemetry = await _powerTelemetry
+                .ReadTelemetryAsync(_lifetime.Token)
+                .ConfigureAwait(true);
+            PowerSourceLabel = telemetry.Source.Status == HardwareReadStatus.Success
+                ? telemetry.Source.Value switch
+                {
+                    PowerSourceKind.Ac => telemetry.Charging ? "AC · charging" : "AC power",
+                    PowerSourceKind.Battery => "On battery",
+                    _ => "Unknown",
+                }
+                : "Unavailable";
+            ChargeLabel = telemetry.BatteryPercent is { } percent
+                ? $"{percent}%"
+                : "Unknown";
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (Exception)
+        {
+            PowerSourceLabel = "Unavailable";
+            ChargeLabel = "Unknown";
+        }
     }
 
     private void SetAppliesEnabled(bool enabled)
