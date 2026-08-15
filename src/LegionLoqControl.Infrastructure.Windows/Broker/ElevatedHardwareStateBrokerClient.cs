@@ -171,11 +171,10 @@ public sealed class ElevatedHardwareStateBrokerClient : IDisposable
             }
 
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            linked.CancelAfter(timeout);
             return await BrokerPipeExchange
                 .ExchangeSessionAsync(_pipe!, request, linked.Token)
                 .AsTask()
-                .WaitAsync(linked.Token)
+                .WaitAsync(timeout, linked.Token)
                 .ConfigureAwait(false);
         }
         catch (Win32Exception exception) when (exception.NativeErrorCode == 1223)
@@ -186,6 +185,11 @@ public sealed class ElevatedHardwareStateBrokerClient : IDisposable
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
+        }
+        catch (TimeoutException exception)
+        {
+            DisconnectUnlocked();
+            throw new BrokerTransportException("broker_timeout", exception);
         }
         catch (OperationCanceledException)
         {
