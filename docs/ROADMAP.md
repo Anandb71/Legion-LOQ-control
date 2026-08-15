@@ -16,42 +16,43 @@ optional follow-up work.
 - versioned, allowlisted diagnostics reports with atomic export of retained snapshots
 - protocol provenance, redacted hardware fixtures, and fail-closed tests
 
-## Completed: profile preview
+## Completed: profile apply
 
-Profiles now begin as local, read-only plans. The profile workspace:
+Profiles remain local drafts until the user applies a would-change preview. The profile
+workspace:
 
-1. model bounded battery and thermal targets;
-2. compare a draft with the latest typed hardware snapshot;
-3. distinguish matching, would-change, unavailable, stale, and unverified states;
-4. persist versioned local drafts with strict validation; and
-5. expose save, delete, and preview actions only.
+1. models bounded battery and thermal targets;
+2. compares a draft with the latest typed hardware snapshot;
+3. treats a fresh typed read as enough evidence to plan a change when the capability is
+   not `Unsupported`;
+4. persists versioned local drafts with strict validation; and
+5. applies only would-change battery and thermal targets in one UAC batch.
 
-There is no Apply action, profile-triggered elevation, hardware write, or background
-automation.
+Custom thermal mode stays non-writable. Empty plans do not launch the broker.
 
-## Completed: automation preview
+## Completed: opt-in automation
 
-Automation now starts as deterministic rule evaluation against read-only AC/battery
-observations. The automation workspace:
+Automation evaluates deterministic AC/battery rules, then can watch in this app session:
 
 1. observes the current power source through `GetSystemPowerStatus` without elevation;
 2. persists bounded, versioned rules with strict JSON validation;
 3. selects only one unique highest-priority rule for the observed source;
-4. distinguishes unavailable, stale, unmatched, ambiguous, disabled, and missing-profile
-   outcomes; and
-5. exposes local new, save, delete, refresh, and preview actions only.
+4. applies the winning profile through the same one-UAC batch used by profile Apply;
+5. cools down after an apply or cancelled elevation; and
+6. suspends after a failed readback until the user resumes.
 
-There is no watcher, scheduler, background runner, profile application, broker call, or
-hardware write.
+There is no SYSTEM service, scheduled task, or write on launch. Starting the watcher is
+an explicit click.
 
 ## Current milestone: first Vantage-class controls
 
 The dashboard can apply thermal mode, display overdrive, integrated-GPU mode, battery
-charge mode, and 4-zone keyboard brightness. Each apply is an explicit click, one UAC
-prompt, an expected-state check, one allowlisted setter, and a readback. This LOQ's ITE
-controller is `048D:C993`. The same privileged refresh now reads the OEM fan table
-through `Fan_Get_Table`; this BIOS has no full-speed methods, and curve writes stay
-disabled. Per-zone colors, profile Apply, and automation execution are next.
+charge mode, and 4-zone keyboard brightness. Profile Apply and the opt-in AC/battery
+watcher reuse one elevated broker launch for would-change battery and thermal targets.
+Each apply is an explicit click or watcher tick, one UAC prompt, an expected-state check,
+allowlisted setters, and a readback. This LOQ's ITE controller is `048D:C993`. The same
+privileged refresh now reads the OEM fan table through `Fan_Get_Table`; this BIOS has no
+full-speed methods, and curve writes stay disabled. Per-zone colors remain out of scope.
 
 ## Previous milestone: release-grade read-only foundation
 
@@ -78,7 +79,7 @@ A hardware control becomes eligible for implementation only when all requirement
 - fresh read and expected-state comparison;
 - machine-wide serialization;
 - bounded execution and readback verification;
-- redacted intent/result journaling; and
+- redacted in-memory intent/result journaling; and
 - crash reconciliation that never blindly replays a command.
 
 The first writable feature will be selected from the best-evidenced bounded protocols. No
@@ -87,8 +88,8 @@ feature is authorized merely because a legacy implementation exists.
 ## Expansion and release
 
 After a write slice passes its gate, later milestones can add additional validated controls,
-profile application, opt-in automation execution, packaging, updates, accessibility tests,
-and model support. Fan curves, power limits, firmware flashing, and unattended privileged
-services remain out of scope until they have their own stronger recovery and validation
-designs.
+packaging, updates, accessibility tests, and model support. Authenticode signing and a
+protected installer remain public-release gates. Fan curves, power limits, firmware
+flashing, and unattended privileged services remain out of scope until they have their own
+stronger recovery and validation designs.
 

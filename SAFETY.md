@@ -11,7 +11,8 @@ The rebuild is write-gated. Inventory, refresh, preview, and export stay read-on
 - the dashboard can apply thermal mode, display overdrive, integrated-GPU mode,
   battery charge mode, and 4-zone keyboard brightness only after an explicit click and a
   UAC prompt;
-- each apply is one typed broker write with a fresh expected-state check and readback;
+- each apply is one typed broker write, or one battery-then-thermal batch, with a fresh
+  expected-state check and readback;
 - the elevated broker may read `LENOVO_FAN_METHOD.Fan_Get_Table` with FanID `0` and
   SensorID `0` and show the bounded OEM table; `Fan_Set_Table` and full-speed methods
   stay disabled;
@@ -25,15 +26,14 @@ The rebuild is write-gated. Inventory, refresh, preview, and export stay read-on
 - those getters are batched through the exact system Windows PowerShell executable with
   profiles disabled, a system-only module path, static script text, capped output, and a
   12-second process timeout;
-- the optional elevated state path uses a one-request, 30-second broker with strict framing,
-  current-user ACL, mutual process-ID checks, a one-time nonce, and anonymous client
-  impersonation;
+- the optional elevated state path uses a one-request broker (30 seconds for reads, 90
+  seconds for writes) with strict framing, current-user ACL, mutual process-ID checks, a
+  one-time nonce, and anonymous client impersonation;
 - the elevated broker has one fixed EnergyDrv battery read (`0x831020F8`, selector `0xFF`,
   zero requested device access) and one typed EnergyDrv battery write using only
   selectors `0x03`, `0x05`, `0x07`, and `0x08`;
-- the elevated broker may run one allowlisted WMI setter (`SetSmartFanMode`,
-  `SetODStatus`, or `SetIGPUModeStatus`) or the typed battery write when launched with
-  `--write`;
+- the elevated broker may run one or two allowlisted setters when launched with
+  `--write` (battery then thermal in one launch, or a single dashboard target);
 - the elevated broker may open one allowlisted ITE HID collection (`048D` + `C935` /
   `C955` / `C993`, 33-byte feature report) for 4-zone brightness; it still has no legacy
   Core reference, generic IOCTL entry point, or caller-supplied WMI names;
@@ -42,12 +42,14 @@ The rebuild is write-gated. Inventory, refresh, preview, and export stay read-on
 - profile drafts use a bounded, strict, versioned local JSON store with a
   cross-process file lock and compare only against retained typed snapshots and
   capability evidence;
-- the profile workspace exposes new, save, delete, and preview commands but no Apply
-  command, broker call, or automation runner;
+- the profile workspace can apply a would-change preview through one UAC batch; preview,
+  save, and delete still do not launch the broker;
 - AC/battery automation observes one typed `GetSystemPowerStatus` result, then performs
   deterministic in-memory rule evaluation;
-- automation rules use a separate bounded, strict, versioned local JSON store, and the
-  workspace has no watcher, scheduler, execute command, broker call, or profile Apply path;
+- an opt-in in-process watcher may apply the winning profile through that same UAC batch,
+  cools down after an attempt, and suspends after a failed readback;
+- automation rules use a separate bounded, strict, versioned local JSON store; there is
+  no SYSTEM service, scheduled task, or write on launch;
 - diagnostics export uses an explicit versioned allowlist, omits local drafts and dynamic
   detail fields, and writes only the typed snapshots already retained by the session;
 - exporting diagnostics never starts a hardware read, launches the broker, requests
@@ -86,8 +88,10 @@ Hardware writes may return only after all of these controls exist and pass revie
 - No hardware write runs during startup, refresh, state hydration, shutdown, or migration.
 - UI binding changes are not user intent.
 - Creating, editing, saving, deleting, or previewing a profile never launches the broker.
+  Apply is a separate explicit action.
 - Creating, editing, saving, deleting, refreshing, or previewing an automation rule never
-  launches the broker or applies its target profile.
+  launches the broker or applies its target profile. Starting the session watcher is a
+  separate explicit action; each later apply still requires Windows approval.
 - Exporting diagnostics never refreshes inventory or hardware state and never includes
   local profile or automation-rule data.
 - Profiles show a dry-run preview before their first application.

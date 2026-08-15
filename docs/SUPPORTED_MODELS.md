@@ -4,9 +4,10 @@
 
 No model is approved as `Supported` for hardware writes. Typed apply exists for thermal
 mode, display overdrive, integrated-GPU mode, battery charge mode, and 4-zone keyboard
-brightness, and a privileged fan-table read exists, but no feature has reached the
-`Supported` evidence level. Battery, keyboard, and fan-table reads still have no
-recorded on-device invoke evidence for this slice.
+brightness. Profile Apply and the opt-in AC/battery watcher can send those battery and
+thermal changes in one UAC batch. A privileged fan-table read exists. No feature has
+reached the `Supported` evidence level. Battery writes, keyboard SetFeature, and
+`Fan_Get_Table` still have no recorded on-device invoke evidence for this slice.
 
 Capability evidence terms:
 
