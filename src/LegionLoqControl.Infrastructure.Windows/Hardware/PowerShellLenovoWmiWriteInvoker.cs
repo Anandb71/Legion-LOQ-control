@@ -16,6 +16,8 @@ internal enum LenovoWmiWriteOperation
     DisplayOverdrive = 1,
     IntegratedGpuMode = 2,
     LightControlOwner = 3,
+    TouchpadLock = 4,
+    WinKeyLock = 5,
 }
 
 internal interface ILenovoWmiWriteInvoker
@@ -329,35 +331,59 @@ internal sealed class WindowsHardwareStateWriter : IHardwareStateWriter
     private readonly ILenovoWmiWriteInvoker _invoker;
     private readonly IEnergyDriverBatteryWriter _batteryWriter;
     private readonly IFourZoneKeyboardHid _keyboard;
+    private readonly EnergyDriverFeatureClient _energyFeatures;
+    private readonly SystemLenovoFanTableWriteInvoker _fanTableWriter;
+    private readonly ISpectrumKeyboardHid _spectrum;
 
     public WindowsHardwareStateWriter()
         : this(
             new SystemLenovoWmiWriteInvoker(),
             new EnergyDriverBatteryWriter(),
-            new FourZoneKeyboardHid())
+            new FourZoneKeyboardHid(),
+            new EnergyDriverFeatureClient(),
+            new SystemLenovoFanTableWriteInvoker(),
+            new SpectrumKeyboardHid())
     {
     }
 
     internal WindowsHardwareStateWriter(ILenovoWmiWriteInvoker invoker)
-        : this(invoker, new EnergyDriverBatteryWriter(), new FourZoneKeyboardHid())
+        : this(
+            invoker,
+            new EnergyDriverBatteryWriter(),
+            new FourZoneKeyboardHid(),
+            new EnergyDriverFeatureClient(),
+            new SystemLenovoFanTableWriteInvoker(),
+            new SpectrumKeyboardHid())
     {
     }
 
     internal WindowsHardwareStateWriter(
         ILenovoWmiWriteInvoker invoker,
         IEnergyDriverBatteryWriter batteryWriter)
-        : this(invoker, batteryWriter, new FourZoneKeyboardHid())
+        : this(
+            invoker,
+            batteryWriter,
+            new FourZoneKeyboardHid(),
+            new EnergyDriverFeatureClient(),
+            new SystemLenovoFanTableWriteInvoker(),
+            new SpectrumKeyboardHid())
     {
     }
 
     internal WindowsHardwareStateWriter(
         ILenovoWmiWriteInvoker invoker,
         IEnergyDriverBatteryWriter batteryWriter,
-        IFourZoneKeyboardHid keyboard)
+        IFourZoneKeyboardHid keyboard,
+        EnergyDriverFeatureClient? energyFeatures = null,
+        SystemLenovoFanTableWriteInvoker? fanTableWriter = null,
+        ISpectrumKeyboardHid? spectrum = null)
     {
         _invoker = invoker ?? throw new ArgumentNullException(nameof(invoker));
         _batteryWriter = batteryWriter ?? throw new ArgumentNullException(nameof(batteryWriter));
         _keyboard = keyboard ?? throw new ArgumentNullException(nameof(keyboard));
+        _energyFeatures = energyFeatures ?? new EnergyDriverFeatureClient();
+        _fanTableWriter = fanTableWriter ?? new SystemLenovoFanTableWriteInvoker();
+        _spectrum = spectrum ?? new SpectrumKeyboardHid();
     }
 
     public ValueTask WriteThermalModeAsync(
@@ -422,6 +448,63 @@ internal sealed class WindowsHardwareStateWriter : IHardwareStateWriter
 
         await _keyboard.WriteAsync(desired, cancellationToken).ConfigureAwait(false);
     }
+
+    public ValueTask WriteOvernightChargeAsync(
+        ToggleState desired,
+        CancellationToken cancellationToken) =>
+        _energyFeatures.WriteOvernightChargeAsync(desired, cancellationToken);
+
+    public ValueTask WriteFnLockAsync(
+        ToggleState desired,
+        CancellationToken cancellationToken) =>
+        _energyFeatures.WriteFnLockAsync(desired, cancellationToken);
+
+    public ValueTask WriteAlwaysOnUsbAsync(
+        AlwaysOnUsbState desired,
+        CancellationToken cancellationToken) =>
+        _energyFeatures.WriteAlwaysOnUsbAsync(desired, cancellationToken);
+
+    public ValueTask WriteTouchpadLockAsync(
+        ToggleState desired,
+        CancellationToken cancellationToken) =>
+        WriteAsync(
+            LenovoWmiWriteOperation.TouchpadLock,
+            desired == ToggleState.Enabled ? 1u : 0u,
+            cancellationToken);
+
+    public ValueTask WriteWinKeyLockAsync(
+        ToggleState desired,
+        CancellationToken cancellationToken) =>
+        WriteAsync(
+            LenovoWmiWriteOperation.WinKeyLock,
+            desired == ToggleState.Enabled ? 1u : 0u,
+            cancellationToken);
+
+    public async ValueTask WriteFourZoneLightingAsync(
+        FourZoneLightingState desired,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await WriteAsync(LenovoWmiWriteOperation.LightControlOwner, 1, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (HardwareWriteException)
+        {
+        }
+
+        await _keyboard.WriteLightingAsync(desired, cancellationToken).ConfigureAwait(false);
+    }
+
+    public ValueTask WriteFanTableAsync(
+        FanTableSnapshot desired,
+        CancellationToken cancellationToken) =>
+        _fanTableWriter.WriteAsync(desired, cancellationToken);
+
+    public ValueTask WriteSpectrumKeyboardAsync(
+        SpectrumBrightness desired,
+        CancellationToken cancellationToken) =>
+        _spectrum.WriteAsync(desired, cancellationToken);
 
     private async ValueTask WriteAsync(
         LenovoWmiWriteOperation operation,

@@ -9,6 +9,10 @@ internal enum LenovoWmiReadOperation
     ThermalMode = 0,
     DisplayOverdrive = 1,
     IntegratedGpuMode = 2,
+    TouchpadLock = 3,
+    WinKeyLock = 4,
+    TouchpadLockSupport = 5,
+    WinKeyLockSupport = 6,
 }
 
 internal interface ILenovoWmiReadInvoker
@@ -79,6 +83,10 @@ internal sealed class SystemLenovoWmiReadInvoker : ILenovoWmiReadInvoker
             LenovoWmiReadOperation.ThermalMode => "GetSmartFanMode",
             LenovoWmiReadOperation.DisplayOverdrive => "GetODStatus",
             LenovoWmiReadOperation.IntegratedGpuMode => "GetIGPUModeStatus",
+            LenovoWmiReadOperation.TouchpadLock => "GetTPStatus",
+            LenovoWmiReadOperation.WinKeyLock => "GetWinKeyStatus",
+            LenovoWmiReadOperation.TouchpadLockSupport => "IsSupportDisableTP",
+            LenovoWmiReadOperation.WinKeyLockSupport => "IsSupportDisableWinKey",
             _ => throw new ArgumentOutOfRangeException(nameof(operation), operation, null),
         };
 

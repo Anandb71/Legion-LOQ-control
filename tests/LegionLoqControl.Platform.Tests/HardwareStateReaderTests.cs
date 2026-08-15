@@ -1,3 +1,4 @@
+using System.IO;
 using LegionLoqControl.Application.Hardware;
 using LegionLoqControl.Domain.Controls;
 using LegionLoqControl.Domain.Diagnostics;
@@ -150,6 +151,147 @@ public sealed class HardwareStateReaderTests
         Assert.DoesNotContain(0xC996, FourZoneKeyboardPacket.RecognizedProductIds);
     }
 
+    [Theory]
+    [InlineData(0b0001_0001u, ToggleState.Enabled)]
+    [InlineData(0b0000_0001u, ToggleState.Disabled)]
+    public void Overnight_charge_maps_valid_and_on_bits(uint rawValue, ToggleState expected)
+    {
+        HardwareReadResult<ToggleState> result = EnergyDriverFeatureClient.MapOvernightCharge(rawValue);
+
+        Assert.Equal(HardwareReadStatus.Success, result.Status);
+        Assert.Equal(expected, result.Value);
+    }
+
+    [Fact]
+    public void Overnight_charge_without_the_valid_bit_is_unsupported()
+    {
+        HardwareReadResult<ToggleState> result = EnergyDriverFeatureClient.MapOvernightCharge(0);
+
+        Assert.Equal(HardwareReadStatus.Unsupported, result.Status);
+        Assert.Equal("overnight_not_supported", result.ErrorCode);
+    }
+
+    [Fact]
+    public void Fn_lock_reads_bit_ten()
+    {
+        Assert.Equal(
+            ToggleState.Enabled,
+            EnergyDriverFeatureClient.MapFnLock(1u << 10).Value);
+        Assert.Equal(
+            ToggleState.Disabled,
+            EnergyDriverFeatureClient.MapFnLock(0).Value);
+    }
+
+    [Fact]
+    public void Always_on_usb_decodes_after_endian_swap()
+    {
+        Assert.Equal(
+            AlwaysOnUsbState.Off,
+            EnergyDriverFeatureClient.MapAlwaysOnUsb(0).Value);
+        Assert.Equal(
+            AlwaysOnUsbState.OnWhenSleeping,
+            EnergyDriverFeatureClient.MapAlwaysOnUsb(0x80u).Value);
+        Assert.Equal(
+            AlwaysOnUsbState.OnAlways,
+            EnergyDriverFeatureClient.MapAlwaysOnUsb(0x8080u).Value);
+    }
+
+    [Fact]
+    public async Task Touchpad_lock_is_omitted_when_support_is_zero()
+    {
+        var invoker = new StubInvoker();
+        invoker.Values[LenovoWmiReadOperation.TouchpadLockSupport] = 0;
+        var reader = new WindowsHardwareStateReader(invoker);
+
+        HardwareReadResult<ToggleState> result = await reader.ReadTouchpadLockAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HardwareReadStatus.Unsupported, result.Status);
+        Assert.Equal("touchpad_not_supported", result.ErrorCode);
+    }
+
+    [Fact]
+    public async Task Unelevated_reader_does_not_open_energy_features()
+    {
+        var reader = new WindowsHardwareStateReader(new StubInvoker());
+
+        HardwareReadResult<ToggleState> overnight = await reader.ReadOvernightChargeAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HardwareReadStatus.Unavailable, overnight.Status);
+        Assert.Equal("overnight_not_opened", overnight.ErrorCode);
+    }
+
+    [Fact]
+    public void Four_zone_lighting_packets_encode_effect_speed_and_zone_colors()
+    {
+        var state = new FourZoneLightingState(
+            FourZoneEffect.Breath,
+            FourZoneKeyboardMode.High,
+            Speed: 3,
+            DivideArea: true,
+            new RgbColor(255, 0, 0),
+            new RgbColor(0, 255, 0),
+            new RgbColor(0, 0, 255),
+            new RgbColor(255, 255, 0));
+        byte[] packet = FourZoneKeyboardPacket.BuildLighting(state);
+
+        Assert.Equal(0xCC, packet[0]);
+        Assert.Equal(0x16, packet[1]);
+        Assert.Equal((byte)FourZoneEffect.Breath, packet[2]);
+        Assert.Equal(3, packet[3]);
+        Assert.Equal(2, packet[4]);
+        Assert.Equal(255, packet[5]);
+        Assert.Equal(0, packet[6]);
+        Assert.Equal(0, packet[7]);
+        Assert.Equal(0, packet[8]);
+        Assert.Equal(255, packet[9]);
+        HardwareReadResult<FourZoneLightingState> parsed = FourZoneKeyboardPacket.ParseLighting(packet);
+        Assert.Equal(HardwareReadStatus.Success, parsed.Status);
+        Assert.Equal(state, parsed.Value);
+    }
+
+    [Fact]
+    public void Spectrum_probe_requires_a_960_byte_collection_and_excludes_four_zone_pids()
+    {
+        Assert.True(SpectrumKeyboardHid.IsSpectrumProduct(0xC965, 960));
+        Assert.False(SpectrumKeyboardHid.IsSpectrumProduct(0xC993, 960));
+        Assert.False(SpectrumKeyboardHid.IsSpectrumProduct(0xC965, 33));
+        Assert.False(SpectrumKeyboardHid.IsSpectrumProduct(0xC935, 960));
+    }
+
+    [Fact]
+    public void Oem_fan_table_store_persists_only_the_first_successful_snapshot()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"llc-oem-fan-{Guid.NewGuid():N}.json");
+        try
+        {
+            var store = new OemFanTableStore(path);
+            var first = new FanTableSnapshot(0, 0, [new FanTablePoint(10, 40)]);
+            var second = new FanTableSnapshot(0, 0, [new FanTablePoint(99, 90)]);
+
+            store.SaveIfAbsent(first);
+            store.SaveIfAbsent(second);
+            FanTableSnapshot? loaded = store.TryRead();
+
+            Assert.NotNull(loaded);
+            Assert.Equal(10, loaded.Value.Points[0].Speed);
+            Assert.Equal(40, loaded.Value.Points[0].Sensor);
+        }
+        finally
+        {
+            if (File.Exists(path))
+                File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Energy_feature_control_codes_are_fixed()
+    {
+        Assert.Equal(0x831020E8u, EnergyDriverFeatureClient.SettingsControlCodeForValidation);
+        Assert.Equal(0x83102150u, EnergyDriverFeatureClient.NightChargeControlCodeForValidation);
+    }
+
     [Fact]
     public void Fan_table_parser_accepts_a_bounded_oem_table()
     {
@@ -262,7 +404,10 @@ public sealed class HardwareStateReaderTests
         Assert.Equal("SetODStatus", SystemLenovoWmiWriteInvoker.MethodName(LenovoWmiWriteOperation.DisplayOverdrive));
         Assert.Equal("SetIGPUModeStatus", SystemLenovoWmiWriteInvoker.MethodName(LenovoWmiWriteOperation.IntegratedGpuMode));
         Assert.Equal("SetLightControlOwner", SystemLenovoWmiWriteInvoker.MethodName(LenovoWmiWriteOperation.LightControlOwner));
+        Assert.Equal("SetTPStatus", SystemLenovoWmiWriteInvoker.MethodName(LenovoWmiWriteOperation.TouchpadLock));
+        Assert.Equal("SetWinKeyStatus", SystemLenovoWmiWriteInvoker.MethodName(LenovoWmiWriteOperation.WinKeyLock));
         Assert.Equal("Fan_Get_Table", SystemLenovoFanTableReadInvoker.MethodName);
+        Assert.Equal("Fan_Set_Table", SystemLenovoFanTableWriteInvoker.MethodName);
         Assert.Equal(
             new uint[] { 0, 40, 80 },
             LenovoWmiScope.ToUInt32Array(new object[] { 0, 40, (ushort)80 }));
@@ -440,7 +585,11 @@ public sealed class HardwareStateReaderTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(
-            ["battery", "thermal", "overdrive", "igpu", "keyboard", "fan"],
+            [
+                "battery", "thermal", "overdrive", "igpu", "keyboard", "fan",
+                "overnight", "fnLock", "alwaysOnUsb", "touchpad", "winKey",
+                "lighting", "spectrum",
+            ],
             reader.Operations);
         Assert.Equal(now, snapshot.ObservedAt);
         Assert.Equal(BatteryChargeMode.Normal, snapshot.BatteryChargeMode.Value);
@@ -458,7 +607,11 @@ public sealed class HardwareStateReaderTests
             includeFanTable: false);
 
         Assert.Equal(
-            ["battery", "thermal", "overdrive", "igpu", "keyboard"],
+            [
+                "battery", "thermal", "overdrive", "igpu", "keyboard",
+                "overnight", "fnLock", "alwaysOnUsb", "touchpad", "winKey",
+                "lighting", "spectrum",
+            ],
             reader.Operations);
         Assert.Equal(HardwareReadStatus.Unavailable, snapshot.FanTable.Status);
         Assert.Equal("fan_table_not_requested", snapshot.FanTable.ErrorCode);
@@ -547,6 +700,61 @@ public sealed class HardwareStateReaderTests
                 HardwareReadStatus.Unavailable,
                 "fan_table_not_opened"));
         }
+
+        public ValueTask<HardwareReadResult<ToggleState>> ReadOvernightChargeAsync(
+            CancellationToken cancellationToken)
+        {
+            Operations.Add("overnight");
+            return Unavailable<ToggleState>("overnight_not_implemented");
+        }
+
+        public ValueTask<HardwareReadResult<ToggleState>> ReadFnLockAsync(
+            CancellationToken cancellationToken)
+        {
+            Operations.Add("fnLock");
+            return Unavailable<ToggleState>("fn_lock_not_implemented");
+        }
+
+        public ValueTask<HardwareReadResult<AlwaysOnUsbState>> ReadAlwaysOnUsbAsync(
+            CancellationToken cancellationToken)
+        {
+            Operations.Add("alwaysOnUsb");
+            return Unavailable<AlwaysOnUsbState>("always_on_usb_not_implemented");
+        }
+
+        public ValueTask<HardwareReadResult<ToggleState>> ReadTouchpadLockAsync(
+            CancellationToken cancellationToken)
+        {
+            Operations.Add("touchpad");
+            return Unavailable<ToggleState>("touchpad_not_implemented");
+        }
+
+        public ValueTask<HardwareReadResult<ToggleState>> ReadWinKeyLockAsync(
+            CancellationToken cancellationToken)
+        {
+            Operations.Add("winKey");
+            return Unavailable<ToggleState>("win_key_not_implemented");
+        }
+
+        public ValueTask<HardwareReadResult<FourZoneLightingState>> ReadFourZoneLightingAsync(
+            CancellationToken cancellationToken)
+        {
+            Operations.Add("lighting");
+            return Unavailable<FourZoneLightingState>("four_zone_lighting_not_implemented");
+        }
+
+        public ValueTask<HardwareReadResult<SpectrumBrightness>> ReadSpectrumKeyboardAsync(
+            CancellationToken cancellationToken)
+        {
+            Operations.Add("spectrum");
+            return Unavailable<SpectrumBrightness>("spectrum_not_implemented");
+        }
+
+        private static ValueTask<HardwareReadResult<T>> Unavailable<T>(string errorCode)
+            where T : struct =>
+            ValueTask.FromResult(HardwareReadResult<T>.Failure(
+                HardwareReadStatus.Unavailable,
+                errorCode));
     }
 
     private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider

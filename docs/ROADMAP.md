@@ -44,16 +44,15 @@ Automation evaluates deterministic AC/battery rules, then can watch in this app 
 There is no SYSTEM service, scheduled task, or write on launch. Starting the watcher is
 an explicit click.
 
-## Current milestone: first Vantage-class controls
+## Current milestone: Vantage-class pages, no ads
 
-The dashboard can apply thermal mode, display overdrive, integrated-GPU mode, battery
-charge mode, and 4-zone keyboard brightness. Clicks rebase onto a fresh privileged
-capture, so Refresh is not required before a change. A live AC/battery glance updates
-without elevation, and a silent session poll keeps the cards current. Profile Apply and
-the opt-in AC/battery watcher reuse one elevated broker session for would-change battery
-and thermal targets. This LOQ's ITE controller is `048D:C993`. The same privileged
-refresh now reads the OEM fan table through `Fan_Get_Table`; this BIOS has no full-speed
-methods, and curve writes stay disabled. Per-zone colors remain out of scope.
+The dashboard remains the live instrument. POWER, INPUT, LIGHTING, DISPLAY, and DEVICE
+are first-class tabs. Clicks rebase onto a fresh privileged capture. Unsupported
+hardware is omitted. This LOQ's ITE controller is `048D:C993` (4-zone, not Spectrum).
+The BIOS exposes `Fan_Set_Table` and no full-speed methods. Overnight charge, Fn lock,
+Always-on USB, touchpad lock, and Win-key lock are capability-gated. The first
+successful fan-table read persists a local OEM snapshot so Restore OEM exists before
+the first curve write.
 
 ## Vantage replacement map
 
@@ -62,12 +61,12 @@ Vantage chrome, ads, Lena, warranty upsell, or serial numbers.
 
 | Vantage surface | Here now | Next evidenced slice |
 | --- | --- | --- |
-| Home device identity | Model, machine type, BIOS | No serial, product number, or Device ID |
-| Home / Power battery | Live %, AC/battery, Normal / Conservation / Rapid | Overnight charging stays out until a writer exists |
+| Home device identity | DEVICE tab: manufacturer, model, type, BIOS | No serial, product number, or Device ID |
+| Home / Power battery | POWER: live %, AC, Normal / Conservation / Rapid, overnight, Always-on USB | No invented 75/80% conservation graph |
 | Performance thermal / GPU | Quiet–Extreme, GPU working mode, overdrive | CPU/GPU/RAM gauges only after unelevated telemetry is typed |
-| Keyboard lighting | 4-zone Off / Low / High on `048D:C993` | Spectrum colors and effects stay out on this LOQ |
-| Fans | Read-only OEM table | No `Fan_Set_Table` or invented full-speed |
-| Input / gestures / widgets | Not present | Fn lock and OSD only after a documented getter/setter |
+| Keyboard lighting | LIGHTING: 4-zone effect, speed, zone colors | Spectrum section only on 960-byte HID |
+| Fans | Bounded `Fan_Set_Table` plus Restore OEM | No invented full-speed on 83DV |
+| Input | INPUT: Fn lock, touchpad lock, Win key | Gestures and widgets stay out |
 | Sound / Nahimic / scan | Not present | No invented audio or diagnostic writers |
 | Profiles / automation | Local drafts and AC/battery watcher | Process and hotkey sources after the rule model is proven |
 
@@ -99,14 +98,14 @@ A hardware control becomes eligible for implementation only when all requirement
 - redacted in-memory intent/result journaling; and
 - crash reconciliation that never blindly replays a command.
 
-The first writable feature will be selected from the best-evidenced bounded protocols. No
-feature is authorized merely because a legacy implementation exists.
+Allowlisted writes are already in the session broker. No feature is authorized merely
+because a legacy implementation exists.
 
 ## Expansion and release
 
 After a write slice passes its gate, later milestones can add additional validated controls,
 packaging, updates, accessibility tests, and model support. Authenticode signing and a
-protected installer remain public-release gates. Fan curves, power limits, firmware
-flashing, and unattended privileged services remain out of scope until they have their own
-stronger recovery and validation designs.
+protected installer remain public-release gates. ITS / custom thermal power limits,
+firmware flashing, and unattended privileged services remain out of scope until they have
+their own stronger recovery and validation designs.
 

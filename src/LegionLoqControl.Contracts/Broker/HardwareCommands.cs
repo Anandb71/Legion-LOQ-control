@@ -44,6 +44,14 @@ public enum HardwareWriteTarget
     IntegratedGpuMode = 2,
     BatteryChargeMode = 3,
     FourZoneKeyboard = 4,
+    OvernightCharge = 5,
+    FnLock = 6,
+    AlwaysOnUsb = 7,
+    TouchpadLock = 8,
+    WinKeyLock = 9,
+    FourZoneLighting = 10,
+    FanTable = 11,
+    SpectrumKeyboard = 12,
 }
 
 public enum BrokerCommandStatus

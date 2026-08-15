@@ -71,6 +71,84 @@ internal static class FourZoneKeyboardPacket
         return HardwareReadResult<FourZoneKeyboardMode>.Success(FourZoneKeyboardMode.Unknown);
     }
 
+    internal static byte[] BuildLighting(FourZoneLightingState state)
+    {
+        if (!Enum.IsDefined(state.Effect) ||
+            !Enum.IsDefined(state.Brightness) ||
+            state.Brightness == FourZoneKeyboardMode.Unknown ||
+            state.Speed > FourZoneLightingState.MaximumSpeed)
+        {
+            throw new HardwareWriteException(
+                "lighting_value_invalid",
+                HardwareWriteStatus.Failed);
+        }
+
+        byte[] packet = new byte[FeatureReportLength];
+        packet[0] = ReportId;
+        packet[1] = LightingCommand;
+        if (state.Brightness == FourZoneKeyboardMode.Off || state.Effect == FourZoneEffect.Off)
+        {
+            packet[2] = 0x00;
+            packet[3] = 0x01;
+            packet[4] = 0x00;
+            return packet;
+        }
+
+        packet[2] = (byte)state.Effect;
+        packet[3] = state.Speed == 0 ? (byte)0x01 : state.Speed;
+        packet[4] = state.Brightness == FourZoneKeyboardMode.Low ? (byte)0x01 : (byte)0x02;
+        RgbColor[] zones = state.DivideArea
+            ? [state.Zone1, state.Zone2, state.Zone3, state.Zone4]
+            : [state.Zone1, state.Zone1, state.Zone1, state.Zone1];
+        for (int index = 0; index < zones.Length; index++)
+        {
+            int offset = 5 + (index * 3);
+            packet[offset] = zones[index].Red;
+            packet[offset + 1] = zones[index].Green;
+            packet[offset + 2] = zones[index].Blue;
+        }
+
+        return packet;
+    }
+
+    internal static HardwareReadResult<FourZoneLightingState> ParseLighting(
+        ReadOnlySpan<byte> packet)
+    {
+        HardwareReadResult<FourZoneKeyboardMode> brightness = Parse(packet);
+        if (brightness.Status != HardwareReadStatus.Success || !brightness.Value.HasValue)
+        {
+            return HardwareReadResult<FourZoneLightingState>.Failure(
+                brightness.Status,
+                brightness.ErrorCode ?? "keyboard_report_invalid");
+        }
+
+        if (packet[1] == IdentityCommand)
+        {
+            return HardwareReadResult<FourZoneLightingState>.Success(
+                FourZoneLightingState.Default with { Brightness = FourZoneKeyboardMode.Unknown });
+        }
+
+        FourZoneEffect effect = Enum.IsDefined((FourZoneEffect)packet[2])
+            ? (FourZoneEffect)packet[2]
+            : FourZoneEffect.Static;
+        byte speed = packet[3] <= FourZoneLightingState.MaximumSpeed ? packet[3] : (byte)1;
+        RgbColor zone1 = new(packet[5], packet[6], packet[7]);
+        RgbColor zone2 = new(packet[8], packet[9], packet[10]);
+        RgbColor zone3 = new(packet[11], packet[12], packet[13]);
+        RgbColor zone4 = new(packet[14], packet[15], packet[16]);
+        bool divided = !zone1.Equals(zone2) || !zone1.Equals(zone3) || !zone1.Equals(zone4);
+        return HardwareReadResult<FourZoneLightingState>.Success(
+            new FourZoneLightingState(
+                effect,
+                brightness.Value.Value,
+                speed,
+                divided,
+                zone1,
+                zone2,
+                zone3,
+                zone4));
+    }
+
     private static bool IsBlackStatic(ReadOnlySpan<byte> packet, byte effect)
     {
         if (effect != StaticEffect)

@@ -471,5 +471,7 @@
             <Setter Property="Height" Value="1" />
             <Setter Property="Background" Value="{StaticResource BorderBrush}" />
         </Style>
+
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     </Application.Resources>
 </Application>

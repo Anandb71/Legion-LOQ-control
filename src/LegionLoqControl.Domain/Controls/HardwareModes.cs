@@ -56,3 +56,73 @@ public enum IntegratedGpuMode
     IntegratedOnly = 1,
     Automatic = 2,
 }
+
+public enum AlwaysOnUsbState
+{
+    Off = 0,
+    OnWhenSleeping = 1,
+    OnAlways = 2,
+}
+
+public enum FourZoneEffect
+{
+    Off = 0,
+    Static = 1,
+    Breath = 3,
+    Wave = 4,
+    Smooth = 6,
+}
+
+public readonly record struct RgbColor(byte Red, byte Green, byte Blue)
+{
+    public static RgbColor White { get; } = new(255, 255, 255);
+
+    public string ToHex() => $"{Red:X2}{Green:X2}{Blue:X2}";
+
+    public static bool TryParseHex(string? value, out RgbColor color)
+    {
+        color = default;
+        if (value is not { Length: 6 })
+            return false;
+        if (!byte.TryParse(value.AsSpan(0, 2), System.Globalization.NumberStyles.HexNumber, null, out byte red) ||
+            !byte.TryParse(value.AsSpan(2, 2), System.Globalization.NumberStyles.HexNumber, null, out byte green) ||
+            !byte.TryParse(value.AsSpan(4, 2), System.Globalization.NumberStyles.HexNumber, null, out byte blue))
+        {
+            return false;
+        }
+
+        color = new RgbColor(red, green, blue);
+        return true;
+    }
+}
+
+public readonly record struct FourZoneLightingState(
+    FourZoneEffect Effect,
+    FourZoneKeyboardMode Brightness,
+    byte Speed,
+    bool DivideArea,
+    RgbColor Zone1,
+    RgbColor Zone2,
+    RgbColor Zone3,
+    RgbColor Zone4)
+{
+    public const byte MaximumSpeed = 4;
+
+    public static FourZoneLightingState Default { get; } = new(
+        FourZoneEffect.Static,
+        FourZoneKeyboardMode.High,
+        Speed: 1,
+        DivideArea: false,
+        RgbColor.White,
+        RgbColor.White,
+        RgbColor.White,
+        RgbColor.White);
+}
+
+public enum SpectrumBrightness
+{
+    Off = 0,
+    Low = 1,
+    Medium = 2,
+    High = 3,
+}

@@ -9,16 +9,19 @@ The rebuild is write-gated. Inventory, refresh, preview, and export stay read-on
 
 - the GUI runs as the current user (`asInvoker`), not as administrator;
 - the dashboard can apply thermal mode, display overdrive, integrated-GPU mode,
-  battery charge mode, and 4-zone keyboard brightness only after an explicit click
-  through the session broker;
+  battery charge mode, 4-zone brightness and lighting, overnight charge, Fn lock,
+  Always-on USB, touchpad lock, Win-key lock, a bounded fan table, and Spectrum
+  brightness only after an explicit click through the session broker;
+- unsupported hardware is omitted, not shown as a dead switch;
 - each apply is one typed broker write, or one battery-then-thermal batch; the broker
   captures live firmware first and uses that as the expected state, then reads back;
-  those write captures skip `Fan_Get_Table` because the fan table is not a write target;
+  those write captures skip `Fan_Get_Table` unless the target is the fan table;
   a stale dashboard paint is not a conflict gate;
 - the elevated broker may read `LENOVO_FAN_METHOD.Fan_Get_Table` with FanID `0` and
-  SensorID `0` and show the bounded OEM table; `Fan_Set_Table` and full-speed methods
-  stay disabled;
-- custom thermal mode, fan-table writes, and per-zone RGB color writes remain disabled;
+  SensorID `0`, persist the first successful table as a local OEM snapshot, and apply
+  a bounded `Fan_Set_Table` plus Restore OEM; full-speed methods stay omitted when
+  absent;
+- custom thermal mode and arbitrary power-limit sliders remain disabled;
 - `HardwareWritePolicy` in the quarantined Core assembly still has no unlock path;
 - legacy or write-capable EnergyDrv, WMI mutation, and HID feature-write entry points
   reject commands before opening a driver or selecting a device;
@@ -39,14 +42,20 @@ The rebuild is write-gated. Inventory, refresh, preview, and export stay read-on
 - the elevated broker has one fixed EnergyDrv battery read (`0x831020F8`, selector `0xFF`,
   zero requested device access) and one typed EnergyDrv battery write using only
   selectors `0x03`, `0x05`, `0x07`, and `0x08`;
+- the elevated broker may also use EnergyDrv settings (`0x831020E8`) for Fn lock and
+  Always-on USB, and night-charge (`0x83102150`) for overnight charge, with fixed
+  selectors only;
 - the elevated broker may run one or two allowlisted setters on a session write or a
   one-shot `--write` launch (battery then thermal in one request, or a single dashboard
   target);
 - the elevated broker may open one allowlisted ITE HID collection (`048D` + `C935` /
-  `C955` / `C993`, 33-byte feature report) for 4-zone brightness; it still has no legacy
-  Core reference, generic IOCTL entry point, or caller-supplied WMI names;
-- the elevated read path may invoke `Fan_Get_Table` on `LENOVO_FAN_METHOD` with fixed
-  zero identifiers; it never invokes `Fan_Set_Table`;
+  `C955` / `C993`, 33-byte feature report) for 4-zone effect, speed, brightness, and
+  zone colors; a separate Spectrum path opens only a 960-byte C9xx collection that is
+  not a 4-zone PID; it still has no legacy Core reference, generic IOCTL entry point,
+  or caller-supplied WMI names;
+- the elevated path may invoke `Fan_Get_Table` and a bounded `Fan_Set_Table` on
+  `LENOVO_FAN_METHOD` with fixed zero identifiers; it never invents a full-speed
+  method when the BIOS does not expose one;
 - profile drafts use a bounded, strict, versioned local JSON store with a
   cross-process file lock and compare only against retained typed snapshots and
   capability evidence;
@@ -64,9 +73,9 @@ The rebuild is write-gated. Inventory, refresh, preview, and export stay read-on
   elevation, or performs a hardware write;
 - unit tests verify that battery, thermal, fan, and keyboard commands fail closed.
 
-The broker may apply the allowlisted WMI setters, the typed battery-mode write, and the
-typed 4-zone brightness packet after the session is elevated. That is not authorization
-for fan-table writes, per-zone color editors, or unsigned production installs. Development mode may launch an unsigned sibling broker after an
+The broker may apply the allowlisted WMI setters, typed EnergyDrv features, the bounded
+fan table, and the typed 4-zone or Spectrum HID packets after the session is elevated.
+That is not authorization for unsigned production installs. Development mode may launch an unsigned sibling broker after an
 explicit UAC prompt. Production mode refuses that launch unless the sibling directory is
 administrator-protected and the broker is Authenticode-signed. See
 [`docs/BROKER_INSTALL.md`](docs/BROKER_INSTALL.md).

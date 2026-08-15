@@ -14,23 +14,26 @@ public sealed class WindowsHardwareStateReader : IHardwareStateReader
 
     private readonly ILenovoWmiReadInvoker _invoker;
     private readonly IEnergyDriverBatteryReader? _batteryReader;
+    private readonly EnergyDriverFeatureClient? _energyFeatures;
     private readonly IFourZoneKeyboardHid? _keyboard;
     private readonly IFanTableReader? _fanTable;
+    private readonly ISpectrumKeyboardHid? _spectrum;
+    private readonly OemFanTableStore _oemFanTable;
 
     public WindowsHardwareStateReader()
-        : this(new SystemLenovoWmiReadInvoker(), batteryReader: null, keyboard: null, fanTable: null)
+        : this(new SystemLenovoWmiReadInvoker(), batteryReader: null, keyboard: null, fanTable: null, energyFeatures: null, spectrum: null)
     {
     }
 
     internal WindowsHardwareStateReader(ILenovoWmiReadInvoker invoker)
-        : this(invoker, batteryReader: null, keyboard: null, fanTable: null)
+        : this(invoker, batteryReader: null, keyboard: null, fanTable: null, energyFeatures: null, spectrum: null)
     {
     }
 
     internal WindowsHardwareStateReader(
         ILenovoWmiReadInvoker invoker,
         IEnergyDriverBatteryReader? batteryReader)
-        : this(invoker, batteryReader, keyboard: null, fanTable: null)
+        : this(invoker, batteryReader, keyboard: null, fanTable: null, energyFeatures: null, spectrum: null)
     {
     }
 
@@ -38,7 +41,7 @@ public sealed class WindowsHardwareStateReader : IHardwareStateReader
         ILenovoWmiReadInvoker invoker,
         IEnergyDriverBatteryReader? batteryReader,
         IFourZoneKeyboardHid? keyboard)
-        : this(invoker, batteryReader, keyboard, fanTable: null)
+        : this(invoker, batteryReader, keyboard, fanTable: null, energyFeatures: null, spectrum: null)
     {
     }
 
@@ -46,12 +49,18 @@ public sealed class WindowsHardwareStateReader : IHardwareStateReader
         ILenovoWmiReadInvoker invoker,
         IEnergyDriverBatteryReader? batteryReader,
         IFourZoneKeyboardHid? keyboard,
-        IFanTableReader? fanTable)
+        IFanTableReader? fanTable,
+        EnergyDriverFeatureClient? energyFeatures = null,
+        ISpectrumKeyboardHid? spectrum = null,
+        OemFanTableStore? oemFanTable = null)
     {
         _invoker = invoker ?? throw new ArgumentNullException(nameof(invoker));
         _batteryReader = batteryReader;
         _keyboard = keyboard;
         _fanTable = fanTable;
+        _energyFeatures = energyFeatures;
+        _spectrum = spectrum;
+        _oemFanTable = oemFanTable ?? new OemFanTableStore();
     }
 
     internal static WindowsHardwareStateReader CreatePrivilegedReadOnly() =>
@@ -59,7 +68,9 @@ public sealed class WindowsHardwareStateReader : IHardwareStateReader
             new SystemLenovoWmiReadInvoker(),
             new EnergyDriverBatteryReader(),
             new FourZoneKeyboardHid(),
-            new SystemLenovoFanTableReadInvoker());
+            new SystemLenovoFanTableReadInvoker(),
+            new EnergyDriverFeatureClient(),
+            new SpectrumKeyboardHid());
 
     public ValueTask<HardwareReadResult<BatteryChargeMode>> ReadBatteryChargeModeAsync(
         CancellationToken cancellationToken)
@@ -128,16 +139,157 @@ public sealed class WindowsHardwareStateReader : IHardwareStateReader
             "keyboard_hid_not_opened"));
     }
 
-    public ValueTask<HardwareReadResult<FanTableSnapshot>> ReadFanTableAsync(
+    public async ValueTask<HardwareReadResult<FanTableSnapshot>> ReadFanTableAsync(
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (_fanTable is not null)
-            return _fanTable.ReadAsync(cancellationToken);
+        if (_fanTable is null)
+        {
+            return HardwareReadResult<FanTableSnapshot>.Failure(
+                HardwareReadStatus.Unavailable,
+                "fan_table_not_opened");
+        }
 
-        return ValueTask.FromResult(HardwareReadResult<FanTableSnapshot>.Failure(
+        HardwareReadResult<FanTableSnapshot> result = await _fanTable
+            .ReadAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (result.Status == HardwareReadStatus.Success && result.Value.HasValue)
+            _oemFanTable.SaveIfAbsent(result.Value.Value);
+
+        return result;
+    }
+
+    public ValueTask<HardwareReadResult<ToggleState>> ReadOvernightChargeAsync(
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return _energyFeatures is null
+            ? ValueTask.FromResult(HardwareReadResult<ToggleState>.Failure(
+                HardwareReadStatus.Unavailable,
+                "overnight_not_opened"))
+            : _energyFeatures.ReadOvernightChargeAsync(cancellationToken);
+    }
+
+    public ValueTask<HardwareReadResult<ToggleState>> ReadFnLockAsync(
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return _energyFeatures is null
+            ? ValueTask.FromResult(HardwareReadResult<ToggleState>.Failure(
+                HardwareReadStatus.Unavailable,
+                "fn_lock_not_opened"))
+            : _energyFeatures.ReadFnLockAsync(cancellationToken);
+    }
+
+    public ValueTask<HardwareReadResult<AlwaysOnUsbState>> ReadAlwaysOnUsbAsync(
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return _energyFeatures is null
+            ? ValueTask.FromResult(HardwareReadResult<AlwaysOnUsbState>.Failure(
+                HardwareReadStatus.Unavailable,
+                "always_on_usb_not_opened"))
+            : _energyFeatures.ReadAlwaysOnUsbAsync(cancellationToken);
+    }
+
+    public ValueTask<HardwareReadResult<ToggleState>> ReadTouchpadLockAsync(
+        CancellationToken cancellationToken) =>
+        ReadSupportedToggleAsync(
+            LenovoWmiReadOperation.TouchpadLockSupport,
+            LenovoWmiReadOperation.TouchpadLock,
+            "touchpad_not_supported",
+            "unexpected_touchpad_value",
+            cancellationToken);
+
+    public ValueTask<HardwareReadResult<ToggleState>> ReadWinKeyLockAsync(
+        CancellationToken cancellationToken) =>
+        ReadSupportedToggleAsync(
+            LenovoWmiReadOperation.WinKeyLockSupport,
+            LenovoWmiReadOperation.WinKeyLock,
+            "win_key_not_supported",
+            "unexpected_win_key_value",
+            cancellationToken);
+
+    public ValueTask<HardwareReadResult<FourZoneLightingState>> ReadFourZoneLightingAsync(
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (_keyboard is not null)
+            return _keyboard.ReadLightingAsync(cancellationToken);
+
+        return ValueTask.FromResult(HardwareReadResult<FourZoneLightingState>.Failure(
             HardwareReadStatus.Unavailable,
-            "fan_table_not_opened"));
+            "keyboard_hid_not_opened"));
+    }
+
+    public ValueTask<HardwareReadResult<SpectrumBrightness>> ReadSpectrumKeyboardAsync(
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (_spectrum is not null)
+            return _spectrum.ReadAsync(cancellationToken);
+
+        return ValueTask.FromResult(HardwareReadResult<SpectrumBrightness>.Failure(
+            HardwareReadStatus.Unavailable,
+            "spectrum_hid_not_opened"));
+    }
+
+    private async ValueTask<HardwareReadResult<ToggleState>> ReadSupportedToggleAsync(
+        LenovoWmiReadOperation supportOperation,
+        LenovoWmiReadOperation valueOperation,
+        string unsupportedCode,
+        string invalidValueCode,
+        CancellationToken cancellationToken)
+    {
+        HardwareReadResult<uint> support = await ReadRawAsync(supportOperation, cancellationToken)
+            .ConfigureAwait(false);
+        if (support.Status != HardwareReadStatus.Success ||
+            !support.Value.HasValue ||
+            support.Value.Value == 0)
+        {
+            return HardwareReadResult<ToggleState>.Failure(
+                support.Status == HardwareReadStatus.Success
+                    ? HardwareReadStatus.Unsupported
+                    : support.Status,
+                support.Status == HardwareReadStatus.Success
+                    ? unsupportedCode
+                    : support.ErrorCode ?? unsupportedCode);
+        }
+
+        return await ReadAsync<ToggleState>(
+                valueOperation,
+                static raw => raw switch
+                {
+                    0 => ToggleState.Disabled,
+                    1 => ToggleState.Enabled,
+                    _ => (ToggleState?)null,
+                },
+                invalidValueCode,
+                cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private async ValueTask<HardwareReadResult<uint>> ReadRawAsync(
+        LenovoWmiReadOperation operation,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            uint rawValue = await _invoker
+                .ReadAsync(operation, cancellationToken)
+                .ConfigureAwait(false);
+            return HardwareReadResult<uint>.Success(rawValue);
+        }
+        catch (LenovoWmiReadFailureException exception)
+        {
+            return HardwareReadResult<uint>.Failure(exception.Status, exception.ErrorCode);
+        }
+        catch (Exception)
+        {
+            return HardwareReadResult<uint>.Failure(
+                HardwareReadStatus.Failed,
+                "wmi_getter_failed");
+        }
     }
 
     private async ValueTask<HardwareReadResult<T>> ReadAsync<T>(

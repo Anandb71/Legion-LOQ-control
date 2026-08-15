@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.Diagnostics;
 using System.Reflection;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LegionLoqControl.Application.Automation;
@@ -115,6 +117,11 @@ public sealed partial class HardwareStateCardViewModel : ObservableObject
         CanApply = false;
         ApplyOptionCommand.NotifyCanExecuteChanged();
     }
+
+    public bool IsAvailable => State == DashboardStateKind.Success;
+
+    partial void OnStateChanged(DashboardStateKind value) =>
+        OnPropertyChanged(nameof(IsAvailable));
 }
 
 public sealed record HardwareStateOptionViewModel(string Label, string Token);
@@ -185,6 +192,24 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     [ObservableProperty]
     private string _chargingModeLabel = "Not read";
+
+    [ObservableProperty]
+    private string _manufacturerLabel = "Unknown";
+
+    [ObservableProperty]
+    private string _modelLabel = "Unknown";
+
+    [ObservableProperty]
+    private string _machineTypeLabel = "Unknown";
+
+    [ObservableProperty]
+    private string _biosVersionLabel = "Unknown";
+
+    [ObservableProperty]
+    private bool _hasInputControls;
+
+    [ObservableProperty]
+    private bool _hasLightingSurface;
 
     public MainWindowViewModel()
         : this(
@@ -273,6 +298,56 @@ public sealed partial class MainWindowViewModel : ObservableObject
         DisplayOverdrive.ApplyAsync = token => ApplyWriteAsync(HardwareWriteTarget.DisplayOverdrive, token);
         IntegratedGpu.ApplyAsync = token => ApplyWriteAsync(HardwareWriteTarget.IntegratedGpuMode, token);
         Keyboard.ApplyAsync = token => ApplyWriteAsync(HardwareWriteTarget.FourZoneKeyboard, token);
+
+        OvernightCharge = new HardwareStateCardViewModel(
+            "OVERNIGHT CHARGE",
+            "Night-charge bit from EnergyDrv",
+            "Omitted until the night-charge IOCTL succeeds");
+        FnLock = new HardwareStateCardViewModel(
+            "FN LOCK",
+            "Function-lock preference",
+            "Omitted until the EnergyDrv settings read succeeds");
+        AlwaysOnUsb = new HardwareStateCardViewModel(
+            "ALWAYS-ON USB",
+            "USB power while sleeping",
+            "Omitted until the EnergyDrv settings read succeeds");
+        TouchpadLock = new HardwareStateCardViewModel(
+            "TOUCHPAD LOCK",
+            "Disable the built-in touchpad",
+            "Omitted when IsSupportDisableTP is absent");
+        WinKeyLock = new HardwareStateCardViewModel(
+            "WIN KEY LOCK",
+            "Disable the Windows key",
+            "Omitted when IsSupportDisableWinKey is absent");
+        Spectrum = new HardwareStateCardViewModel(
+            "SPECTRUM",
+            "960-byte ITE keyboard brightness",
+            "Omitted unless a Spectrum HID collection is present");
+        AddOptions(OvernightCharge, ("Off", nameof(ToggleState.Disabled)), ("On", nameof(ToggleState.Enabled)));
+        AddOptions(FnLock, ("Off", nameof(ToggleState.Disabled)), ("On", nameof(ToggleState.Enabled)));
+        AddOptions(
+            AlwaysOnUsb,
+            ("Off", nameof(AlwaysOnUsbState.Off)),
+            ("On when sleeping", nameof(AlwaysOnUsbState.OnWhenSleeping)),
+            ("Always on", nameof(AlwaysOnUsbState.OnAlways)));
+        AddOptions(TouchpadLock, ("Unlocked", nameof(ToggleState.Disabled)), ("Locked", nameof(ToggleState.Enabled)));
+        AddOptions(WinKeyLock, ("Unlocked", nameof(ToggleState.Disabled)), ("Locked", nameof(ToggleState.Enabled)));
+        AddOptions(
+            Spectrum,
+            ("Off", nameof(SpectrumBrightness.Off)),
+            ("Low", nameof(SpectrumBrightness.Low)),
+            ("Medium", nameof(SpectrumBrightness.Medium)),
+            ("High", nameof(SpectrumBrightness.High)));
+        OvernightCharge.ApplyAsync = token => ApplyWriteAsync(HardwareWriteTarget.OvernightCharge, token);
+        FnLock.ApplyAsync = token => ApplyWriteAsync(HardwareWriteTarget.FnLock, token);
+        AlwaysOnUsb.ApplyAsync = token => ApplyWriteAsync(HardwareWriteTarget.AlwaysOnUsb, token);
+        TouchpadLock.ApplyAsync = token => ApplyWriteAsync(HardwareWriteTarget.TouchpadLock, token);
+        WinKeyLock.ApplyAsync = token => ApplyWriteAsync(HardwareWriteTarget.WinKeyLock, token);
+        Spectrum.ApplyAsync = token => ApplyWriteAsync(HardwareWriteTarget.SpectrumKeyboard, token);
+        LightingWorkspace = new LightingWorkspaceViewModel(
+            token => ApplyWriteAsync(HardwareWriteTarget.FourZoneLighting, token));
+        FanCurveWorkspace = new FanCurveWorkspaceViewModel(
+            token => ApplyWriteAsync(HardwareWriteTarget.FanTable, token));
     }
 
     public HardwareStateCardViewModel Battery { get; }
@@ -286,6 +361,22 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public HardwareStateCardViewModel Keyboard { get; }
 
     public HardwareStateCardViewModel Fans { get; }
+
+    public HardwareStateCardViewModel OvernightCharge { get; }
+
+    public HardwareStateCardViewModel FnLock { get; }
+
+    public HardwareStateCardViewModel AlwaysOnUsb { get; }
+
+    public HardwareStateCardViewModel TouchpadLock { get; }
+
+    public HardwareStateCardViewModel WinKeyLock { get; }
+
+    public HardwareStateCardViewModel Spectrum { get; }
+
+    public LightingWorkspaceViewModel LightingWorkspace { get; }
+
+    public FanCurveWorkspaceViewModel FanCurveWorkspace { get; }
 
     public MachineSessionViewModel Session { get; }
 
@@ -469,6 +560,10 @@ public sealed partial class MainWindowViewModel : ObservableObject
         string bios = Display(identity.BiosVersion);
         DeviceName = model;
         DeviceMetadata = $"Machine type {machineType} · BIOS {bios}";
+        ManufacturerLabel = Display(identity.Manufacturer);
+        ModelLabel = model;
+        MachineTypeLabel = machineType;
+        BiosVersionLabel = bios;
     }
 
     private void ApplyCapabilities(IReadOnlyList<CapabilityEvidence> evidence)
@@ -521,10 +616,18 @@ public sealed partial class MainWindowViewModel : ObservableObject
             "broker_signature_invalid" =>
                 "The broker signature is invalid, so no privileged read ran.",
             "thermal_expected_mismatch" or "overdrive_expected_mismatch" or
-                "integrated_gpu_expected_mismatch" or "keyboard_expected_mismatch" =>
+                "integrated_gpu_expected_mismatch" or "keyboard_expected_mismatch" or
+                "overnight_expected_mismatch" or "fn_lock_expected_mismatch" or
+                "always_on_usb_expected_mismatch" or "touchpad_expected_mismatch" or
+                "win_key_expected_mismatch" or "spectrum_expected_mismatch" or
+                "fan_table_expected_mismatch" =>
                 "The live firmware read failed, so this write did not run. Try again.",
             "thermal_readback_mismatch" or "overdrive_readback_mismatch" or
-                "integrated_gpu_readback_mismatch" or "keyboard_readback_mismatch" =>
+                "integrated_gpu_readback_mismatch" or "keyboard_readback_mismatch" or
+                "overnight_readback_mismatch" or "fn_lock_readback_mismatch" or
+                "always_on_usb_readback_mismatch" or "touchpad_readback_mismatch" or
+                "win_key_readback_mismatch" or "spectrum_readback_mismatch" or
+                "lighting_readback_mismatch" or "fan_table_readback_mismatch" =>
                 "The setter ran, but readback did not match the requested value.",
             "battery_expected_mismatch" =>
                 "The live battery read failed, so this write did not run. Try again.",
@@ -582,6 +685,29 @@ public sealed partial class MainWindowViewModel : ObservableObject
             HardwareWriteTarget.FourZoneKeyboard when
                 current.FourZoneKeyboard is { Status: HardwareReadStatus.Success, Value: { } value } =>
                 value.ToString(),
+            HardwareWriteTarget.OvernightCharge when
+                current.OvernightCharge is { Status: HardwareReadStatus.Success, Value: { } value } =>
+                value.ToString(),
+            HardwareWriteTarget.FnLock when
+                current.FnLock is { Status: HardwareReadStatus.Success, Value: { } value } =>
+                value.ToString(),
+            HardwareWriteTarget.AlwaysOnUsb when
+                current.AlwaysOnUsb is { Status: HardwareReadStatus.Success, Value: { } value } =>
+                value.ToString(),
+            HardwareWriteTarget.TouchpadLock when
+                current.TouchpadLock is { Status: HardwareReadStatus.Success, Value: { } value } =>
+                value.ToString(),
+            HardwareWriteTarget.WinKeyLock when
+                current.WinKeyLock is { Status: HardwareReadStatus.Success, Value: { } value } =>
+                value.ToString(),
+            HardwareWriteTarget.SpectrumKeyboard when
+                current.SpectrumKeyboard is { Status: HardwareReadStatus.Success, Value: { } value } =>
+                value.ToString(),
+            HardwareWriteTarget.FourZoneLighting =>
+                FormatLightingExpected(current),
+            HardwareWriteTarget.FanTable when
+                current.FanTable is { Status: HardwareReadStatus.Success, Value: { } value } =>
+                HardwareStateTokens.FormatFanTable(value),
             _ => null,
         };
         if (expected is null ||
@@ -692,7 +818,25 @@ public sealed partial class MainWindowViewModel : ObservableObject
         Fans.Apply(
             snapshot.FanTable,
             FormatFanTable,
-            "Read-only OEM table. Curve writes stay disabled.");
+            "Bounded OEM table. Edit speeds on POWER, then Restore OEM if needed.");
+        OvernightCharge.Apply(snapshot.OvernightCharge, FormatToggle);
+        FnLock.Apply(snapshot.FnLock, FormatToggle);
+        AlwaysOnUsb.Apply(snapshot.AlwaysOnUsb, FormatAlwaysOnUsb);
+        TouchpadLock.Apply(snapshot.TouchpadLock, FormatLock);
+        WinKeyLock.Apply(snapshot.WinKeyLock, FormatLock);
+        Spectrum.Apply(snapshot.SpectrumKeyboard, FormatSpectrum);
+        LightingWorkspace.Sync(
+            snapshot.FourZoneLighting is { Status: HardwareReadStatus.Success, Value: { } lighting }
+                ? lighting
+                : null,
+            snapshot.FourZoneLighting.Status == HardwareReadStatus.Success ||
+            snapshot.FourZoneKeyboard.Status == HardwareReadStatus.Success);
+        FanCurveWorkspace.Sync(
+            snapshot.FanTable is { Status: HardwareReadStatus.Success, Value: { } fan }
+                ? fan
+                : null);
+        HasInputControls = FnLock.IsAvailable || TouchpadLock.IsAvailable || WinKeyLock.IsAvailable;
+        HasLightingSurface = LightingWorkspace.IsVisible || Spectrum.IsAvailable;
         LastUpdated = snapshot.ObservedAt.ToLocalTime().ToString("HH:mm:ss");
         ChargingModeLabel = snapshot.BatteryChargeMode.Status == HardwareReadStatus.Success
             ? FormatBatteryMode(snapshot.BatteryChargeMode.Value!.Value)
@@ -793,6 +937,14 @@ public sealed partial class MainWindowViewModel : ObservableObject
         DisplayOverdrive.CanApply = false;
         IntegratedGpu.CanApply = false;
         Keyboard.CanApply = false;
+        OvernightCharge.CanApply = false;
+        FnLock.CanApply = false;
+        AlwaysOnUsb.CanApply = false;
+        TouchpadLock.CanApply = false;
+        WinKeyLock.CanApply = false;
+        Spectrum.CanApply = false;
+        LightingWorkspace.CanApply = false;
+        FanCurveWorkspace.CanApply = false;
     }
 
     private static HardwareWriteTarget MapWriteTarget(HardwareWriteKind kind) =>
@@ -803,6 +955,14 @@ public sealed partial class MainWindowViewModel : ObservableObject
             HardwareWriteKind.IntegratedGpuMode => HardwareWriteTarget.IntegratedGpuMode,
             HardwareWriteKind.BatteryChargeMode => HardwareWriteTarget.BatteryChargeMode,
             HardwareWriteKind.FourZoneKeyboard => HardwareWriteTarget.FourZoneKeyboard,
+            HardwareWriteKind.OvernightCharge => HardwareWriteTarget.OvernightCharge,
+            HardwareWriteKind.FnLock => HardwareWriteTarget.FnLock,
+            HardwareWriteKind.AlwaysOnUsb => HardwareWriteTarget.AlwaysOnUsb,
+            HardwareWriteKind.TouchpadLock => HardwareWriteTarget.TouchpadLock,
+            HardwareWriteKind.WinKeyLock => HardwareWriteTarget.WinKeyLock,
+            HardwareWriteKind.FourZoneLighting => HardwareWriteTarget.FourZoneLighting,
+            HardwareWriteKind.FanTable => HardwareWriteTarget.FanTable,
+            HardwareWriteKind.SpectrumKeyboard => HardwareWriteTarget.SpectrumKeyboard,
             _ => throw new ArgumentOutOfRangeException(nameof(kind)),
         };
 
@@ -847,6 +1007,74 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     private static string FormatToggle(ToggleState value) =>
         value == ToggleState.Enabled ? "Enabled" : "Disabled";
+
+    private static string FormatLock(ToggleState value) =>
+        value == ToggleState.Enabled ? "Locked" : "Unlocked";
+
+    private static string FormatAlwaysOnUsb(AlwaysOnUsbState value) =>
+        value switch
+        {
+            AlwaysOnUsbState.OnWhenSleeping => "On when sleeping",
+            AlwaysOnUsbState.OnAlways => "Always on",
+            _ => "Off",
+        };
+
+    private static string FormatSpectrum(SpectrumBrightness value) =>
+        value switch
+        {
+            SpectrumBrightness.Low => "Low",
+            SpectrumBrightness.Medium => "Medium",
+            SpectrumBrightness.High => "High",
+            _ => "Off",
+        };
+
+    private static string FormatLightingExpected(HardwareStateSnapshot current)
+    {
+        if (current.FourZoneLighting is { Status: HardwareReadStatus.Success, Value: { } lighting } &&
+            lighting.Brightness != FourZoneKeyboardMode.Unknown)
+        {
+            return HardwareStateTokens.FormatLighting(lighting);
+        }
+
+        return HardwareStateTokens.FormatLighting(FourZoneLightingState.Default);
+    }
+
+    [RelayCommand]
+    private static void OpenWindowsSettings(string? uri)
+    {
+        if (string.IsNullOrWhiteSpace(uri) ||
+            !uri.StartsWith("ms-settings:", StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = uri,
+                UseShellExecute = true,
+            });
+        }
+        catch (Exception)
+        {
+        }
+    }
+
+    [RelayCommand]
+    private static void CopyDeviceField(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return;
+
+        try
+        {
+            Clipboard.SetText(value);
+        }
+        catch (Exception)
+        {
+        }
+    }
 
     private static string FormatGpuMode(IntegratedGpuMode value) =>
         value switch

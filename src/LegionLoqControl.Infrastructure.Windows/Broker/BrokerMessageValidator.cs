@@ -102,8 +102,8 @@ internal static class BrokerMessageValidator
             if (!Enum.IsDefined(operation.Target) ||
                 string.IsNullOrWhiteSpace(operation.Expected) ||
                 string.IsNullOrWhiteSpace(operation.Desired) ||
-                operation.Expected.Length > 64 ||
-                operation.Desired.Length > 64 ||
+                operation.Expected.Length > 256 ||
+                operation.Desired.Length > 256 ||
                 !targets.Add(operation.Target))
             {
                 return BrokerValidationResult.Invalid("write_batch_invalid");

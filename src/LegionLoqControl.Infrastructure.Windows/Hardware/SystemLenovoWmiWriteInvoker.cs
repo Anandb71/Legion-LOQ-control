@@ -39,6 +39,8 @@ internal sealed class SystemLenovoWmiWriteInvoker : ILenovoWmiWriteInvoker
             LenovoWmiWriteOperation.DisplayOverdrive => "SetODStatus",
             LenovoWmiWriteOperation.IntegratedGpuMode => "SetIGPUModeStatus",
             LenovoWmiWriteOperation.LightControlOwner => "SetLightControlOwner",
+            LenovoWmiWriteOperation.TouchpadLock => "SetTPStatus",
+            LenovoWmiWriteOperation.WinKeyLock => "SetWinKeyStatus",
             _ => throw new ArgumentOutOfRangeException(nameof(operation)),
         };
 

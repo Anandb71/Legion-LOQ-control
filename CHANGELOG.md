@@ -29,6 +29,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Manually generated, short-lived, broker-free read-only preview artifact
 - Live AC/battery glance from `GetSystemPowerStatus`, plus silent privileged refresh
   that skips the fan table so cards stay current without a click
+- POWER, INPUT, LIGHTING, DISPLAY, and DEVICE workspaces with no ads, warranty, or serials
+- Overnight charge, Fn lock, Always-on USB, touchpad lock, and Win-key lock, omitted
+  when the machine does not support them
+- 4-zone lighting editor (effect, speed, divide-area colors) and a gated Spectrum path
+- Bounded fan-curve apply with a local OEM snapshot and Restore OEM
 
 ### Changed
 
@@ -49,7 +54,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-- Fan-table writes and per-zone colors remain absent
+- Fan-table writes require a persisted OEM snapshot and stay bounded to 1–10 points
+- Spectrum HID is hidden unless a 960-byte non-4-zone C9xx collection is present
+- Device identity copy is limited to manufacturer, model, machine type, and BIOS
 - Broker IPC uses a random pipe, current-user ACL, one-time nonce, strict framing, and
   mutual process-ID checks
 - WMI reads use fixed getter names, static script text, capped output, and bounded execution

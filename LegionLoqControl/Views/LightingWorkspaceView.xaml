@@ -1,0 +1,155 @@
+<UserControl x:Class="LegionLoqControl.Views.LightingWorkspaceView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:automation="clr-namespace:System.Windows.Automation;assembly=PresentationCore">
+    <ScrollViewer Background="{StaticResource CanvasBrush}"
+                  HorizontalScrollBarVisibility="Disabled"
+                  VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="32,24,32,28">
+            <TextBlock Style="{StaticResource EyebrowTextStyle}"
+                       Text="LIGHTING / KEYBOARD" />
+            <TextBlock Margin="0,6,0,8"
+                       FontFamily="{StaticResource DisplayFont}"
+                       FontSize="28"
+                       FontWeight="SemiBold"
+                       Text="Lighting" />
+            <TextBlock Margin="0,0,0,20"
+                       Foreground="{StaticResource SecondaryTextBrush}"
+                       Text="4-zone ITE effect, speed, and colors on this LOQ. Spectrum chrome stays hidden unless a 960-byte collection is present." />
+
+            <TextBlock Margin="0,0,0,16"
+                       Foreground="{StaticResource MutedTextBrush}"
+                       Text="No lighting controller on this machine.">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasLightingSurface}" Value="False">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+
+            <Border Margin="0,0,0,12"
+                    Padding="20"
+                    Style="{StaticResource SurfaceBorderStyle}"
+                    Visibility="{Binding LightingWorkspace.IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource EyebrowTextStyle}" Text="4-ZONE RGB" />
+                    <TextBlock Margin="0,4,0,16"
+                               Foreground="{StaticResource MutedTextBrush}"
+                               Text="Static, Breath, Wave, or Smooth. Divide area sends four zone colors; one color when off." />
+
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Style="{StaticResource EyebrowTextStyle}" Text="EFFECT" />
+                            <ComboBox Margin="0,6,0,0"
+                                      automation:AutomationProperties.Name="Four-zone lighting effect"
+                                      DisplayMemberPath="Label"
+                                      ItemsSource="{Binding LightingWorkspace.EffectOptions}"
+                                      SelectedValue="{Binding LightingWorkspace.Effect, Mode=TwoWay}"
+                                      SelectedValuePath="Value" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Style="{StaticResource EyebrowTextStyle}" Text="BRIGHTNESS" />
+                            <ComboBox Margin="0,6,0,0"
+                                      automation:AutomationProperties.Name="Four-zone lighting brightness"
+                                      DisplayMemberPath="Label"
+                                      ItemsSource="{Binding LightingWorkspace.BrightnessOptions}"
+                                      SelectedValue="{Binding LightingWorkspace.Brightness, Mode=TwoWay}"
+                                      SelectedValuePath="Value" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="4">
+                            <TextBlock Style="{StaticResource EyebrowTextStyle}" Text="SPEED" />
+                            <ComboBox Margin="0,6,0,0"
+                                      automation:AutomationProperties.Name="Four-zone lighting speed"
+                                      ItemsSource="{Binding LightingWorkspace.SpeedOptions}"
+                                      SelectedItem="{Binding LightingWorkspace.Speed, Mode=TwoWay}" />
+                        </StackPanel>
+                    </Grid>
+
+                    <CheckBox Margin="0,0,0,12"
+                              automation:AutomationProperties.Name="Divide keyboard into four color zones"
+                              Content="Divide area"
+                              IsChecked="{Binding LightingWorkspace.DivideArea, Mode=TwoWay}" />
+
+                    <Grid Margin="0,0,0,12"
+                          Visibility="{Binding LightingWorkspace.ShowSingleColor, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="160" />
+                            <ColumnDefinition Width="160" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock VerticalAlignment="Center"
+                                   Style="{StaticResource EyebrowTextStyle}"
+                                   Text="COLOR" />
+                        <TextBox Grid.Column="1"
+                                 automation:AutomationProperties.Name="Four-zone lighting color"
+                                 Text="{Binding LightingWorkspace.Zone1Hex, UpdateSourceTrigger=PropertyChanged}" />
+                    </Grid>
+
+                    <Grid Margin="0,0,0,12"
+                          Visibility="{Binding LightingWorkspace.ShowDividedColors, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Style="{StaticResource EyebrowTextStyle}" Text="ZONE 1" />
+                            <TextBox Margin="0,6,0,0"
+                                     automation:AutomationProperties.Name="Four-zone lighting zone 1 color"
+                                     Text="{Binding LightingWorkspace.Zone1Hex, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Style="{StaticResource EyebrowTextStyle}" Text="ZONE 2" />
+                            <TextBox Margin="0,6,0,0"
+                                     automation:AutomationProperties.Name="Four-zone lighting zone 2 color"
+                                     Text="{Binding LightingWorkspace.Zone2Hex, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="4">
+                            <TextBlock Style="{StaticResource EyebrowTextStyle}" Text="ZONE 3" />
+                            <TextBox Margin="0,6,0,0"
+                                     automation:AutomationProperties.Name="Four-zone lighting zone 3 color"
+                                     Text="{Binding LightingWorkspace.Zone3Hex, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="6">
+                            <TextBlock Style="{StaticResource EyebrowTextStyle}" Text="ZONE 4" />
+                            <TextBox Margin="0,6,0,0"
+                                     automation:AutomationProperties.Name="Four-zone lighting zone 4 color"
+                                     Text="{Binding LightingWorkspace.Zone4Hex, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+                    </Grid>
+
+                    <StackPanel Orientation="Horizontal">
+                        <Button Margin="0,0,8,0"
+                                automation:AutomationProperties.Name="Apply four-zone lighting through the session broker"
+                                Command="{Binding LightingWorkspace.ApplyLightingCommand}"
+                                Content="Apply lighting"
+                                Style="{StaticResource PrimaryButtonStyle}" />
+                        <Button automation:AutomationProperties.Name="Restore default four-zone lighting"
+                                Command="{Binding LightingWorkspace.ResetLightingToDefaultCommand}"
+                                Content="Set to default"
+                                Style="{StaticResource BaseButtonStyle}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <ContentControl Content="{Binding Spectrum}"
+                            ContentTemplate="{DynamicResource StateCardTemplate}"
+                            Visibility="{Binding Spectrum.IsAvailable, Converter={StaticResource BooleanToVisibilityConverter}}" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

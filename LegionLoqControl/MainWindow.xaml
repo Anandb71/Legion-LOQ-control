@@ -507,6 +507,27 @@
             </ScrollViewer>
         </TabItem>
 
+        <TabItem Header="POWER"
+                 Style="{StaticResource NavigationTabItemStyle}">
+            <views:PowerWorkspaceView />
+        </TabItem>
+        <TabItem Header="INPUT"
+                 Style="{StaticResource NavigationTabItemStyle}">
+            <views:InputWorkspaceView />
+        </TabItem>
+        <TabItem Header="LIGHTING"
+                 Style="{StaticResource NavigationTabItemStyle}">
+            <views:LightingWorkspaceView />
+        </TabItem>
+        <TabItem Header="DISPLAY"
+                 Style="{StaticResource NavigationTabItemStyle}">
+            <views:DisplayWorkspaceView />
+        </TabItem>
+        <TabItem Header="DEVICE"
+                 Style="{StaticResource NavigationTabItemStyle}">
+            <views:DeviceWorkspaceView />
+        </TabItem>
+
         <TabItem Header="PROFILE PREVIEW"
                  Style="{StaticResource NavigationTabItemStyle}">
             <ScrollViewer Background="{StaticResource CanvasBrush}"

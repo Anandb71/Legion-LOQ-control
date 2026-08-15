@@ -1,0 +1,47 @@
+<UserControl x:Class="LegionLoqControl.Views.InputWorkspaceView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer Background="{StaticResource CanvasBrush}"
+                  HorizontalScrollBarVisibility="Disabled"
+                  VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="32,24,32,28">
+            <TextBlock Style="{StaticResource EyebrowTextStyle}"
+                       Text="INPUT / KEYBOARD AND TOUCHPAD LOCKS" />
+            <TextBlock Margin="0,6,0,8"
+                       FontFamily="{StaticResource DisplayFont}"
+                       FontSize="28"
+                       FontWeight="SemiBold"
+                       Text="Input" />
+            <TextBlock Margin="0,0,0,20"
+                       Foreground="{StaticResource SecondaryTextBrush}"
+                       Text="Fn lock, touchpad lock, and Windows-key lock. Unsupported hardware is omitted." />
+
+            <TextBlock Margin="0,0,0,16"
+                       Foreground="{StaticResource MutedTextBrush}"
+                       Text="No input locks on this machine.">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasInputControls}" Value="False">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+
+            <ContentControl Margin="0,0,0,12"
+                            Content="{Binding FnLock}"
+                            ContentTemplate="{DynamicResource StateCardTemplate}"
+                            Visibility="{Binding FnLock.IsAvailable, Converter={StaticResource BooleanToVisibilityConverter}}" />
+            <ContentControl Margin="0,0,0,12"
+                            Content="{Binding TouchpadLock}"
+                            ContentTemplate="{DynamicResource StateCardTemplate}"
+                            Visibility="{Binding TouchpadLock.IsAvailable, Converter={StaticResource BooleanToVisibilityConverter}}" />
+            <ContentControl Content="{Binding WinKeyLock}"
+                            ContentTemplate="{DynamicResource StateCardTemplate}"
+                            Visibility="{Binding WinKeyLock.IsAvailable, Converter={StaticResource BooleanToVisibilityConverter}}" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

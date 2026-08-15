@@ -46,8 +46,33 @@ public sealed record HardwareStateReadPayload(
             HardwareReadValue<ToggleState>.FromResult(snapshot.DisplayOverdrive),
             HardwareReadValue<IntegratedGpuMode>.FromResult(snapshot.IntegratedGpuMode),
             HardwareReadValue<FourZoneKeyboardMode>.FromResult(snapshot.FourZoneKeyboard),
-            HardwareReadValue<FanTableSnapshot>.FromResult(snapshot.FanTable));
+            HardwareReadValue<FanTableSnapshot>.FromResult(snapshot.FanTable))
+        {
+            OvernightCharge = HardwareReadValue<ToggleState>.FromResult(snapshot.OvernightCharge),
+            FnLock = HardwareReadValue<ToggleState>.FromResult(snapshot.FnLock),
+            AlwaysOnUsb = HardwareReadValue<AlwaysOnUsbState>.FromResult(snapshot.AlwaysOnUsb),
+            TouchpadLock = HardwareReadValue<ToggleState>.FromResult(snapshot.TouchpadLock),
+            WinKeyLock = HardwareReadValue<ToggleState>.FromResult(snapshot.WinKeyLock),
+            FourZoneLighting = HardwareReadValue<FourZoneLightingState>.FromResult(
+                snapshot.FourZoneLighting),
+            SpectrumKeyboard = HardwareReadValue<SpectrumBrightness>.FromResult(
+                snapshot.SpectrumKeyboard),
+        };
     }
+
+    public HardwareReadValue<ToggleState>? OvernightCharge { get; init; }
+
+    public HardwareReadValue<ToggleState>? FnLock { get; init; }
+
+    public HardwareReadValue<AlwaysOnUsbState>? AlwaysOnUsb { get; init; }
+
+    public HardwareReadValue<ToggleState>? TouchpadLock { get; init; }
+
+    public HardwareReadValue<ToggleState>? WinKeyLock { get; init; }
+
+    public HardwareReadValue<FourZoneLightingState>? FourZoneLighting { get; init; }
+
+    public HardwareReadValue<SpectrumBrightness>? SpectrumKeyboard { get; init; }
 
     public HardwareStateSnapshot ToSnapshot()
     {
@@ -77,7 +102,24 @@ public sealed record HardwareStateReadPayload(
             DisplayOverdrive.ToResult(),
             IntegratedGpuMode.ToResult(),
             FourZoneKeyboard.ToResult(),
-            fanTable);
+            fanTable)
+        {
+            OvernightCharge = OvernightCharge?.ToResult()
+                ?? HardwareStateSnapshot.NotCaptured<ToggleState>("overnight_not_captured"),
+            FnLock = FnLock?.ToResult()
+                ?? HardwareStateSnapshot.NotCaptured<ToggleState>("fn_lock_not_captured"),
+            AlwaysOnUsb = AlwaysOnUsb?.ToResult()
+                ?? HardwareStateSnapshot.NotCaptured<AlwaysOnUsbState>("always_on_usb_not_captured"),
+            TouchpadLock = TouchpadLock?.ToResult()
+                ?? HardwareStateSnapshot.NotCaptured<ToggleState>("touchpad_lock_not_captured"),
+            WinKeyLock = WinKeyLock?.ToResult()
+                ?? HardwareStateSnapshot.NotCaptured<ToggleState>("win_key_lock_not_captured"),
+            FourZoneLighting = FourZoneLighting?.ToResult()
+                ?? HardwareStateSnapshot.NotCaptured<FourZoneLightingState>(
+                    "four_zone_lighting_not_captured"),
+            SpectrumKeyboard = SpectrumKeyboard?.ToResult()
+                ?? HardwareStateSnapshot.NotCaptured<SpectrumBrightness>("spectrum_not_captured"),
+        };
     }
 }
 

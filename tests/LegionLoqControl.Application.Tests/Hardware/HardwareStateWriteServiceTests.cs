@@ -178,6 +178,77 @@ public sealed class HardwareStateWriteServiceTests
     }
 
     [Fact]
+    public async Task Apply_writes_overnight_charge_after_a_live_match()
+    {
+        var reader = new StubReader(ThermalMode.Balanced, ThermalMode.Balanced)
+        {
+            Overnight = ToggleState.Disabled,
+            OvernightAfter = ToggleState.Enabled,
+        };
+        var writer = new StubWriter();
+        var service = new HardwareStateWriteService(() => reader, writer);
+
+        HardwareStateSnapshot snapshot = await service.ApplyAsync(
+            HardwareWriteKind.OvernightCharge,
+            nameof(ToggleState.Disabled),
+            nameof(ToggleState.Enabled),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(ToggleState.Enabled, snapshot.OvernightCharge.Value);
+        Assert.Equal(ToggleState.Enabled, writer.LastOvernight);
+    }
+
+    [Fact]
+    public async Task Apply_writes_a_bounded_fan_table_and_reads_it_back()
+    {
+        var table = new FanTableSnapshot(0, 0, [new FanTablePoint(10, 40), new FanTablePoint(80, 90)]);
+        var desired = new FanTableSnapshot(0, 0, [new FanTablePoint(20, 40), new FanTablePoint(90, 90)]);
+        var reader = new StubReader(
+            [ThermalMode.Balanced, ThermalMode.Balanced, ThermalMode.Balanced],
+            [BatteryChargeMode.Normal, BatteryChargeMode.Normal, BatteryChargeMode.Normal])
+        {
+            Fan = table,
+            FanAfter = desired,
+        };
+        var writer = new StubWriter();
+        var service = new HardwareStateWriteService(() => reader, writer);
+
+        HardwareStateSnapshot snapshot = await service.ApplyAsync(
+            HardwareWriteKind.FanTable,
+            HardwareStateTokens.FormatFanTable(table),
+            HardwareStateTokens.FormatFanTable(desired),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HardwareReadStatus.Success, snapshot.FanTable.Status);
+        Assert.Equal(desired.PointCount, snapshot.FanTable.Value!.Value.PointCount);
+        Assert.Equal(desired.Points[0], snapshot.FanTable.Value.Value.Points[0]);
+        Assert.Equal(desired.Points[1], snapshot.FanTable.Value.Value.Points[1]);
+        Assert.NotNull(writer.LastFan);
+        Assert.Equal(20, writer.LastFan.Value.Points[0].Speed);
+        Assert.Equal(90, writer.LastFan.Value.Points[1].Speed);
+        Assert.True(reader.FanReadCount >= 1);
+    }
+
+    [Fact]
+    public void Lighting_and_fan_tokens_round_trip()
+    {
+        var lighting = new FourZoneLightingState(
+            FourZoneEffect.Wave,
+            FourZoneKeyboardMode.Low,
+            2,
+            true,
+            new RgbColor(1, 2, 3),
+            new RgbColor(4, 5, 6),
+            new RgbColor(7, 8, 9),
+            new RgbColor(10, 11, 12));
+        var fan = new FanTableSnapshot(0, 0, [new FanTablePoint(1, 2), new FanTablePoint(3, 4)]);
+
+        Assert.Equal(lighting, HardwareStateTokens.ParseLighting(HardwareStateTokens.FormatLighting(lighting)));
+        Assert.Equal(fan.PointCount, HardwareStateTokens.ParseFanTable(HardwareStateTokens.FormatFanTable(fan)).PointCount);
+        Assert.Equal(fan.Points[1], HardwareStateTokens.ParseFanTable(HardwareStateTokens.FormatFanTable(fan)).Points[1]);
+    }
+
+    [Fact]
     public async Task Apply_rejects_a_second_write_while_one_is_running()
     {
         var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -229,6 +300,14 @@ public sealed class HardwareStateWriteServiceTests
 
         public int FanReadCount { get; private set; }
 
+        public ToggleState? Overnight { get; init; }
+
+        public ToggleState? OvernightAfter { get; init; }
+
+        public FanTableSnapshot? Fan { get; init; }
+
+        public FanTableSnapshot? FanAfter { get; init; }
+
         public ValueTask<HardwareReadResult<BatteryChargeMode>> ReadBatteryChargeModeAsync(
             CancellationToken cancellationToken) =>
             ValueTask.FromResult(HardwareReadResult<BatteryChargeMode>.Success(_battery.Dequeue()));
@@ -258,9 +337,25 @@ public sealed class HardwareStateWriteServiceTests
             CancellationToken cancellationToken)
         {
             FanReadCount++;
-            return ValueTask.FromResult(HardwareReadResult<FanTableSnapshot>.Failure(
-                HardwareReadStatus.Unavailable,
-                "fan_table_not_opened"));
+            FanTableSnapshot? value = FanReadCount > 1 ? FanAfter ?? Fan : Fan;
+            return ValueTask.FromResult(
+                value is { } table
+                    ? HardwareReadResult<FanTableSnapshot>.Success(table)
+                    : HardwareReadResult<FanTableSnapshot>.Failure(
+                        HardwareReadStatus.Unavailable,
+                        "fan_table_not_opened"));
+        }
+
+        public ValueTask<HardwareReadResult<ToggleState>> ReadOvernightChargeAsync(
+            CancellationToken cancellationToken)
+        {
+            ToggleState? value = CaptureCount > 1 ? OvernightAfter ?? Overnight : Overnight;
+            return ValueTask.FromResult(
+                value is { } overnight
+                    ? HardwareReadResult<ToggleState>.Success(overnight)
+                    : HardwareReadResult<ToggleState>.Failure(
+                        HardwareReadStatus.Unavailable,
+                        "overnight_not_implemented"));
         }
     }
 
@@ -307,6 +402,26 @@ public sealed class HardwareStateWriteServiceTests
             CancellationToken cancellationToken)
         {
             LastKeyboard = desired;
+            return ValueTask.CompletedTask;
+        }
+
+        public ToggleState? LastOvernight { get; private set; }
+
+        public FanTableSnapshot? LastFan { get; private set; }
+
+        public ValueTask WriteOvernightChargeAsync(
+            ToggleState desired,
+            CancellationToken cancellationToken)
+        {
+            LastOvernight = desired;
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask WriteFanTableAsync(
+            FanTableSnapshot desired,
+            CancellationToken cancellationToken)
+        {
+            LastFan = desired;
             return ValueTask.CompletedTask;
         }
     }

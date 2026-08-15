@@ -1,0 +1,42 @@
+<UserControl x:Class="LegionLoqControl.Views.DisplayWorkspaceView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:automation="clr-namespace:System.Windows.Automation;assembly=PresentationCore">
+    <ScrollViewer Background="{StaticResource CanvasBrush}"
+                  HorizontalScrollBarVisibility="Disabled"
+                  VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="32,24,32,28">
+            <TextBlock Style="{StaticResource EyebrowTextStyle}"
+                       Text="DISPLAY / PANEL AND GRAPHICS" />
+            <TextBlock Margin="0,6,0,8"
+                       FontFamily="{StaticResource DisplayFont}"
+                       FontSize="28"
+                       FontWeight="SemiBold"
+                       Text="Display" />
+            <TextBlock Margin="0,0,0,20"
+                       Foreground="{StaticResource SecondaryTextBrush}"
+                       Text="Panel overdrive and GPU working mode. Windows display and graphics settings stay in Settings." />
+
+            <ContentControl Margin="0,0,0,12"
+                            Content="{Binding DisplayOverdrive}"
+                            ContentTemplate="{DynamicResource StateCardTemplate}" />
+            <ContentControl Margin="0,0,0,16"
+                            Content="{Binding IntegratedGpu}"
+                            ContentTemplate="{DynamicResource StateCardTemplate}" />
+
+            <StackPanel Orientation="Horizontal">
+                <Button Margin="0,0,8,0"
+                        automation:AutomationProperties.Name="Open Windows display settings"
+                        Command="{Binding OpenWindowsSettingsCommand}"
+                        CommandParameter="ms-settings:display"
+                        Content="Windows display"
+                        Style="{StaticResource BaseButtonStyle}" />
+                <Button automation:AutomationProperties.Name="Open Windows graphics settings"
+                        Command="{Binding OpenWindowsSettingsCommand}"
+                        CommandParameter="ms-settings:display-advancedgraphics"
+                        Content="Windows graphics"
+                        Style="{StaticResource BaseButtonStyle}" />
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

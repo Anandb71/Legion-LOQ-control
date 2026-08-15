@@ -251,7 +251,52 @@ public sealed class DashboardViewModelTests
         Assert.Empty(viewModel.Fans.Options);
         Assert.False(viewModel.Fans.CanApply);
         Assert.Contains("2 OEM points", viewModel.Fans.Value, StringComparison.Ordinal);
-        Assert.Contains("Curve writes stay disabled", viewModel.Fans.Detail, StringComparison.Ordinal);
+        Assert.Contains("Edit speeds on POWER", viewModel.Fans.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Overnight_and_spectrum_are_omitted_until_a_typed_read_succeeds()
+    {
+        var source = new StubDashboardDataSource(CreateMachineSnapshot(), CreateHardwareSnapshot());
+        var viewModel = new MainWindowViewModel(source);
+        await viewModel.InitializeAsync();
+
+        Assert.False(viewModel.OvernightCharge.IsAvailable);
+        Assert.False(viewModel.FnLock.IsAvailable);
+        Assert.False(viewModel.Spectrum.IsAvailable);
+        Assert.False(viewModel.HasInputControls);
+        Assert.True(viewModel.HasLightingSurface);
+        Assert.True(viewModel.LightingWorkspace.IsVisible);
+        Assert.True(viewModel.FanCurveWorkspace.IsVisible);
+        Assert.Equal("LENOVO", viewModel.ManufacturerLabel);
+        Assert.Equal("83DV", viewModel.MachineTypeLabel);
+    }
+
+    [Fact]
+    public async Task Applying_overnight_charge_uses_the_typed_broker_target()
+    {
+        HardwareStateSnapshot snapshot = CreateHardwareSnapshot() with
+        {
+            OvernightCharge = HardwareReadResult<ToggleState>.Success(ToggleState.Disabled),
+        };
+        var source = new StubDashboardDataSource(CreateMachineSnapshot(), snapshot)
+        {
+            WriteSnapshot = snapshot with
+            {
+                OvernightCharge = HardwareReadResult<ToggleState>.Success(ToggleState.Enabled),
+            },
+        };
+        var viewModel = new MainWindowViewModel(source);
+        await viewModel.InitializeAsync();
+
+        await viewModel.OvernightCharge.ApplyOptionCommand.ExecuteAsync(nameof(ToggleState.Enabled));
+
+        Assert.Equal(1, source.WriteCount);
+        Assert.Equal(HardwareWriteTarget.OvernightCharge, source.LastWriteTarget);
+        Assert.Equal(nameof(ToggleState.Disabled), source.LastWriteExpected);
+        Assert.Equal(nameof(ToggleState.Enabled), source.LastWriteDesired);
+        Assert.True(viewModel.OvernightCharge.IsAvailable);
+        Assert.Equal("Enabled", viewModel.OvernightCharge.Value);
     }
 
     [Fact]

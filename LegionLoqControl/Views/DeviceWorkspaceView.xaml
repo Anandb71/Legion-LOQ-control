@@ -1,0 +1,110 @@
+<UserControl x:Class="LegionLoqControl.Views.DeviceWorkspaceView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:automation="clr-namespace:System.Windows.Automation;assembly=PresentationCore">
+    <ScrollViewer Background="{StaticResource CanvasBrush}"
+                  HorizontalScrollBarVisibility="Disabled"
+                  VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="32,24,32,28">
+            <TextBlock Style="{StaticResource EyebrowTextStyle}"
+                       Text="DEVICE / SERIAL-FREE IDENTITY" />
+            <TextBlock Margin="0,6,0,8"
+                       FontFamily="{StaticResource DisplayFont}"
+                       FontSize="28"
+                       FontWeight="SemiBold"
+                       Text="Device" />
+            <TextBlock Margin="0,0,0,20"
+                       Foreground="{StaticResource SecondaryTextBrush}"
+                       Text="Manufacturer, model, machine type, and BIOS only. No serial, product number, Device ID, warranty, or Lena." />
+
+            <Border Margin="0,0,0,20"
+                    Padding="20"
+                    Style="{StaticResource SurfaceBorderStyle}">
+                <StackPanel>
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="160" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Style="{StaticResource EyebrowTextStyle}" Text="MANUFACTURER" />
+                        <TextBlock Grid.Column="1"
+                                   FontWeight="SemiBold"
+                                   Text="{Binding ManufacturerLabel}" />
+                        <Button Grid.Column="2"
+                                automation:AutomationProperties.Name="Copy manufacturer"
+                                Command="{Binding CopyDeviceFieldCommand}"
+                                CommandParameter="{Binding ManufacturerLabel}"
+                                Content="Copy"
+                                Style="{StaticResource BaseButtonStyle}" />
+                    </Grid>
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="160" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Style="{StaticResource EyebrowTextStyle}" Text="MODEL" />
+                        <TextBlock Grid.Column="1"
+                                   FontWeight="SemiBold"
+                                   Text="{Binding ModelLabel}" />
+                        <Button Grid.Column="2"
+                                automation:AutomationProperties.Name="Copy model"
+                                Command="{Binding CopyDeviceFieldCommand}"
+                                CommandParameter="{Binding ModelLabel}"
+                                Content="Copy"
+                                Style="{StaticResource BaseButtonStyle}" />
+                    </Grid>
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="160" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Style="{StaticResource EyebrowTextStyle}" Text="MACHINE TYPE" />
+                        <TextBlock Grid.Column="1"
+                                   FontWeight="SemiBold"
+                                   Text="{Binding MachineTypeLabel}" />
+                        <Button Grid.Column="2"
+                                automation:AutomationProperties.Name="Copy machine type"
+                                Command="{Binding CopyDeviceFieldCommand}"
+                                CommandParameter="{Binding MachineTypeLabel}"
+                                Content="Copy"
+                                Style="{StaticResource BaseButtonStyle}" />
+                    </Grid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="160" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Style="{StaticResource EyebrowTextStyle}" Text="BIOS" />
+                        <TextBlock Grid.Column="1"
+                                   FontWeight="SemiBold"
+                                   Text="{Binding BiosVersionLabel}" />
+                        <Button Grid.Column="2"
+                                automation:AutomationProperties.Name="Copy BIOS version"
+                                Command="{Binding CopyDeviceFieldCommand}"
+                                CommandParameter="{Binding BiosVersionLabel}"
+                                Content="Copy"
+                                Style="{StaticResource BaseButtonStyle}" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <TextBlock Style="{StaticResource SectionTitleStyle}"
+                       Text="Capability evidence" />
+            <TextBlock Margin="0,4,0,12"
+                       Foreground="{StaticResource MutedTextBrush}"
+                       Text="Candidate means an interface exists; it does not claim verified support." />
+            <ItemsControl ItemTemplate="{DynamicResource CapabilityItemTemplate}"
+                          ItemsSource="{Binding Capabilities}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Columns="2" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+            </ItemsControl>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

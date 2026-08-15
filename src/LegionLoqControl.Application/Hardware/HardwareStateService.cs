@@ -50,6 +50,28 @@ public sealed class HardwareStateService
                 HardwareReadStatus.Unavailable,
                 "fan_table_not_requested");
 
+        HardwareReadResult<ToggleState> overnight = await _reader
+            .ReadOvernightChargeAsync(cancellationToken)
+            .ConfigureAwait(false);
+        HardwareReadResult<ToggleState> fnLock = await _reader
+            .ReadFnLockAsync(cancellationToken)
+            .ConfigureAwait(false);
+        HardwareReadResult<AlwaysOnUsbState> alwaysOnUsb = await _reader
+            .ReadAlwaysOnUsbAsync(cancellationToken)
+            .ConfigureAwait(false);
+        HardwareReadResult<ToggleState> touchpad = await _reader
+            .ReadTouchpadLockAsync(cancellationToken)
+            .ConfigureAwait(false);
+        HardwareReadResult<ToggleState> winKey = await _reader
+            .ReadWinKeyLockAsync(cancellationToken)
+            .ConfigureAwait(false);
+        HardwareReadResult<FourZoneLightingState> lighting = await _reader
+            .ReadFourZoneLightingAsync(cancellationToken)
+            .ConfigureAwait(false);
+        HardwareReadResult<SpectrumBrightness> spectrum = await _reader
+            .ReadSpectrumKeyboardAsync(cancellationToken)
+            .ConfigureAwait(false);
+
         return new HardwareStateSnapshot(
             _timeProvider.GetUtcNow(),
             battery,
@@ -57,6 +79,15 @@ public sealed class HardwareStateService
             overdrive,
             integratedGpu,
             keyboard,
-            fanTable);
+            fanTable)
+        {
+            OvernightCharge = overnight,
+            FnLock = fnLock,
+            AlwaysOnUsb = alwaysOnUsb,
+            TouchpadLock = touchpad,
+            WinKeyLock = winKey,
+            FourZoneLighting = lighting,
+            SpectrumKeyboard = spectrum,
+        };
     }
 }

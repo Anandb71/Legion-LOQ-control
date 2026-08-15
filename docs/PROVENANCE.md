@@ -240,6 +240,120 @@ Legion + LOQ Control.
 - **Reviewer:** Pending
 - **Date:** 2026-08-15
 
+## Implementation record: EnergyDrv overnight, Fn lock, and Always-on USB
+
+- **Feature:** Privileged overnight charge, Fn lock, and Always-on USB through EnergyDrv
+- **Local files:**
+  `src/LegionLoqControl.Infrastructure.Windows/Hardware/EnergyDriverFeatureClient.cs`
+- **Classification:** Original implementation with protocol cross-check
+- **External project and URL:** Lenovo Legion Toolkit,
+  <https://github.com/LenovoLegionToolkit-Team/LenovoLegionToolkit>
+- **Source commit:** `6f19ef48095a32afe439474a65e5b95cf8fa1b24`
+- **External files examined:** `BatteryNightChargeFeature`, `FnLockFeature`, and
+  Always-on USB settings in the LLT library (reference checkout only; not in this repo)
+- **License:** GPL-3.0 with LLT-specific plugin exception. No source was copied.
+- **Local implementation:** Independently written EnergyDrv client. Night-charge uses
+  `0x83102150` with get `0x11`, on `0x80000012`, off `0x12`, valid bit0, on bit4.
+  Settings use `0x831020E8` with get `0x2`, Fn on `0xE` / off `0xF` (bit10), and
+  Always-on USB selectors `{0xB,0x12}`, `{0xA,0x12}`, `{0xA,0x13}` decoded after
+  endian reversal (bit31 on, bit23 always vs sleep).
+- **Independent evidence:** EnergyDrv battery IOCTL `0x831020F8` already succeeded
+  elevated on LOQ 15IRX9 `83DV` / `NECN50WW`.
+- **Test fixtures:** `tests/LegionLoqControl.Platform.Tests/HardwareStateReaderTests.cs`
+- **Hardware validation:** Mapping fixtures only. Live overnight/Fn/USB applies are
+  pending on-device confirmation.
+- **Reviewer:** Pending
+- **Date:** 2026-08-15
+
+## Implementation record: GameZone touchpad and Win-key lock
+
+- **Feature:** Touchpad lock and Win-key lock through GameZone CIM
+- **Local files:**
+  `src/LegionLoqControl.Infrastructure.Windows/Hardware/SystemLenovoWmiReadInvoker.cs`
+  and `SystemLenovoWmiWriteInvoker.cs`
+- **Classification:** Original implementation with protocol cross-check
+- **External project and URL:** Lenovo Legion Toolkit,
+  <https://github.com/LenovoLegionToolkit-Team/LenovoLegionToolkit>
+- **Source commit:** `6f19ef48095a32afe439474a65e5b95cf8fa1b24`
+- **External files examined:** `TouchpadLockFeature`, `WinKeyFeature`
+- **License:** GPL-3.0 with LLT-specific plugin exception. No source was copied.
+- **Local implementation:** Independently written CIM getters/setters
+  `GetTPStatus` / `SetTPStatus` / `IsSupportDisableTP` and
+  `GetWinKeyStatus` / `SetWinKeyStatus` / `IsSupportDisableWinKey`. Support `0`
+  omits the control.
+- **Independent evidence:** GameZone WMI is present on LOQ 15IRX9 `83DV` / `NECN50WW`.
+- **Test fixtures:** `tests/LegionLoqControl.Platform.Tests/HardwareStateReaderTests.cs`
+- **Hardware validation:** Support-omit fixture only.
+- **Reviewer:** Pending
+- **Date:** 2026-08-15
+
+## Implementation record: 4-zone lighting effect, speed, and zone colors
+
+- **Feature:** Expand `048D:C993` `CC 16` beyond white Off/Low/High
+- **Local files:**
+  `src/LegionLoqControl.Infrastructure.Windows/Hardware/FourZoneKeyboardPacket.cs`
+- **Classification:** Original implementation with protocol cross-check
+- **External projects and URLs:** LegionAura,
+  <https://github.com/Nivedck/LegionAura>; Lenovo Legion Toolkit
+  `6f19ef48095a32afe439474a65e5b95cf8fa1b24`
+- **External files examined:** LegionAura 4-zone packet layout; LLT 4-zone lighting
+  feature (reference only)
+- **License:** Check each upstream project. No source was copied.
+- **Local implementation:** Independently written 33-byte codec with effect at `[2]`,
+  speed at `[3]`, brightness at `[4]`, and RGB at `[5..16]`. Identity `CC 05` stays
+  Unknown brightness.
+- **Independent evidence:** Same `048D:C993` 33-byte collection already used for
+  brightness on this LOQ.
+- **Test fixtures:** `tests/LegionLoqControl.Platform.Tests/HardwareStateReaderTests.cs`
+- **Hardware validation:** Packet fixtures only.
+- **Reviewer:** Pending
+- **Date:** 2026-08-15
+
+## Implementation record: bounded Fan_Set_Table with OEM restore
+
+- **Feature:** Apply a 1–10 point fan table and restore the first successful OEM read
+- **Local files:**
+  `src/LegionLoqControl.Infrastructure.Windows/Hardware/SystemLenovoFanTableWriteInvoker.cs`
+  and `OemFanTableStore.cs`
+- **Classification:** Original implementation with protocol cross-check
+- **External project and URL:** Lenovo Legion Toolkit,
+  <https://github.com/LenovoLegionToolkit-Team/LenovoLegionToolkit>
+- **Source commit:** `6f19ef48095a32afe439474a65e5b95cf8fa1b24`
+- **External files examined:** LLT fan table set path (reference only)
+- **License:** GPL-3.0 with LLT-specific plugin exception. No source was copied.
+- **Local implementation:** Independently written CIM `Fan_Set_Table` with a `FanTable`
+  byte array. The first successful `Fan_Get_Table` is stored under
+  `%LocalAppData%\LegionLoqControl\oem-fan-table.json`. Full-speed methods are not
+  invoked.
+- **Independent evidence:** CIM metadata on `83DV` / `NECN50WW` lists `Fan_Get_Table`
+  and `Fan_Set_Table` only.
+- **Test fixtures:** `tests/LegionLoqControl.Platform.Tests/HardwareStateReaderTests.cs`
+  and `tests/LegionLoqControl.Application.Tests/Hardware/HardwareStateWriteServiceTests.cs`
+- **Hardware validation:** Store and token fixtures only.
+- **Reviewer:** Pending
+- **Date:** 2026-08-15
+
+## Implementation record: gated Spectrum HID brightness
+
+- **Feature:** Spectrum brightness only when a 960-byte non-4-zone C9xx collection exists
+- **Local files:**
+  `src/LegionLoqControl.Infrastructure.Windows/Hardware/SpectrumKeyboardHid.cs`
+- **Classification:** Original implementation with protocol cross-check
+- **External project and URL:** Lenovo Legion Toolkit,
+  <https://github.com/LenovoLegionToolkit-Team/LenovoLegionToolkit>
+- **Source commit:** `6f19ef48095a32afe439474a65e5b95cf8fa1b24`
+- **External files examined:** LLT Spectrum brightness get/set (`0xCD` / `0xCE`)
+- **License:** GPL-3.0 with LLT-specific plugin exception. No source was copied.
+- **Local implementation:** Independently written 960-byte feature-report adapter.
+  Vendor `048D`, feature length exactly 960, product IDs in `C9xx` excluding
+  `C935` / `C955` / `C993`. Hidden on this LOQ.
+- **Independent evidence:** `hardware-evidence/83DV/NECN50WW.json` records Spectrum as
+  Unsupported; `C993` collections are 17/33/65/192, not 960.
+- **Test fixtures:** `tests/LegionLoqControl.Platform.Tests/HardwareStateReaderTests.cs`
+- **Hardware validation:** Probe fixtures only.
+- **Reviewer:** Pending
+- **Date:** 2026-08-15
+
 ## Implementation record: read-only elevated broker
 
 - **Feature:** One-request privileged hardware-state read boundary

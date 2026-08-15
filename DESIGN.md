@@ -121,13 +121,20 @@ Color never carries meaning alone. Every semantic color is paired with a label o
 - **2026-08-09:** Initial system approved. Quiet precision selected over gaming energy and
   conventional Fluent styling after reviewing Vantage/Legion Space, Lenovo Legion Toolkit,
   G-Helper, and hardware-monitoring dashboards.
-- **2026-08-15:** 4-zone keyboard brightness sits in a third row under the 2 × 2 matrix.
-  Off/Low/High only; no RGB color picker or effect chrome.
-- **2026-08-15:** The OEM fan table sits in a fourth full-width row. It is read-only: no
-  apply chrome, no freeform curve editor, and no invented full-speed control.
+- **2026-08-15:** 4-zone keyboard brightness sits in a third row under the 2 × 2 matrix
+  as a dashboard shortcut. The LIGHTING workspace is the 4-zone color/effect editor
+  (Static / Breath / Wave / Smooth, speed, divide-area colors). Spectrum chrome is
+  shown only when a 960-byte Spectrum HID collection is present.
+- **2026-08-15:** The OEM fan table sits in a fourth full-width dashboard row. The
+  POWER workspace edits bounded speeds and can Restore OEM. Full-speed stays omitted
+  when the BIOS has no full-speed methods.
 - **2026-08-15:** Windows approval happens once when the hardware session starts after
   inventory. The elevated broker stays alive for the app process and exits with it.
   Refresh and apply reuse that connection.
 - **2026-08-15:** The header shows a live power glance (source, charge percent, charging
   mode) under serial-free identity. Applies rebase on live firmware, so Refresh is not
   a prerequisite for a click.
+- **2026-08-15:** POWER, INPUT, LIGHTING, DISPLAY, and DEVICE are first-class tabs
+  beside Dashboard / Profile / Automation. They reuse this design system. No ads,
+  store, Lena, warranty, serial, product number, or Device ID. Unsupported controls
+  are omitted.
