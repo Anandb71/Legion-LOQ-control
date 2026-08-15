@@ -3,11 +3,11 @@
 ## Current release gate
 
 No model is approved as `Supported` for hardware writes. Typed apply exists for thermal
-mode, display overdrive, integrated-GPU mode, battery charge mode, and 4-zone keyboard
-brightness. Profile Apply and the opt-in AC/battery watcher can send those battery and
-thermal changes in one UAC batch. A privileged fan-table read exists. No feature has
-reached the `Supported` evidence level. Battery writes, keyboard SetFeature, and
-`Fan_Get_Table` still have no recorded on-device invoke evidence for this slice.
+mode, display overdrive, integrated-GPU mode, battery charge mode, overnight charge,
+Fn lock, Always-on USB, touchpad/Win-key lock, 4-zone lighting, and a bounded fan table
+with Restore OEM. No feature has reached the `Supported` evidence level. Recorded
+on-device invoke evidence is still limited to the elevated validation notes under
+`hardware-evidence/83DV/`.
 
 Capability evidence terms:
 
@@ -34,7 +34,8 @@ Inventory captured read-only on 2026-08-08:
   mode WMI method sets were present but remain unverified candidates; this machine's
   lighting path is the ITE 4-zone HID controller, not the white WMI backlight;
 - the fan interface exposes `Fan_Get_Table` / `Fan_Set_Table` only; metadata on this
-  BIOS has no full-speed or current-speed methods, and `Fan_Set_Table` is not invoked;
+  BIOS has no full-speed or current-speed methods; bounded `Fan_Set_Table` plus Restore
+  OEM is implemented and still not `Supported`;
 - a later HID inventory on the same machine found ITE `048D:C993` with a 33-byte feature
   collection and `048D:C996` without one; Spectrum IDs were still absent;
 - no Lenovo WMI method was invoked and no HID device was opened during inventory;

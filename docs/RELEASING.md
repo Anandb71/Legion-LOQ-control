@@ -2,39 +2,47 @@
 
 ## Artifact classes
 
-The repository currently produces two deliberately different artifact classes:
-
-1. **Development build** — local `dotnet build` output. It includes the unsigned elevated
-   read broker for explicit hardware-boundary validation and must not be redistributed.
+1. **Development build** — local `dotnet build` output. Includes the unsigned elevated
+   broker. Default install mode is development.
 2. **Read-only preview artifact** — a manually dispatched, seven-day CI artifact. It
-   excludes every broker file and supports only unelevated inventory and diagnostics
-   export, profile preview, and automation preview.
+   excludes every broker file and supports only unelevated inventory, diagnostics export,
+   profile preview, and automation preview.
+3. **Public development preview** — a GitHub Release zip/tarball. The Windows
+   zip includes the unsigned broker and is **not** Authenticode-signed. The Linux tarball
+   is portable Domain/Application libraries with no firmware access. Tag `v0.3.0` is the
+   first public preview.
 
-There is no public production release workflow yet. Pushing a Git tag does not publish an
-artifact or create a GitHub release.
+A production package (signed broker, administrator-protected install, installer, SBOM)
+remains a later gate. Do not set `LEGIONLOQ_BROKER_INSTALL_MODE=production` on the public
+zip.
+
+## Public development preview
+
+Pushing a `v*` tag runs [`.github/workflows/publish-release.yml`](../.github/workflows/publish-release.yml).
+It:
+
+1. runs Application tests on Ubuntu and publishes the Linux portable tarball;
+2. restores, builds, tests, and checks accessibility contracts on Windows;
+3. verifies the broker-free preview package still packs;
+4. publishes `LegionLoqControl.exe` plus the sibling broker
+   (framework-dependent, .NET 10 Desktop Runtime required);
+5. attaches both archives to the GitHub Release with `docs/releases/v0.3.0.md` as the body.
+
+Local packaging:
+
+```powershell
+dotnet restore LegionLoqControl.sln --locked-mode
+./scripts/export-app-icon.ps1
+$win = "$env:TEMP/LegionLoqControl-win-$([guid]::NewGuid().ToString('N'))"
+./scripts/build-windows-release.ps1 -OutputPath $win -Version 0.3.0
+$linux = "$env:TEMP/LegionLoqControl-linux-$([guid]::NewGuid().ToString('N'))"
+./scripts/build-linux-portable.ps1 -OutputPath $linux -Version 0.3.0
+```
 
 ## Read-only preview
 
-Run the `Read-only Preview Artifact` workflow manually from GitHub Actions. It:
-
-1. restores locked dependencies with .NET `10.0.302`;
-2. builds the full solution and runs all tests;
-3. enforces static accessibility and UI safety contracts;
-4. publishes the framework-dependent WPF shell with
-   `IncludeBrokerArtifacts=false`;
-5. adds the GPL license, exact runtime-package license and notice files, safety policy,
-   security policy, and preview boundary notice;
-6. verifies the published version and requires notice coverage for every runtime package;
-7. records the source commit, dirty state, SDK, version, runtime package versions, and
-   enforced safety flags in `BUILD-INFO.json`;
-8. generates `SHA256SUMS.txt`;
-9. fails if a required file is absent, debug symbols are present, or any
-   `LegionLoqControl.Broker*` file is present;
-10. launches the packaged executable and requires a responsive main window; and
-11. uploads a private workflow artifact retained for seven days.
-
-The preview requires the .NET 10 Desktop Runtime. It is unsigned and is not an installer.
-See [`READ_ONLY_PREVIEW.md`](READ_ONLY_PREVIEW.md) for the user-facing boundary.
+Run the `Read-only Preview Artifact` workflow manually from GitHub Actions. It remains
+broker-free and is retained for seven days. See [`READ_ONLY_PREVIEW.md`](READ_ONLY_PREVIEW.md).
 
 ## Local verification
 
@@ -50,12 +58,12 @@ $preview = "$env:TEMP/LegionLoqControl-preview-$([guid]::NewGuid().ToString('N')
 ./scripts/test-read-only-preview-startup.ps1 -PreviewPath $preview
 ```
 
-Build & Test repeats the broker-free packaging and startup checks on every branch push. Also
-confirm that the branch's Build & Test and CodeQL workflows pass.
+Build & Test repeats the broker-free packaging and startup checks on every branch push.
+Ubuntu also runs Application tests. Confirm that Build & Test and CodeQL pass.
 
 ## Production release blockers
 
-A public package containing the elevated broker is prohibited until all of these are
+A package that claims production install is prohibited until all of these are
 implemented and reviewed:
 
 - Authenticode signing for the UI, broker, installer, and update metadata;
@@ -68,12 +76,11 @@ implemented and reviewed:
 - update authenticity and rollback design; and
 - every applicable write-path gate in [`../SAFETY.md`](../SAFETY.md).
 
-Do not convert the preview workflow into a tag-triggered GitHub release by merely restoring
-the old archive step. Public release automation must verify these gates rather than assume
-them.
+The 0.3.0 GitHub Release does not satisfy those blockers. It is a public development
+preview with an explicit UAC boundary.
 
 ## Versioning
 
-Public versions will follow Semantic Versioning once the first supported release scope is
-approved. CI previews use `0.0.0-preview.<run-number>` and do not establish a public API or
-support promise. Update [`../CHANGELOG.md`](../CHANGELOG.md) before any versioned release.
+Public versions follow Semantic Versioning. `0.3.0` is the first public rebuild preview.
+CI read-only previews use `0.0.0-preview.<run-number>` and do not establish a support
+promise. Update [`../CHANGELOG.md`](../CHANGELOG.md) before any versioned release.

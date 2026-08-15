@@ -8,9 +8,7 @@
             <TextBlock Style="{StaticResource EyebrowTextStyle}"
                        Text="INPUT / KEYBOARD AND TOUCHPAD LOCKS" />
             <TextBlock Margin="0,6,0,8"
-                       FontFamily="{StaticResource DisplayFont}"
-                       FontSize="28"
-                       FontWeight="SemiBold"
+                       Style="{StaticResource PageTitleTextStyle}"
                        Text="Input" />
             <TextBlock Margin="0,0,0,20"
                        Foreground="{StaticResource SecondaryTextBrush}"

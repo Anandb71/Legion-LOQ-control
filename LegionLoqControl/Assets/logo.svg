@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Legion + LOQ Control">
+  <title>Legion + LOQ Control</title>
+  <rect width="32" height="32" fill="#0B0D0F"/>
+  <rect x="0.5" y="0.5" width="31" height="31" fill="none" stroke="#27313A" stroke-width="1"/>
+  <g fill="#5CC8E8">
+    <rect x="8" y="7" width="4" height="18"/>
+    <rect x="8" y="21" width="12" height="4"/>
+    <rect x="21" y="8" width="3" height="9"/>
+    <rect x="18" y="11" width="9" height="3"/>
+  </g>
+</svg>

@@ -9,9 +9,7 @@
             <TextBlock Style="{StaticResource EyebrowTextStyle}"
                        Text="POWER / CHARGING AND COOLING" />
             <TextBlock Margin="0,6,0,8"
-                       FontFamily="{StaticResource DisplayFont}"
-                       FontSize="28"
-                       FontWeight="SemiBold"
+                       Style="{StaticResource PageTitleTextStyle}"
                        Text="Power" />
             <TextBlock Margin="0,0,0,20"
                        Foreground="{StaticResource SecondaryTextBrush}"

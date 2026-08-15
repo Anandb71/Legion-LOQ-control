@@ -56,6 +56,9 @@ Copyright (c) Microsoft Corporation.
 
 `Microsoft.Management.Infrastructure` 3.0.0 is used for allowlisted Lenovo CIM method
 calls. Native `mi.dll` / `miutils.dll` come from Windows; they are not redistributed.
+The package graph also restores `Microsoft.Management.Infrastructure.Runtime.Win` and
+`Microsoft.Management.Infrastructure.Runtime.Unix`. Windows builds ship only the Win
+runtime; Unix native binaries are not copied into Windows artifacts.
 
 ## xUnit.net
 

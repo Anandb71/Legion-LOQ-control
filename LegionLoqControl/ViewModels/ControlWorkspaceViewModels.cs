@@ -8,7 +8,10 @@ using LegionLoqControl.Infrastructure.Windows.Hardware;
 
 namespace LegionLoqControl.ViewModels;
 
-public sealed record NamedValue(string Label, string Value);
+public sealed record NamedValue(string Label, string Value)
+{
+    public override string ToString() => Label;
+}
 
 public sealed partial class FanCurvePointViewModel : ObservableObject
 {

@@ -67,6 +67,8 @@ public sealed record HardwareProfile
 
     public HardwareProfileTargets Targets { get; }
 
+    public override string ToString() => Name;
+
     private static string NormalizeName(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);

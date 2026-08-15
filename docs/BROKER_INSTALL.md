@@ -44,5 +44,7 @@ Production mode never prompts for elevation when the install is unsigned or user
 
 - Local development builds keep the unsigned sibling broker and stay in development mode.
 - The broker-free preview artifact has no broker file and reports `broker_not_found`.
-- A public package that includes the broker remains blocked until signing, protected
+- The public 0.3.0 GitHub Release zip includes the unsigned sibling broker and stays in
+  development mode. It is not a production package.
+- A production package that includes the broker remains blocked until signing, protected
   installation ACLs, and the rest of the [release gates](RELEASING.md) exist.

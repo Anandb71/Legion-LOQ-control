@@ -19,6 +19,7 @@ public sealed class HardwareProfileTests
 
         Assert.NotEqual(Guid.Empty, profile.Id.Value);
         Assert.Equal("Battery saver", profile.Name);
+        Assert.Equal("Battery saver", profile.ToString());
         Assert.Equal(BatteryChargeMode.Conservation, profile.Targets.BatteryChargeMode);
         Assert.Equal(ThermalMode.Quiet, profile.Targets.ThermalMode);
     }

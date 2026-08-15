@@ -60,3 +60,23 @@ jobs:
         run: >
           ./scripts/test-read-only-preview-startup.ps1
           -PreviewPath "$env:RUNNER_TEMP/LegionLoqControl-read-only-preview-${{ github.run_attempt }}"
+
+  linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+        with:
+          dotnet-version: '10.0.302'
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
+
+      - name: Restore portable tests
+        run: dotnet restore tests/LegionLoqControl.Application.Tests/LegionLoqControl.Application.Tests.csproj --locked-mode
+
+      - name: Test Domain and Application
+        run: dotnet test tests/LegionLoqControl.Application.Tests/LegionLoqControl.Application.Tests.csproj --configuration Release --no-restore

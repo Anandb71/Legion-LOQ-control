@@ -78,7 +78,9 @@ The rebuild is write-gated. Inventory, refresh, preview, and export stay read-on
 
 The broker may apply the allowlisted WMI setters, typed EnergyDrv features, the bounded
 fan table, and the typed 4-zone or Spectrum HID packets after the session is elevated.
-That is not authorization for unsigned production installs. Development mode may launch an unsigned sibling broker after an
+That is not authorization for unsigned production installs. The public 0.3.0 zip includes
+the unsigned sibling broker and stays in development mode. Development mode may launch an
+unsigned sibling broker after an
 explicit UAC prompt. Production mode refuses that launch unless the sibling directory is
 administrator-protected and the broker is Authenticode-signed. See
 [`docs/BROKER_INSTALL.md`](docs/BROKER_INSTALL.md).

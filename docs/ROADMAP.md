@@ -103,9 +103,9 @@ because a legacy implementation exists.
 
 ## Expansion and release
 
-After a write slice passes its gate, later milestones can add additional validated controls,
-packaging, updates, accessibility tests, and model support. Authenticode signing and a
-protected installer remain public-release gates. ITS / custom thermal power limits,
+0.3.0 is a public development preview: Windows zip with an unsigned session broker, plus
+Linux portable libraries. Authenticode signing, a protected installer, and `Supported`
+model/BIOS declarations remain later gates. ITS / custom thermal power limits,
 firmware flashing, and unattended privileged services remain out of scope until they have
 their own stronger recovery and validation designs.
 

@@ -97,6 +97,9 @@ $runtimePackages = @(
     $dependencyManifest.libraries.PSObject.Properties |
         Where-Object { $_.Value.type -eq "package" } |
         ForEach-Object { $_.Name } |
+        Where-Object {
+            $_ -notmatch '(?i)\.Runtime\.(Unix|Osx|Linux|Android|iOS|Browser)'
+        } |
         Sort-Object)
 $thirdPartyNotices = Get-Content `
     (Join-Path $resolvedOutput "THIRD-PARTY-NOTICES.md") -Raw
@@ -142,6 +145,22 @@ foreach ($package in $runtimePackages) {
         Get-ChildItem $packagePath -File |
             Where-Object { $_.Name -match "^(?i:license|third.?party.?notices)" })
     if ($packageNotices.Count -eq 0) {
+        $nuspec = Get-ChildItem $packagePath -File -Filter "*.nuspec" |
+            Select-Object -First 1
+        $mitFallback = Join-Path $repositoryRoot "licenses/LICENSE-MIT.txt"
+        $nuspecText = if ($null -ne $nuspec) {
+            Get-Content $nuspec.FullName -Raw
+        } else {
+            ""
+        }
+        if ((Test-Path $mitFallback) -and
+            ($nuspecText -match '(?i)<license[^>]*>\s*MIT\s*</license>' -or
+             $nuspecText -match '(?i)licenses\.nuget\.org/MIT')) {
+            Copy-Item $mitFallback (
+                Join-Path $licenseOutput "$packageName-$packageVersion-LICENSE-MIT.txt")
+            continue
+        }
+
         throw "Runtime package does not expose a license or notice file: $package"
     }
 

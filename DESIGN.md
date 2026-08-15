@@ -72,7 +72,7 @@ Color never carries meaning alone. Every semantic color is paired with a label o
 ## Layout
 
 - **Approach:** Grid-disciplined.
-- **Window:** Default 1080 × 720; minimum 860 × 600.
+- **Window:** Default 1080 × 760; minimum 860 × 640.
 - **Header:** Device identity and safety state above all controls.
 - **Primary canvas:** A 2 × 2 state matrix for battery, thermal, display, and GPU state.
 - **Secondary region:** Capability evidence and model/BIOS details.
@@ -137,3 +137,8 @@ Color never carries meaning alone. Every semantic color is paired with a label o
 - **2026-08-15:** The dashboard header has a second instrument row for unelevated
   CPU, RAM, and system-disk numbers. No charts, no GPU gauges until a typed GPU
   reader exists.
+- **2026-08-15:** Page titles use a 36 px line box so Bahnschrift 28 px glyphs are
+  not clipped. Navigation labels stay on one row (`PROFILE`, `AUTOMATION`).
+- **2026-08-15:** The product mark is an L+ constructed from two instrument bars
+  on canvas `#0B0D0F` with accent `#5CC8E8`. It is the Windows application icon
+  and a 32 px header mark, not decorative chrome.

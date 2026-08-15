@@ -20,7 +20,7 @@ assignees: ''
 <!-- e.g., Windows 11 23H2 -->
 
 **App Version:** 
-<!-- e.g., v0.2.0 -->
+<!-- e.g., v0.3.0 -->
 
 ## What I've Tried
 

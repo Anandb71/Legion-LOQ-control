@@ -2,21 +2,16 @@
 
 ## Safety status
 
-The current rebuild is write-gated. Inventory, refresh, preview, and export stay
-read-only. Dashboard apply may change thermal mode, display overdrive, integrated-GPU
-mode, battery charge mode, or 4-zone keyboard brightness only after an explicit click on
-the session broker, an expected-state check, and a readback. Windows asks once when that
-session starts. The same privileged refresh can read
-the OEM fan table. Fan-table writes, per-zone colors, profile Apply, and automation
-execution remain disabled until the remaining controls in [SAFETY.md](SAFETY.md) pass
-their release gates.
+Inventory, refresh, preview, and export stay read-only. Dashboard apply may change
+allowlisted firmware through the session broker after an explicit click, an expected-state
+check, and a readback. Windows asks once when that session starts. Unsupported hardware
+is omitted. See [SAFETY.md](SAFETY.md) for the current write set.
 
 Do not publish a build that bypasses `HardwareWritePolicy`.
-Do not publish the elevated broker until it is signed and installed in an
-administrator-protected directory. The install policy in
-[`docs/BROKER_INSTALL.md`](docs/BROKER_INSTALL.md) distinguishes a development sibling
-from a production install and refuses production-mode launches from user-writable or
-unsigned locations. The current broker is a development validation path. `--write` may
+Do not treat the public 0.3.0 zip as a production install. It includes an unsigned
+broker and stays in development mode. Production mode refuses unsigned or user-writable
+sibling launches. The install policy is
+[`docs/BROKER_INSTALL.md`](docs/BROKER_INSTALL.md). `--write` may
 run one allowlisted setter or the typed battery write; it must not gain a generic IOCTL
 or caller-supplied WMI name.
 
@@ -46,7 +41,8 @@ temporary file plus atomic rename.
 
 GitHub Actions dependencies are pinned to full commit SHAs, and NuGet restore uses committed
 lock files. Preview packaging fails closed if the unsigned broker or debug symbols enter the
-artifact, then records build provenance and SHA-256 checksums before a startup smoke test.
+broker-free artifact, then records build provenance and SHA-256 checksums before a startup
+smoke test.
 
 ## Reporting a Vulnerability
 
@@ -62,9 +58,9 @@ in a public issue.
 
 | Version | Supported |
 | :--- | :--- |
-| `main` rebuild | Security fixes only; not a stable release |
-| 0.2.x prototype | Unsupported |
-| 0.1.x | Unsupported |
+| 0.3.x public preview | Security fixes on `main`; unsigned development-mode broker |
+| `main` rebuild | Security fixes; not a stable production release |
+| 0.2.x / 0.1.x prototypes | Unsupported |
 
 ## Disclaimer
 

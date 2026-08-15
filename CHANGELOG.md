@@ -7,51 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-08-15
+
+First public development preview of the .NET 10 rebuild. The Windows zip includes the
+unsigned session broker and is **not** an Authenticode production install. Linux ships
+portable `net10.0` libraries and CI coverage only; there is no Linux hardware GUI.
+
 ### Added
 
 - Layered .NET 10 rebuild with platform-neutral Domain and Application projects
 - Serial-free machine identity, Lenovo WMI metadata, and HID product-ID diagnostics
 - Typed battery, thermal, display-overdrive, and integrated-GPU state results
-- One-request authenticated read-only elevation broker
-- Exact zero-access EnergyDrv battery-mode reader
-- Unelevated precision dashboard with explicit brokered state refresh
-- Strict local battery and thermal profile drafts with typed previews
-- Strict local AC/battery automation rules with deterministic priority previews
-- Versioned atomic JSON stores for profiles and automation rules
-- Cross-process exclusive locking for local profile and automation JSON
-- Versioned, allowlisted diagnostics reports with atomic dashboard export
-- Broker install policy that refuses production launches from unsigned or user-writable paths
-- Diagnostics `inventory --output` using the same atomic allowlisted writer as the dashboard
-- Explicit elevated apply for thermal mode, display overdrive, integrated-GPU mode,
-  battery charge mode, and 4-zone keyboard brightness
-- Privileged read-only OEM fan table through `Fan_Get_Table`
-- Locked dependency restore, comprehensive automated tests, CodeQL, and accessibility contracts
-- Manually generated, short-lived, broker-free read-only preview artifact
-- Live AC/battery glance from `GetSystemPowerStatus`, plus silent privileged refresh
-  that skips the fan table so cards stay current without a click
+- Session-lived authenticated elevation broker (one UAC prompt per app session)
+- Exact zero-access EnergyDrv battery-mode reader and typed battery-mode writer
+- Unelevated precision dashboard with explicit brokered state refresh and apply
 - POWER, INPUT, LIGHTING, DISPLAY, and DEVICE workspaces with no ads, warranty, or serials
 - Overnight charge, Fn lock, Always-on USB, touchpad lock, and Win-key lock, omitted
   when the machine does not support them
-- 4-zone lighting editor (effect, speed, divide-area colors) and a gated Spectrum path
+- 4-zone lighting editor (effect, speed, divide-area colors) with live color swatches
 - Bounded fan-curve apply with a local OEM snapshot and Restore OEM
-- Live unelevated CPU, RAM, and system-disk numbers on the dashboard header
+- Strict local battery and thermal profile drafts with typed previews and Apply
+- Strict local AC/battery automation rules with an opt-in session watcher
+- Versioned atomic JSON stores for profiles and automation rules
+- Live AC/battery glance plus unelevated CPU, RAM, and system-disk numbers
+- Product mark (SVG + Windows `.ico`) used as the application icon
+- Public Windows zip and Linux portable library tarball
+- Ubuntu CI for Application tests
+
+### Fixed
+
+- Lighting, profile, and automation combo boxes showed `NamedValue ( Label = … )`
+  instead of the label
+- Dashboard and page titles clipped the top of Bahnschrift 28 px glyphs
+- Build & Test failed because preview packaging required a Unix MI runtime notice
+  that Windows artifacts do not ship
 
 ### Changed
 
 - Apply rebases onto the live firmware capture, so a click does not require Refresh first
 - Migrated the active application from .NET 9 to .NET 10 WPF
 - Relicensed the active rebuild under GPL-3.0-or-later
-- Quarantined the old C# writer prototype behind a fail-closed global policy
-- Studied Lenovo Legion Toolkit as an external protocol reference
-- Selected built-in Windows PowerShell CIM cmdlets instead of a restricted MI runtime
-- Selected WPF software rendering while the failing hardware-composition path is qualified
-- Replaced reflection-based inventory JSON with an explicit privacy-bounded export contract
 - Keep one elevated broker for the app session so Windows asks once at start
-- Skip the fan-table probe on apply expected-state and readback captures
-- Use in-process WMI for privileged reads and writes instead of PowerShell child processes
-- Invoke Lenovo GameZone methods through the class parameter object so thermal, overdrive, and GPU reads resolve
-- Call GameZone and fan methods through in-process CIM, the same stack that already worked on this LOQ
-- Release the session broker lock after each read or apply so refresh can run more than once
+- Navigation labels `PROFILE` and `AUTOMATION` stay on one row
 
 ### Security
 
@@ -60,10 +57,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Device identity copy is limited to manufacturer, model, machine type, and BIOS
 - Broker IPC uses a random pipe, current-user ACL, one-time nonce, strict framing, and
   mutual process-ID checks
-- WMI reads use fixed getter names, static script text, capped output, and bounded execution
 - Production-mode broker launches are refused when the sibling path is unsigned or
-  user-writable; public release packaging still requires Authenticode and a protected
-  installer
+  user-writable; this public zip stays in development mode
 
 ---
 

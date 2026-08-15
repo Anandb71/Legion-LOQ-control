@@ -133,22 +133,22 @@
       "legionloqcontrol.application": {
         "type": "Project",
         "dependencies": {
-          "LegionLoqControl.Domain": "[1.0.0, )"
+          "LegionLoqControl.Domain": "[0.3.0, )"
         }
       },
       "legionloqcontrol.broker": {
         "type": "Project",
         "dependencies": {
-          "LegionLoqControl.Application": "[1.0.0, )",
-          "LegionLoqControl.Contracts": "[1.0.0, )",
-          "LegionLoqControl.Domain": "[1.0.0, )",
-          "LegionLoqControl.Infrastructure.Windows": "[1.0.0, )"
+          "LegionLoqControl.Application": "[0.3.0, )",
+          "LegionLoqControl.Contracts": "[0.3.0, )",
+          "LegionLoqControl.Domain": "[0.3.0, )",
+          "LegionLoqControl.Infrastructure.Windows": "[0.3.0, )"
         }
       },
       "legionloqcontrol.contracts": {
         "type": "Project",
         "dependencies": {
-          "LegionLoqControl.Domain": "[1.0.0, )"
+          "LegionLoqControl.Domain": "[0.3.0, )"
         }
       },
       "legionloqcontrol.domain": {
@@ -158,9 +158,9 @@
         "type": "Project",
         "dependencies": {
           "HidSharp": "[2.6.4, )",
-          "LegionLoqControl.Application": "[1.0.0, )",
-          "LegionLoqControl.Contracts": "[1.0.0, )",
-          "LegionLoqControl.Domain": "[1.0.0, )",
+          "LegionLoqControl.Application": "[0.3.0, )",
+          "LegionLoqControl.Contracts": "[0.3.0, )",
+          "LegionLoqControl.Domain": "[0.3.0, )",
           "Microsoft.Management.Infrastructure": "[3.0.0, )",
           "System.Management": "[10.0.10, )"
         }

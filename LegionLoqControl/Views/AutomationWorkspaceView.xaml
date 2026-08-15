@@ -117,9 +117,7 @@
                     <TextBlock Style="{StaticResource EyebrowTextStyle}"
                                Text="AUTOMATION / OPT-IN SESSION WATCHER" />
                     <TextBlock Margin="0,6,0,0"
-                               FontFamily="{StaticResource DisplayFont}"
-                               FontSize="28"
-                               FontWeight="SemiBold"
+                               Style="{StaticResource PageTitleTextStyle}"
                                Text="{Binding DataContext.DeviceName, RelativeSource={RelativeSource AncestorType=Window}}" />
                     <TextBlock Margin="0,5,0,0"
                                Foreground="{StaticResource SecondaryTextBrush}"

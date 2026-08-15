@@ -118,7 +118,7 @@
       "legionloqcontrol.application": {
         "type": "Project",
         "dependencies": {
-          "LegionLoqControl.Domain": "[1.0.0, )"
+          "LegionLoqControl.Domain": "[0.3.0, )"
         }
       },
       "legionloqcontrol.domain": {

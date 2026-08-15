@@ -23,6 +23,6 @@ The artifact:
 - includes `BUILD-INFO.json` plus `SHA256SUMS.txt` for provenance and integrity checks; and
 - is retained by CI for seven days only.
 
-Do not redistribute it as a production release. Public release packaging remains blocked on
-broker signing, protected installation ACLs, release provenance, and final compatibility
-validation.
+Do not redistribute the broker-free preview as a production release. The public 0.3.0
+GitHub Release is a separate, unsigned development-mode zip that does include the broker.
+Authenticode, protected installation ACLs, and a signed installer remain later gates.

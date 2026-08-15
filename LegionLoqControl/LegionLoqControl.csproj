@@ -3,6 +3,7 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
+    <ApplicationIcon>Assets\logo.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <IncludeBrokerArtifacts Condition="'$(IncludeBrokerArtifacts)' == ''">true</IncludeBrokerArtifacts>
   </PropertyGroup>
@@ -17,20 +18,47 @@
     <ProjectReference Include="..\src\LegionLoqControl.Infrastructure.Windows\LegionLoqControl.Infrastructure.Windows.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <Resource Include="Assets\logo.ico" />
+    <None Include="Assets\logo.svg" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" />
   </ItemGroup>
 
+  <Target Name="ResolveBrokerOutputDirectory">
+    <PropertyGroup>
+      <_BrokerTfDir>$(MSBuildProjectDirectory)\..\src\LegionLoqControl.Broker\bin\$(Configuration)\$(TargetFramework)\</_BrokerTfDir>
+      <_BrokerRidDir Condition="'$(RuntimeIdentifier)' != ''">$(_BrokerTfDir)$(RuntimeIdentifier)\</_BrokerRidDir>
+      <_BrokerDir Condition="'$(_BrokerRidDir)' != '' AND Exists('$(_BrokerRidDir)LegionLoqControl.Broker.exe')">$(_BrokerRidDir)</_BrokerDir>
+      <_BrokerDir Condition="'$(_BrokerDir)' == ''">$(_BrokerTfDir)</_BrokerDir>
+    </PropertyGroup>
+  </Target>
   <Target Name="CopyBrokerArtifacts"
           AfterTargets="Build"
+          DependsOnTargets="ResolveBrokerOutputDirectory"
           Condition="'$(IncludeBrokerArtifacts)' == 'true'">
     <ItemGroup>
-      <BrokerArtifact Include="$(MSBuildProjectDirectory)\..\src\LegionLoqControl.Broker\bin\$(Configuration)\$(TargetFramework)\LegionLoqControl.Broker.exe" />
-      <BrokerArtifact Include="$(MSBuildProjectDirectory)\..\src\LegionLoqControl.Broker\bin\$(Configuration)\$(TargetFramework)\LegionLoqControl.Broker.dll" />
-      <BrokerArtifact Include="$(MSBuildProjectDirectory)\..\src\LegionLoqControl.Broker\bin\$(Configuration)\$(TargetFramework)\LegionLoqControl.Broker.deps.json" />
-      <BrokerArtifact Include="$(MSBuildProjectDirectory)\..\src\LegionLoqControl.Broker\bin\$(Configuration)\$(TargetFramework)\LegionLoqControl.Broker.runtimeconfig.json" />
+      <BrokerArtifact Include="$(_BrokerDir)LegionLoqControl.Broker.exe" />
+      <BrokerArtifact Include="$(_BrokerDir)LegionLoqControl.Broker.dll" />
+      <BrokerArtifact Include="$(_BrokerDir)LegionLoqControl.Broker.deps.json" />
+      <BrokerArtifact Include="$(_BrokerDir)LegionLoqControl.Broker.runtimeconfig.json" />
     </ItemGroup>
     <Copy SourceFiles="@(BrokerArtifact)"
           DestinationFolder="$(OutDir)"
+          SkipUnchangedFiles="true" />
+  </Target>
+  <Target Name="CopyBrokerArtifactsOnPublish"
+          AfterTargets="Publish"
+          DependsOnTargets="ResolveBrokerOutputDirectory"
+          Condition="'$(IncludeBrokerArtifacts)' == 'true'">
+    <ItemGroup>
+      <BrokerPublishArtifact Include="$(_BrokerDir)LegionLoqControl.Broker.exe" />
+      <BrokerPublishArtifact Include="$(_BrokerDir)LegionLoqControl.Broker.dll" />
+      <BrokerPublishArtifact Include="$(_BrokerDir)LegionLoqControl.Broker.deps.json" />
+      <BrokerPublishArtifact Include="$(_BrokerDir)LegionLoqControl.Broker.runtimeconfig.json" />
+    </ItemGroup>
+    <Copy SourceFiles="@(BrokerPublishArtifact)"
+          DestinationFolder="$(PublishDir)"
           SkipUnchangedFiles="true" />
   </Target>
 </Project>

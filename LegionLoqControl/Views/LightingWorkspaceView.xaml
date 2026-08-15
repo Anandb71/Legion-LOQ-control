@@ -9,9 +9,7 @@
             <TextBlock Style="{StaticResource EyebrowTextStyle}"
                        Text="LIGHTING / KEYBOARD" />
             <TextBlock Margin="0,6,0,8"
-                       FontFamily="{StaticResource DisplayFont}"
-                       FontSize="28"
-                       FontWeight="SemiBold"
+                       Style="{StaticResource PageTitleTextStyle}"
                        Text="Lighting" />
             <TextBlock Margin="0,0,0,20"
                        Foreground="{StaticResource SecondaryTextBrush}"
@@ -85,13 +83,31 @@
                     <Grid Margin="0,0,0,12"
                           Visibility="{Binding LightingWorkspace.ShowSingleColor, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="160" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="36" />
+                            <ColumnDefinition Width="8" />
                             <ColumnDefinition Width="160" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock VerticalAlignment="Center"
-                                   Style="{StaticResource EyebrowTextStyle}"
-                                   Text="COLOR" />
-                        <TextBox Grid.Column="1"
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource EyebrowTextStyle}"
+                                       Text="COLOR" />
+                            <TextBlock Margin="0,4,0,0"
+                                       FontSize="10"
+                                       Foreground="{StaticResource MutedTextBrush}"
+                                       Text="RRGGBB" />
+                        </StackPanel>
+                        <Border Grid.Column="2"
+                                Width="36"
+                                Height="36"
+                                VerticalAlignment="Center"
+                                Background="{Binding LightingWorkspace.Zone1Hex, Converter={StaticResource HexToBrushConverter}}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="2" />
+                        <TextBox Grid.Column="4"
+                                 MaxLength="6"
+                                 FontFamily="{StaticResource DisplayFont}"
                                  automation:AutomationProperties.Name="Four-zone lighting color"
                                  Text="{Binding LightingWorkspace.Zone1Hex, UpdateSourceTrigger=PropertyChanged}" />
                     </Grid>
@@ -109,27 +125,87 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0">
                             <TextBlock Style="{StaticResource EyebrowTextStyle}" Text="ZONE 1" />
-                            <TextBox Margin="0,6,0,0"
-                                     automation:AutomationProperties.Name="Four-zone lighting zone 1 color"
-                                     Text="{Binding LightingWorkspace.Zone1Hex, UpdateSourceTrigger=PropertyChanged}" />
+                            <Grid Margin="0,6,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="36" />
+                                    <ColumnDefinition Width="8" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Border Width="36"
+                                        Height="36"
+                                        Background="{Binding LightingWorkspace.Zone1Hex, Converter={StaticResource HexToBrushConverter}}"
+                                        BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="2" />
+                                <TextBox Grid.Column="2"
+                                         MaxLength="6"
+                                         FontFamily="{StaticResource DisplayFont}"
+                                         automation:AutomationProperties.Name="Four-zone lighting zone 1 color"
+                                         Text="{Binding LightingWorkspace.Zone1Hex, UpdateSourceTrigger=PropertyChanged}" />
+                            </Grid>
                         </StackPanel>
                         <StackPanel Grid.Column="2">
                             <TextBlock Style="{StaticResource EyebrowTextStyle}" Text="ZONE 2" />
-                            <TextBox Margin="0,6,0,0"
-                                     automation:AutomationProperties.Name="Four-zone lighting zone 2 color"
-                                     Text="{Binding LightingWorkspace.Zone2Hex, UpdateSourceTrigger=PropertyChanged}" />
+                            <Grid Margin="0,6,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="36" />
+                                    <ColumnDefinition Width="8" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Border Width="36"
+                                        Height="36"
+                                        Background="{Binding LightingWorkspace.Zone2Hex, Converter={StaticResource HexToBrushConverter}}"
+                                        BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="2" />
+                                <TextBox Grid.Column="2"
+                                         MaxLength="6"
+                                         FontFamily="{StaticResource DisplayFont}"
+                                         automation:AutomationProperties.Name="Four-zone lighting zone 2 color"
+                                         Text="{Binding LightingWorkspace.Zone2Hex, UpdateSourceTrigger=PropertyChanged}" />
+                            </Grid>
                         </StackPanel>
                         <StackPanel Grid.Column="4">
                             <TextBlock Style="{StaticResource EyebrowTextStyle}" Text="ZONE 3" />
-                            <TextBox Margin="0,6,0,0"
-                                     automation:AutomationProperties.Name="Four-zone lighting zone 3 color"
-                                     Text="{Binding LightingWorkspace.Zone3Hex, UpdateSourceTrigger=PropertyChanged}" />
+                            <Grid Margin="0,6,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="36" />
+                                    <ColumnDefinition Width="8" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Border Width="36"
+                                        Height="36"
+                                        Background="{Binding LightingWorkspace.Zone3Hex, Converter={StaticResource HexToBrushConverter}}"
+                                        BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="2" />
+                                <TextBox Grid.Column="2"
+                                         MaxLength="6"
+                                         FontFamily="{StaticResource DisplayFont}"
+                                         automation:AutomationProperties.Name="Four-zone lighting zone 3 color"
+                                         Text="{Binding LightingWorkspace.Zone3Hex, UpdateSourceTrigger=PropertyChanged}" />
+                            </Grid>
                         </StackPanel>
                         <StackPanel Grid.Column="6">
                             <TextBlock Style="{StaticResource EyebrowTextStyle}" Text="ZONE 4" />
-                            <TextBox Margin="0,6,0,0"
-                                     automation:AutomationProperties.Name="Four-zone lighting zone 4 color"
-                                     Text="{Binding LightingWorkspace.Zone4Hex, UpdateSourceTrigger=PropertyChanged}" />
+                            <Grid Margin="0,6,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="36" />
+                                    <ColumnDefinition Width="8" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Border Width="36"
+                                        Height="36"
+                                        Background="{Binding LightingWorkspace.Zone4Hex, Converter={StaticResource HexToBrushConverter}}"
+                                        BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="2" />
+                                <TextBox Grid.Column="2"
+                                         MaxLength="6"
+                                         FontFamily="{StaticResource DisplayFont}"
+                                         automation:AutomationProperties.Name="Four-zone lighting zone 4 color"
+                                         Text="{Binding LightingWorkspace.Zone4Hex, UpdateSourceTrigger=PropertyChanged}" />
+                            </Grid>
                         </StackPanel>
                     </Grid>
 
