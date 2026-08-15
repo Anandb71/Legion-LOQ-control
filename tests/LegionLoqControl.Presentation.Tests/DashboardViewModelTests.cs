@@ -1,4 +1,5 @@
 using LegionLoqControl.Application.Broker;
+using LegionLoqControl.Contracts.Broker;
 using LegionLoqControl.Domain.Capabilities;
 using LegionLoqControl.Domain.Controls;
 using LegionLoqControl.Domain.Diagnostics;
@@ -96,6 +97,21 @@ public sealed class DashboardViewModelTests
     }
 
     [Fact]
+    public async Task Applying_a_thermal_option_uses_the_verified_expected_state()
+    {
+        var source = new StubDashboardDataSource(CreateMachineSnapshot(), CreateHardwareSnapshot());
+        var viewModel = new MainWindowViewModel(source);
+        await viewModel.InitializeAsync();
+        await viewModel.RefreshHardwareStateCommand.ExecuteAsync(null);
+
+        await viewModel.Thermal.ApplyOptionCommand.ExecuteAsync(nameof(ThermalMode.Quiet));
+
+        Assert.Equal("Hardware change verified", viewModel.BannerTitle);
+        Assert.Equal(DashboardStateKind.Success, viewModel.BannerState);
+        Assert.True(viewModel.Thermal.CanApply);
+    }
+
+    [Fact]
     public async Task Production_install_refusal_explains_the_unprotected_path()
     {
         var source = new StubDashboardDataSource(
@@ -188,6 +204,19 @@ public sealed class DashboardViewModelTests
         {
             BrokerInstallAssessCount++;
             return BrokerInstall;
+        }
+
+        public ValueTask<HardwareStateSnapshot> ApplyHardwareWriteAsync(
+            HardwareWriteTarget target,
+            string expected,
+            string desired,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (ReadException is not null)
+                return ValueTask.FromException<HardwareStateSnapshot>(ReadException);
+
+            return ValueTask.FromResult(hardwareStateSnapshot);
         }
     }
 }

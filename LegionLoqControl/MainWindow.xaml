@@ -13,7 +13,8 @@
     <Window.Resources>
         <DataTemplate x:Key="StateCardTemplate"
                       DataType="{x:Type vm:HardwareStateCardViewModel}">
-            <Border Style="{StaticResource SurfaceBorderStyle}"
+            <Border x:Name="CardRoot"
+                    Style="{StaticResource SurfaceBorderStyle}"
                     Padding="20">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -32,6 +33,7 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
@@ -52,6 +54,27 @@
                                    FontSize="11"
                                    Foreground="{StaticResource SecondaryTextBrush}"
                                    Text="{Binding Detail}" />
+                        <ItemsControl Grid.Row="4"
+                                      Margin="0,12,0,0"
+                                      ItemsSource="{Binding Options}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type vm:HardwareStateOptionViewModel}">
+                                    <Button Margin="0,0,8,0"
+                                            Padding="10,5"
+                                            automation:AutomationProperties.Name="{Binding Label, StringFormat=Apply {0}}"
+                                            Command="{Binding DataContext.ApplyOptionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding Token}"
+                                            Content="{Binding Label}"
+                                            IsEnabled="{Binding DataContext.CanApply, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            Style="{StaticResource BaseButtonStyle}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                     </Grid>
                 </Grid>
             </Border>
@@ -331,7 +354,7 @@
                                Text="Current hardware state" />
                     <TextBlock Margin="0,4,0,0"
                                Foreground="{StaticResource MutedTextBrush}"
-                               Text="Values are evidence, not controls. Refresh requires explicit elevation." />
+                               Text="Read first, then apply a value. Each change uses one elevation prompt and a readback." />
                 </StackPanel>
                 <TextBlock Grid.Column="1"
                            VerticalAlignment="Bottom"

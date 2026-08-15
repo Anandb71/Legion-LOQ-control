@@ -27,6 +27,23 @@ public sealed record SetKeyboardBrightnessCommand(
     KeyboardBrightness Expected,
     KeyboardBrightness Desired) : IHardwareCommand;
 
+public sealed record SetDisplayOverdriveCommand(
+    CommandId CommandId,
+    ToggleState Expected,
+    ToggleState Desired) : IHardwareCommand;
+
+public sealed record SetIntegratedGpuModeCommand(
+    CommandId CommandId,
+    IntegratedGpuMode Expected,
+    IntegratedGpuMode Desired) : IHardwareCommand;
+
+public enum HardwareWriteTarget
+{
+    ThermalMode = 0,
+    DisplayOverdrive = 1,
+    IntegratedGpuMode = 2,
+}
+
 public enum BrokerCommandStatus
 {
     Succeeded = 0,

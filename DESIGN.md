@@ -95,7 +95,8 @@ Color never carries meaning alone. Every semantic color is paired with a label o
 - Loading, unavailable, denied, stale, and failed are distinct states.
 - UAC is never triggered on launch. Privileged refresh is always a direct user action.
 - Unsupported controls are omitted or explained, not shown as unexplained disabled chrome.
-- Hardware writes remain absent until the safety gates in `SAFETY.md` are complete.
+- Hardware writes are explicit: the user chooses a value, Windows elevation runs, and
+  the broker reads the result back. There is no write on launch, refresh, or preview.
 
 ## Safe choices
 

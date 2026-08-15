@@ -16,6 +16,12 @@ public interface IDashboardDataSource
         CancellationToken cancellationToken);
 
     BrokerInstallAssessment AssessBrokerInstall();
+
+    ValueTask<HardwareStateSnapshot> ApplyHardwareWriteAsync(
+        HardwareWriteTarget target,
+        string expected,
+        string desired,
+        CancellationToken cancellationToken);
 }
 
 public sealed class DashboardDataSourceException : Exception
@@ -43,6 +49,8 @@ public sealed class DashboardDataSource : IDashboardDataSource
     private readonly Func<CancellationToken, ValueTask<HardwareStateReadResponse>>
         _readHardwareStateAsync;
     private readonly Func<BrokerInstallAssessment> _assessBrokerInstall;
+    private readonly Func<HardwareWriteTarget, string, string, CancellationToken, ValueTask<HardwareStateWriteResponse>>
+        _writeHardwareStateAsync;
 
     public DashboardDataSource()
         : this(
@@ -51,20 +59,35 @@ public sealed class DashboardDataSource : IDashboardDataSource
                 [new WindowsCapabilityProbe()]),
             static cancellationToken =>
                 new ElevatedHardwareStateBrokerClient().ReadAsync(cancellationToken),
-            AssessLocalBrokerInstall)
+            AssessLocalBrokerInstall,
+            WriteLocalBroker)
     {
     }
 
     internal DashboardDataSource(
         MachineDiagnosticsService diagnostics,
         Func<CancellationToken, ValueTask<HardwareStateReadResponse>> readHardwareStateAsync,
-        Func<BrokerInstallAssessment>? assessBrokerInstall = null)
+        Func<BrokerInstallAssessment>? assessBrokerInstall = null,
+        Func<HardwareWriteTarget, string, string, CancellationToken, ValueTask<HardwareStateWriteResponse>>?
+            writeHardwareStateAsync = null)
     {
         _diagnostics = diagnostics ?? throw new ArgumentNullException(nameof(diagnostics));
         _readHardwareStateAsync = readHardwareStateAsync ??
             throw new ArgumentNullException(nameof(readHardwareStateAsync));
         _assessBrokerInstall = assessBrokerInstall ?? AssessLocalBrokerInstall;
+        _writeHardwareStateAsync = writeHardwareStateAsync ?? WriteLocalBroker;
     }
+
+    private static ValueTask<HardwareStateWriteResponse> WriteLocalBroker(
+        HardwareWriteTarget target,
+        string expected,
+        string desired,
+        CancellationToken cancellationToken) =>
+        new ElevatedHardwareStateBrokerClient().WriteAsync(
+            target,
+            expected,
+            desired,
+            cancellationToken);
 
     private static BrokerInstallAssessment AssessLocalBrokerInstall() =>
         WindowsBrokerInstallInspector.Assess(
@@ -89,6 +112,34 @@ public sealed class DashboardDataSource : IDashboardDataSource
             {
                 throw new DashboardDataSourceException(
                     response.ErrorCode ?? "broker_read_failed");
+            }
+
+            return response.Snapshot.ToSnapshot();
+        }
+        catch (BrokerTransportException exception)
+        {
+            throw new DashboardDataSourceException(exception.ErrorCode, exception);
+        }
+    }
+
+    public async ValueTask<HardwareStateSnapshot> ApplyHardwareWriteAsync(
+        HardwareWriteTarget target,
+        string expected,
+        string desired,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            HardwareStateWriteResponse response = await _writeHardwareStateAsync(
+                    target,
+                    expected,
+                    desired,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (response.Status != BrokerCommandStatus.Succeeded || response.Snapshot is null)
+            {
+                throw new DashboardDataSourceException(
+                    response.ErrorCode ?? "broker_write_failed");
             }
 
             return response.Snapshot.ToSnapshot();

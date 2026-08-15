@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Versioned, allowlisted diagnostics reports with atomic dashboard export
 - Broker install policy that refuses production launches from unsigned or user-writable paths
 - Diagnostics `inventory --output` using the same atomic allowlisted writer as the dashboard
+- Explicit elevated apply for thermal mode, display overdrive, and integrated-GPU mode
 - Locked dependency restore, comprehensive automated tests, CodeQL, and accessibility contracts
 - Manually generated, short-lived, broker-free read-only preview artifact
 

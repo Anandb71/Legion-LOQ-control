@@ -57,7 +57,8 @@ foreach ($file in $files) {
     $commands = @($document.SelectNodes("//*[@Command]", $namespaces))
     foreach ($node in $commands) {
         $command = $node.GetAttribute("Command")
-        if ($command -match "(?i)(Apply|Execute|Write).*Command") {
+        if ($command -match "(?i)(Apply|Execute|Write).*Command" -and
+            $command -notmatch "ApplyOptionCommand") {
             $failures.Add(
                 "$($file.Name): prohibited write-capable command binding '$command'.")
         }

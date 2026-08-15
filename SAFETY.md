@@ -8,8 +8,11 @@ failed state is never treated as a usable default.
 The C# migration prototype is deliberately **read-only**:
 
 - the GUI runs as the current user (`asInvoker`), not as administrator;
-- write controls are disabled and have no event handlers;
-- `HardwareWritePolicy` has no unlock path;
+- the dashboard can apply thermal mode, display overdrive, and integrated-GPU mode
+  only after an explicit click and a UAC prompt;
+- each apply is one typed broker write with a fresh expected-state check and readback;
+- custom thermal mode, battery writes, fan tables, and keyboard writes remain disabled;
+- `HardwareWritePolicy` in the quarantined Core assembly still has no unlock path;
 - legacy or write-capable EnergyDrv, WMI mutation, and HID feature-write entry points
   reject commands before opening a driver or selecting a device;
 - default inventory invokes no Lenovo methods and opens no HID devices;
@@ -23,8 +26,10 @@ The C# migration prototype is deliberately **read-only**:
   impersonation;
 - the elevated broker has one fixed EnergyDrv battery read (`0x831020F8`, selector `0xFF`,
   zero requested device access) and no caller-controlled or generic driver operation;
-- the elevated broker has no write message type, write dispatcher, legacy Core reference,
-  writable EnergyDrv handle, or HID access;
+- the elevated broker may run one allowlisted WMI setter (`SetSmartFanMode`,
+  `SetODStatus`, or `SetIGPUModeStatus`) when launched with `--write`;
+- the elevated broker still has no legacy Core reference, writable EnergyDrv handle,
+  HID access, or caller-supplied WMI names;
 - profile drafts use a bounded, strict, versioned local JSON store with a
   cross-process file lock and compare only against retained typed snapshots and
   capability evidence;
@@ -40,7 +45,9 @@ The C# migration prototype is deliberately **read-only**:
   elevation, or performs a hardware write;
 - unit tests verify that battery, thermal, fan, and keyboard commands fail closed.
 
-The read-only broker is a validation milestone, not authorization for writes. Development
+The broker may apply the three allowlisted WMI setters after an explicit UAC prompt.
+That is not authorization for battery, fan, keyboard, or unsigned production installs.
+Development
 mode may launch an unsigned sibling broker after an explicit UAC prompt. Production mode
 refuses that launch unless the sibling directory is administrator-protected and the
 broker is Authenticode-signed. See [`docs/BROKER_INSTALL.md`](docs/BROKER_INSTALL.md).

@@ -38,6 +38,30 @@ internal static class BrokerHost
             if (serverProcessId != options.ParentProcessId)
                 return 77;
 
+            if (options.Write)
+            {
+                HardwareStateWriteRequest writeRequest = await BrokerWireProtocol
+                    .ReadAsync<HardwareStateWriteRequest>(pipe, lifetime.Token)
+                    .ConfigureAwait(false);
+                BrokerValidationResult writeValidation = BrokerMessageValidator.ValidateWriteRequest(
+                    writeRequest,
+                    options.Nonce,
+                    serverProcessId);
+                if (!writeValidation.IsValid)
+                {
+                    await WriteCommandFailureAsync(
+                        pipe,
+                        writeRequest.RequestId,
+                        BrokerCommandStatus.InvalidRequest,
+                        writeValidation.ErrorCode!,
+                        lifetime.Token).ConfigureAwait(false);
+                    return 0;
+                }
+
+                await ExecuteWriteAsync(pipe, writeRequest, lifetime.Token).ConfigureAwait(false);
+                return 0;
+            }
+
             HardwareStateReadRequest request = await BrokerWireProtocol
                 .ReadAsync<HardwareStateReadRequest>(pipe, lifetime.Token)
                 .ConfigureAwait(false);
@@ -147,6 +171,95 @@ internal static class BrokerHost
                 ClassifyFailure(exception),
                 cancellationToken).ConfigureAwait(false);
         }
+    }
+
+    private static async ValueTask ExecuteWriteAsync(
+        Stream stream,
+        HardwareStateWriteRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (!IsElevated())
+            {
+                await WriteCommandFailureAsync(
+                    stream,
+                    request.RequestId,
+                    BrokerCommandStatus.Failed,
+                    "broker_not_elevated",
+                    cancellationToken).ConfigureAwait(false);
+                return;
+            }
+
+            var service = new HardwareStateWriteService(
+                WindowsHardwareStateReader.CreatePrivilegedReadOnly,
+                new WindowsHardwareStateWriter());
+            HardwareStateSnapshot snapshot = await service
+                .ApplyAsync(
+                    (HardwareWriteKind)request.Target,
+                    request.Expected,
+                    request.Desired,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            var response = new HardwareStateWriteResponse(
+                BrokerProtocol.MajorVersion,
+                request.RequestId,
+                BrokerCommandStatus.Succeeded,
+                HardwareStateReadPayload.FromSnapshot(snapshot),
+                null);
+            await BrokerWireProtocol
+                .WriteAsync(stream, response, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (HardwareWriteException exception)
+        {
+            await WriteCommandFailureAsync(
+                stream,
+                request.RequestId,
+                MapWriteStatus(exception.Status),
+                exception.ErrorCode,
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            await WriteCommandFailureAsync(
+                stream,
+                request.RequestId,
+                BrokerCommandStatus.Failed,
+                ClassifyFailure(exception),
+                cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private static BrokerCommandStatus MapWriteStatus(HardwareWriteStatus status) =>
+        status switch
+        {
+            HardwareWriteStatus.Unsupported => BrokerCommandStatus.Unsupported,
+            HardwareWriteStatus.Conflict => BrokerCommandStatus.Conflict,
+            HardwareWriteStatus.Unverified => BrokerCommandStatus.Unverified,
+            _ => BrokerCommandStatus.Failed,
+        };
+
+    private static async ValueTask WriteCommandFailureAsync(
+        Stream stream,
+        Guid requestId,
+        BrokerCommandStatus status,
+        string errorCode,
+        CancellationToken cancellationToken)
+    {
+        var response = new HardwareStateWriteResponse(
+            BrokerProtocol.MajorVersion,
+            requestId,
+            status,
+            null,
+            errorCode);
+        await BrokerWireProtocol
+            .WriteAsync(stream, response, cancellationToken)
+            .ConfigureAwait(false);
     }
 
     private static string ClassifyFailure(Exception exception) =>

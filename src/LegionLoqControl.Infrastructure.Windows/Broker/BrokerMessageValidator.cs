@@ -31,6 +31,61 @@ internal static class BrokerMessageValidator
         return BrokerValidationResult.Valid;
     }
 
+    public static BrokerValidationResult ValidateWriteRequest(
+        HardwareStateWriteRequest? request,
+        string expectedNonce,
+        int expectedClientProcessId)
+    {
+        if (request is null)
+            return BrokerValidationResult.Invalid("request_missing");
+
+        BrokerValidationResult identity = ValidateRequest(
+            new HardwareStateReadRequest(
+                request.ProtocolMajorVersion,
+                request.RequestId,
+                request.Nonce,
+                request.ClientProcessId),
+            expectedNonce,
+            expectedClientProcessId);
+        if (!identity.IsValid)
+            return identity;
+        if (!Enum.IsDefined(request.Target))
+            return BrokerValidationResult.Invalid("write_target_invalid");
+        if (string.IsNullOrWhiteSpace(request.Expected) ||
+            string.IsNullOrWhiteSpace(request.Desired))
+        {
+            return BrokerValidationResult.Invalid("write_value_invalid");
+        }
+
+        return BrokerValidationResult.Valid;
+    }
+
+    public static void ValidateWriteResponse(
+        HardwareStateWriteResponse response,
+        Guid expectedRequestId)
+    {
+        ArgumentNullException.ThrowIfNull(response);
+        if (expectedRequestId == Guid.Empty)
+            throw new ArgumentException("The expected request ID cannot be empty.", nameof(expectedRequestId));
+        if (response.ProtocolMajorVersion != BrokerProtocol.MajorVersion)
+            throw new InvalidDataException("The broker response protocol version does not match.");
+        if (response.RequestId != expectedRequestId)
+            throw new InvalidDataException("The broker response request ID does not match.");
+        if (!Enum.IsDefined(response.Status))
+            throw new InvalidDataException("The broker response status is invalid.");
+
+        if (response.Status == BrokerCommandStatus.Succeeded)
+        {
+            if (response.Snapshot is null || response.ErrorCode is not null)
+                throw new InvalidDataException("A successful write response has an invalid shape.");
+            _ = response.Snapshot.ToSnapshot();
+            return;
+        }
+
+        if (response.Snapshot is not null || !IsValidErrorCode(response.ErrorCode))
+            throw new InvalidDataException("A failed write response has an invalid shape.");
+    }
+
     public static void ValidateResponse(
         HardwareStateReadResponse response,
         Guid expectedRequestId)

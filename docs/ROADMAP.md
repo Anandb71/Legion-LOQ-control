@@ -44,7 +44,14 @@ observations. The automation workspace:
 There is no watcher, scheduler, background runner, profile application, broker call, or
 hardware write.
 
-## Current milestone: release-grade read-only foundation
+## Current milestone: first Vantage-class controls
+
+The dashboard can apply the three WMI states already validated on the recorded LOQ:
+thermal mode, display overdrive, and integrated-GPU mode. Each apply is an explicit
+click, one UAC prompt, an expected-state check, one allowlisted setter, and a readback.
+Battery writes, keyboard, fans, profile Apply, and automation execution are next.
+
+## Previous milestone: release-grade read-only foundation
 
 CI, broker-free preview packaging, accessibility contracts, diagnostics export, and release
 documentation are now in place. Cross-process local-store integrity uses exclusive file

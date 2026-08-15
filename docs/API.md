@@ -121,6 +121,11 @@ error-code syntax; domain constructors are not exposed for deserialization.
 and maps cancellation, timeout, elevation rejection, peer mismatch, and malformed response
 to stable transport error codes.
 
+`ElevatedHardwareStateBrokerClient.WriteAsync` launches the same sibling with `--write`
+and sends one `HardwareStateWriteRequest` for thermal mode, display overdrive, or
+integrated-GPU mode. The broker rereads, compares the expected value, invokes one
+allowlisted setter, and returns a readback snapshot.
+
 `BrokerInstallPolicy` classifies that sibling as missing, development, protected, or
 unprotected from owner/DACL evidence and Authenticode state. Production mode refuses
 unsigned or user-writable installs before UAC with `broker_install_unprotected`,

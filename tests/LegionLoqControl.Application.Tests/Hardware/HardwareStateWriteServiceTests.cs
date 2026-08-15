@@ -1,0 +1,119 @@
+using LegionLoqControl.Application.Hardware;
+using LegionLoqControl.Domain.Controls;
+using LegionLoqControl.Domain.Diagnostics;
+using LegionLoqControl.Domain.Results;
+using Xunit;
+
+namespace LegionLoqControl.Application.Tests.Hardware;
+
+public sealed class HardwareStateWriteServiceTests
+{
+    [Fact]
+    public async Task Apply_writes_only_after_the_expected_state_matches()
+    {
+        var reader = new StubReader(ThermalMode.Balanced, ThermalMode.Performance);
+        var writer = new StubWriter();
+        var service = new HardwareStateWriteService(() => reader, writer);
+
+        HardwareStateSnapshot snapshot = await service.ApplyAsync(
+            HardwareWriteKind.ThermalMode,
+            nameof(ThermalMode.Balanced),
+            nameof(ThermalMode.Performance),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(ThermalMode.Performance, snapshot.ThermalMode.Value);
+        Assert.Equal(ThermalMode.Performance, writer.LastThermal);
+        Assert.Equal(2, reader.CaptureCount);
+    }
+
+    [Fact]
+    public async Task Apply_refuses_a_stale_expected_value()
+    {
+        var reader = new StubReader(ThermalMode.Quiet, ThermalMode.Quiet);
+        var service = new HardwareStateWriteService(() => reader, new StubWriter());
+
+        HardwareWriteException exception = await Assert.ThrowsAsync<HardwareWriteException>(
+            () => service.ApplyAsync(
+                HardwareWriteKind.ThermalMode,
+                nameof(ThermalMode.Performance),
+                nameof(ThermalMode.Quiet),
+                TestContext.Current.CancellationToken).AsTask());
+
+        Assert.Equal("thermal_expected_mismatch", exception.ErrorCode);
+        Assert.Equal(HardwareWriteStatus.Conflict, exception.Status);
+    }
+
+    [Fact]
+    public async Task Apply_does_not_write_custom_thermal_mode()
+    {
+        var writer = new StubWriter();
+        var service = new HardwareStateWriteService(
+            () => new StubReader(ThermalMode.Balanced, ThermalMode.Balanced),
+            writer);
+
+        HardwareWriteException exception = await Assert.ThrowsAsync<HardwareWriteException>(
+            () => service.ApplyAsync(
+                HardwareWriteKind.ThermalMode,
+                nameof(ThermalMode.Balanced),
+                nameof(ThermalMode.Custom),
+                TestContext.Current.CancellationToken).AsTask());
+
+        Assert.Equal("thermal_custom_unsupported", exception.ErrorCode);
+        Assert.Null(writer.LastThermal);
+    }
+
+    private sealed class StubReader : IHardwareStateReader
+    {
+        private readonly Queue<ThermalMode> _thermal;
+
+        public StubReader(params ThermalMode[] thermal)
+        {
+            _thermal = new Queue<ThermalMode>(thermal);
+        }
+
+        public int CaptureCount { get; private set; }
+
+        public ValueTask<HardwareReadResult<BatteryChargeMode>> ReadBatteryChargeModeAsync(
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult(HardwareReadResult<BatteryChargeMode>.Success(BatteryChargeMode.Normal));
+
+        public ValueTask<HardwareReadResult<ThermalMode>> ReadThermalModeAsync(
+            CancellationToken cancellationToken)
+        {
+            CaptureCount++;
+            return ValueTask.FromResult(HardwareReadResult<ThermalMode>.Success(_thermal.Dequeue()));
+        }
+
+        public ValueTask<HardwareReadResult<ToggleState>> ReadDisplayOverdriveAsync(
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult(HardwareReadResult<ToggleState>.Success(ToggleState.Disabled));
+
+        public ValueTask<HardwareReadResult<IntegratedGpuMode>> ReadIntegratedGpuModeAsync(
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult(
+                HardwareReadResult<IntegratedGpuMode>.Success(IntegratedGpuMode.Default));
+    }
+
+    private sealed class StubWriter : IHardwareStateWriter
+    {
+        public ThermalMode? LastThermal { get; private set; }
+
+        public ValueTask WriteThermalModeAsync(
+            ThermalMode desired,
+            CancellationToken cancellationToken)
+        {
+            LastThermal = desired;
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask WriteDisplayOverdriveAsync(
+            ToggleState desired,
+            CancellationToken cancellationToken) =>
+            ValueTask.CompletedTask;
+
+        public ValueTask WriteIntegratedGpuModeAsync(
+            IntegratedGpuMode desired,
+            CancellationToken cancellationToken) =>
+            ValueTask.CompletedTask;
+    }
+}

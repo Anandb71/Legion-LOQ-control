@@ -53,6 +53,8 @@ public sealed class BrokerSecurityTests
 
         Assert.True(BrokerArguments.TryParse(valid, out BrokerArguments? result));
         Assert.Equal(new BrokerArguments(pipeName, nonce, 1234), result);
+        Assert.True(BrokerArguments.TryParse([.. valid, "--write"], out BrokerArguments? write));
+        Assert.True(write!.Write);
         Assert.False(BrokerArguments.TryParse([.. valid, "--extra"], out _));
         Assert.False(BrokerArguments.TryParse(
             ["--pipe", "known", "--nonce", nonce, "--parent-pid", "1234"],

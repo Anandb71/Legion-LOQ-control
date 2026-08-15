@@ -76,7 +76,7 @@ public sealed class ElevatedHardwareStateBrokerClient
         Process? process = null;
         try
         {
-            process = LaunchBroker(pipeName, nonce, request.ClientProcessId);
+            process = LaunchBroker(pipeName, nonce, request.ClientProcessId, write: false);
             Task<HardwareStateReadResponse> exchange = BrokerPipeExchange
                 .ExchangeAsync(pipe, process.Id, request, timeout.Token)
                 .AsTask();
@@ -162,10 +162,137 @@ public sealed class ElevatedHardwareStateBrokerClient
         }
     }
 
+    public async ValueTask<HardwareStateWriteResponse> WriteAsync(
+        HardwareWriteTarget target,
+        string expected,
+        string desired,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(expected);
+        ArgumentException.ThrowIfNullOrWhiteSpace(desired);
+        if (!Enum.IsDefined(target))
+            throw new ArgumentOutOfRangeException(nameof(target));
+
+        WindowsPlatform.EnsureSupported();
+        cancellationToken.ThrowIfCancellationRequested();
+
+        BrokerInstallAssessment install = AssessInstall();
+        if (!BrokerInstallPolicy.Allows(install, _installMode))
+        {
+            throw new BrokerTransportException(
+                BrokerInstallPolicy.RefusalCode(install, _installMode));
+        }
+
+        Guid requestId = Guid.NewGuid();
+        string nonce = BrokerProtocol.CreateNonce();
+        string pipeName = BrokerProtocol.CreatePipeName();
+        var request = new HardwareStateWriteRequest(
+            BrokerProtocol.MajorVersion,
+            requestId,
+            nonce,
+            Environment.ProcessId,
+            target,
+            expected.Trim(),
+            desired.Trim());
+
+        using var pipe = BrokerPipeFactory.CreateServer(pipeName);
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(RequestTimeout);
+
+        Process? process = null;
+        try
+        {
+            process = LaunchBroker(pipeName, nonce, request.ClientProcessId, write: true);
+            Task<HardwareStateWriteResponse> exchange = BrokerPipeExchange
+                .ExchangeWriteAsync(pipe, process.Id, request, timeout.Token)
+                .AsTask();
+            Task processExit = process.WaitForExitAsync(CancellationToken.None);
+            Task firstCompleted = await Task
+                .WhenAny(exchange, processExit)
+                .ConfigureAwait(false);
+            HardwareStateWriteResponse response;
+            if (firstCompleted == processExit && !exchange.IsCompleted)
+            {
+                try
+                {
+                    response = await exchange
+                        .WaitAsync(ResponseDrainTimeout, cancellationToken)
+                        .ConfigureAwait(false);
+                }
+                catch (TimeoutException)
+                {
+                    string errorCode = ResolvePipeFailureCode(process);
+                    timeout.Cancel();
+                    await ObserveFailureAsync(exchange).ConfigureAwait(false);
+                    throw new BrokerTransportException(errorCode);
+                }
+            }
+            else
+            {
+                response = await exchange.ConfigureAwait(false);
+            }
+
+            await processExit
+                .WaitAsync(ExitTimeout, CancellationToken.None)
+                .ConfigureAwait(false);
+            if (process.ExitCode != 0)
+                throw new BrokerTransportException("broker_exit_failed");
+
+            return response;
+        }
+        catch (Win32Exception exception) when (exception.NativeErrorCode == 1223)
+        {
+            throw new BrokerTransportException("broker_elevation_cancelled", exception);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            TryTerminate(process);
+            throw;
+        }
+        catch (OperationCanceledException) when (
+            !cancellationToken.IsCancellationRequested &&
+            timeout.IsCancellationRequested)
+        {
+            TryTerminate(process);
+            throw new BrokerTransportException("broker_timeout");
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            TryTerminate(process);
+            throw new BrokerTransportException("broker_peer_mismatch", exception);
+        }
+        catch (InvalidDataException exception)
+        {
+            TryTerminate(process);
+            throw new BrokerTransportException("broker_response_invalid", exception);
+        }
+        catch (TimeoutException exception)
+        {
+            TryTerminate(process);
+            throw new BrokerTransportException("broker_exit_timeout", exception);
+        }
+        catch (IOException exception)
+        {
+            string errorCode = ResolvePipeFailureCode(process);
+            TryTerminate(process);
+            throw new BrokerTransportException(errorCode, exception);
+        }
+        catch (Win32Exception exception)
+        {
+            TryTerminate(process);
+            throw new BrokerTransportException("broker_transport_failed", exception);
+        }
+        finally
+        {
+            process?.Dispose();
+        }
+    }
+
     private Process LaunchBroker(
         string pipeName,
         string nonce,
-        int parentProcessId)
+        int parentProcessId,
+        bool write)
     {
         var startInfo = new ProcessStartInfo
         {
@@ -181,6 +308,8 @@ public sealed class ElevatedHardwareStateBrokerClient
         startInfo.ArgumentList.Add(nonce);
         startInfo.ArgumentList.Add("--parent-pid");
         startInfo.ArgumentList.Add(parentProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        if (write)
+            startInfo.ArgumentList.Add("--write");
 
         try
         {

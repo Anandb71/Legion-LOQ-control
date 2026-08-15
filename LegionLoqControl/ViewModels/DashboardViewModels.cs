@@ -7,6 +7,7 @@ using LegionLoqControl.Application.Automation;
 using LegionLoqControl.Application.Broker;
 using LegionLoqControl.Application.Diagnostics;
 using LegionLoqControl.Application.Profiles;
+using LegionLoqControl.Contracts.Broker;
 using LegionLoqControl.Domain.Capabilities;
 using LegionLoqControl.Domain.Controls;
 using LegionLoqControl.Domain.Diagnostics;
@@ -38,6 +39,10 @@ public sealed partial class HardwareStateCardViewModel : ObservableObject
     [ObservableProperty]
     private DashboardStateKind _state = DashboardStateKind.Pending;
 
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ApplyOptionCommand))]
+    private bool _canApply;
+
     public HardwareStateCardViewModel(
         string label,
         string description,
@@ -56,6 +61,21 @@ public sealed partial class HardwareStateCardViewModel : ObservableObject
 
     public string Description { get; }
 
+    public ObservableCollection<HardwareStateOptionViewModel> Options { get; } = [];
+
+    public Func<string, Task>? ApplyAsync { get; set; }
+
+    [RelayCommand(CanExecute = nameof(CanApplyOption))]
+    private async Task ApplyOptionAsync(string? token)
+    {
+        if (string.IsNullOrWhiteSpace(token) || ApplyAsync is null)
+            return;
+
+        await ApplyAsync(token).ConfigureAwait(true);
+    }
+
+    private bool CanApplyOption() => CanApply && ApplyAsync is not null;
+
     public void Apply<T>(
         HardwareReadResult<T> result,
         Func<T, string> formatter)
@@ -67,8 +87,10 @@ public sealed partial class HardwareStateCardViewModel : ObservableObject
         if (result.Status == HardwareReadStatus.Success && result.Value.HasValue)
         {
             Value = formatter(result.Value.Value);
-            Detail = "Verified by the elevated read broker";
+            Detail = "Verified. Choose a value to apply it through Windows elevation.";
             State = DashboardStateKind.Success;
+            CanApply = ApplyAsync is not null;
+            ApplyOptionCommand.NotifyCanExecuteChanged();
             return;
         }
 
@@ -86,8 +108,12 @@ public sealed partial class HardwareStateCardViewModel : ObservableObject
                 ("Timed out", "The bounded hardware read did not finish", DashboardStateKind.Error),
             _ => ("Read failed", "The hardware state could not be verified", DashboardStateKind.Error),
         };
+        CanApply = false;
+        ApplyOptionCommand.NotifyCanExecuteChanged();
     }
 }
+
+public sealed record HardwareStateOptionViewModel(string Label, string Token);
 
 public sealed record CapabilityItemViewModel(
     string Name,
@@ -185,6 +211,13 @@ public sealed partial class MainWindowViewModel : ObservableObject
             "GPU MODE",
             "Current graphics topology",
             "Elevation required by Lenovo WMI");
+
+        AddOptions(Thermal, ("Quiet", nameof(ThermalMode.Quiet)), ("Balanced", nameof(ThermalMode.Balanced)), ("Performance", nameof(ThermalMode.Performance)), ("Extreme", nameof(ThermalMode.Extreme)));
+        AddOptions(DisplayOverdrive, ("Off", nameof(ToggleState.Disabled)), ("On", nameof(ToggleState.Enabled)));
+        AddOptions(IntegratedGpu, ("Default", nameof(IntegratedGpuMode.Default)), ("Integrated only", nameof(IntegratedGpuMode.IntegratedOnly)), ("Automatic", nameof(IntegratedGpuMode.Automatic)));
+        Thermal.ApplyAsync = token => ApplyWriteAsync(HardwareWriteTarget.ThermalMode, token);
+        DisplayOverdrive.ApplyAsync = token => ApplyWriteAsync(HardwareWriteTarget.DisplayOverdrive, token);
+        IntegratedGpu.ApplyAsync = token => ApplyWriteAsync(HardwareWriteTarget.IntegratedGpuMode, token);
     }
 
     public HardwareStateCardViewModel Battery { get; }
@@ -368,7 +401,15 @@ public sealed partial class MainWindowViewModel : ObservableObject
                 "The broker is unsigned, so this production-mode read was refused.",
             "broker_signature_invalid" =>
                 "The broker signature is invalid, so no privileged read ran.",
-            _ => "The read broker could not verify hardware state. No write was attempted.",
+            "thermal_expected_mismatch" or "overdrive_expected_mismatch" or
+                "integrated_gpu_expected_mismatch" =>
+                "Hardware changed before the write. Refresh, then apply again.",
+            "thermal_readback_mismatch" or "overdrive_readback_mismatch" or
+                "integrated_gpu_readback_mismatch" =>
+                "The setter ran, but readback did not match the requested value.",
+            "thermal_custom_unsupported" =>
+                "Custom thermal mode is not writable from this app.",
+            _ => "The broker could not complete the privileged request.",
         };
         BannerState = errorCode == "broker_elevation_cancelled"
             ? DashboardStateKind.Warning
@@ -393,6 +434,75 @@ public sealed partial class MainWindowViewModel : ObservableObject
             _ =>
                 "Broker install is unprotected · production reads stay blocked",
         };
+    }
+
+    private async Task ApplyWriteAsync(HardwareWriteTarget target, string desired)
+    {
+        HardwareStateSnapshot? current = Session.HardwareStateSnapshot;
+        if (current is null)
+            return;
+
+        string? expected = target switch
+        {
+            HardwareWriteTarget.ThermalMode when
+                current.ThermalMode is { Status: HardwareReadStatus.Success, Value: { } value } =>
+                value.ToString(),
+            HardwareWriteTarget.DisplayOverdrive when
+                current.DisplayOverdrive is { Status: HardwareReadStatus.Success, Value: { } value } =>
+                value.ToString(),
+            HardwareWriteTarget.IntegratedGpuMode when
+                current.IntegratedGpuMode is { Status: HardwareReadStatus.Success, Value: { } value } =>
+                value.ToString(),
+            _ => null,
+        };
+        if (expected is null)
+            return;
+
+        IsBusy = true;
+        RefreshButtonText = "Waiting for Windows approval…";
+        BannerTitle = "Privileged change requested";
+        BannerMessage =
+            "Windows will ask for approval. The broker applies one typed change, then reads it back.";
+        BannerState = DashboardStateKind.Warning;
+        try
+        {
+            HardwareStateSnapshot snapshot = await _dataSource
+                .ApplyHardwareWriteAsync(target, expected, desired, _lifetime.Token)
+                .ConfigureAwait(true);
+            Session.UpdateHardwareStateSnapshot(snapshot);
+            Battery.Apply(snapshot.BatteryChargeMode, FormatBatteryMode);
+            Thermal.Apply(snapshot.ThermalMode, FormatThermalMode);
+            DisplayOverdrive.Apply(snapshot.DisplayOverdrive, FormatToggle);
+            IntegratedGpu.Apply(snapshot.IntegratedGpuMode, FormatGpuMode);
+            LastUpdated = snapshot.ObservedAt.ToLocalTime().ToString("HH:mm:ss");
+            BannerTitle = "Hardware change verified";
+            BannerMessage = $"Applied {desired} · read back at {LastUpdated}";
+            BannerState = DashboardStateKind.Success;
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (DashboardDataSourceException exception)
+        {
+            ApplyBrokerFailure(exception.ErrorCode);
+        }
+        catch (Exception)
+        {
+            ApplyBrokerFailure("broker_write_failed");
+        }
+        finally
+        {
+            RefreshButtonText = "Read hardware state";
+            IsBusy = false;
+        }
+    }
+
+    private static void AddOptions(
+        HardwareStateCardViewModel card,
+        params (string Label, string Token)[] options)
+    {
+        foreach ((string label, string token) in options)
+            card.Options.Add(new HardwareStateOptionViewModel(label, token));
     }
 
     private static string Display(Observation observation) =>
