@@ -40,8 +40,8 @@ On the recorded LOQ 15IRX9, the Lenovo provider denies the instance access neede
 the state getters in an unelevated process. The probe reports `AccessDenied` rather than
 inventing values. The read-only broker successfully validated Performance thermal mode,
 disabled display overdrive, and integrated-only GPU mode on the same machine/BIOS. The
-current adapter batches those fixed getters through the built-in Windows PowerShell CIM
-host so no restricted MI runtime is distributed. The broker also validated Normal battery
+current adapter invokes those fixed getters in-process through CIM on the inbox
+Windows MI stack. No extra MI runtime is redistributed. The broker also validated Normal battery
 mode through one exact EnergyDrv read selector opened with zero requested device access.
 The unelevated `state` command intentionally does not open EnergyDrv.
 

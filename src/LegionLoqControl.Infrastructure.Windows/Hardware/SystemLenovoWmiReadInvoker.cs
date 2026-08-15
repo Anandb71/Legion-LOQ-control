@@ -1,4 +1,4 @@
-using System.Management;
+using Microsoft.Management.Infrastructure;
 using LegionLoqControl.Domain.Results;
 using LegionLoqControl.Infrastructure.Windows.Platform;
 
@@ -33,7 +33,7 @@ internal sealed class SystemLenovoWmiReadInvoker : ILenovoWmiReadInvoker
         {
             return await Task
                 .Run(() => ReadCore(operation), CancellationToken.None)
-                .WaitAsync(LenovoWmiScope.Timeout, cancellationToken)
+                .WaitAsync(LenovoCimScope.Timeout, cancellationToken)
                 .ConfigureAwait(false);
         }
         catch (TimeoutException exception)
@@ -82,10 +82,24 @@ internal sealed class SystemLenovoWmiReadInvoker : ILenovoWmiReadInvoker
             _ => throw new ArgumentOutOfRangeException(nameof(operation), operation, null),
         };
 
-        using ManagementObject instance = LenovoWmiScope.GetInstance(LenovoWmiScope.GameZoneClass);
-        using ManagementBaseObject output = LenovoWmiScope.Invoke(instance, methodName);
-        ValidateReturnValue(output.Properties["ReturnValue"]?.Value);
-        return ConvertDataToUInt32(output.Properties[OutputProperty]?.Value);
+        try
+        {
+            using CimSession session = LenovoCimScope.CreateSession();
+            using CimInstance instance = LenovoCimScope.GetInstance(
+                session,
+                LenovoCimScope.GameZoneClass);
+            using CimMethodResult output = LenovoCimScope.Invoke(session, instance, methodName);
+            ValidateReturnValue(LenovoCimScope.GetParameter(output, "ReturnValue"));
+            return ConvertDataToUInt32(LenovoCimScope.GetParameter(output, OutputProperty));
+        }
+        catch (CimException exception)
+        {
+            throw LenovoCimScope.Map(
+                exception,
+                "wmi_getter_not_available",
+                "wmi_getter_timed_out",
+                "wmi_getter_failed");
+        }
     }
 }
 

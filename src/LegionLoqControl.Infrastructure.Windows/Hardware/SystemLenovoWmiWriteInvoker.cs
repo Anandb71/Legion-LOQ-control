@@ -1,4 +1,4 @@
-using System.Management;
+using Microsoft.Management.Infrastructure;
 using LegionLoqControl.Domain.Results;
 using LegionLoqControl.Infrastructure.Windows.Platform;
 
@@ -20,7 +20,7 @@ internal sealed class SystemLenovoWmiWriteInvoker : ILenovoWmiWriteInvoker
         {
             await Task
                 .Run(() => WriteCore(operation, data), CancellationToken.None)
-                .WaitAsync(LenovoWmiScope.Timeout, cancellationToken)
+                .WaitAsync(LenovoCimScope.Timeout, cancellationToken)
                 .ConfigureAwait(false);
         }
         catch (TimeoutException exception)
@@ -47,12 +47,21 @@ internal sealed class SystemLenovoWmiWriteInvoker : ILenovoWmiWriteInvoker
         string methodName = MethodName(operation);
         try
         {
-            using ManagementObject instance = LenovoWmiScope.GetInstance(LenovoWmiScope.GameZoneClass);
-            using ManagementBaseObject output = LenovoWmiScope.Invoke(
+            using CimSession session = LenovoCimScope.CreateSession();
+            using CimInstance instance = LenovoCimScope.GetInstance(
+                session,
+                LenovoCimScope.GameZoneClass);
+            using var parameters = new CimMethodParametersCollection
+            {
+                CimMethodParameter.Create("Data", data, CimFlags.In),
+            };
+            using CimMethodResult output = LenovoCimScope.Invoke(
+                session,
                 instance,
                 methodName,
-                input => input["Data"] = data);
-            SystemLenovoWmiReadInvoker.ValidateReturnValue(output.Properties["ReturnValue"]?.Value);
+                parameters);
+            SystemLenovoWmiReadInvoker.ValidateReturnValue(
+                LenovoCimScope.GetParameter(output, "ReturnValue"));
         }
         catch (LenovoWmiNoInstanceException)
         {
@@ -60,9 +69,9 @@ internal sealed class SystemLenovoWmiWriteInvoker : ILenovoWmiWriteInvoker
                 HardwareReadStatus.Unavailable,
                 "wmi_provider_object_not_found");
         }
-        catch (ManagementException exception)
+        catch (CimException exception)
         {
-            throw LenovoWmiScope.Map(
+            throw LenovoCimScope.Map(
                 exception,
                 "wmi_setter_not_available",
                 "wmi_setter_timed_out",

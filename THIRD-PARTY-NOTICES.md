@@ -45,7 +45,17 @@ Copyright .NET Foundation and contributors.
 - Source: <https://github.com/dotnet/runtime>
 - License: MIT
 
-`System.Management` is currently used to access Lenovo and Windows WMI providers.
+`System.Management` is currently used for Windows identity and WMI metadata inventory.
+
+## Microsoft.Management.Infrastructure
+
+Copyright (c) Microsoft Corporation.
+
+- Source: <https://github.com/PowerShell/MMI>
+- License: MIT
+
+`Microsoft.Management.Infrastructure` 3.0.0 is used for allowlisted Lenovo CIM method
+calls. Native `mi.dll` / `miutils.dll` come from Windows; they are not redistributed.
 
 ## xUnit.net
 

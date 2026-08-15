@@ -90,15 +90,15 @@ flowchart LR
     StateCli[State diagnostics command] --> StateService[HardwareStateService]
     StateService --> StatePort[IHardwareStateReader]
     StatePort --> WmiReader[WindowsHardwareStateReader]
-    WmiReader --> SystemWmi[In-process System.Management]
+    WmiReader --> SystemWmi[In-process CIM]
     SystemWmi --> FixedGetters[Fixed Lenovo getters]
     FixedGetters --> TypedResults[Typed results and stable errors]
 ```
 
-Reads are serialized and one batch is cached per snapshot. The adapter validates the
-Boolean WMI return status and UInt32 data, rejects unknown enum values, caps output at
-64 KiB, and applies a 12-second child-process bound. Access denial, unsupported transport,
-malformed output, and timeout remain distinct from real hardware values.
+Reads are serialized one capability at a time. The adapter validates the Boolean CIM
+return status and UInt32 data, rejects unknown enum values, and applies a 5-second
+per-call bound. Access denial, unsupported transport, malformed output, and timeout
+remain distinct from real hardware values.
 
 On the recorded 83DV machine, the Lenovo WMI getters require elevation. The CLI can expose
 the unelevated denial, while the CLI and WPF dashboard can explicitly launch the broker
@@ -116,7 +116,7 @@ flowchart LR
     Uac --> Broker[Session-lived elevated broker]
     Broker --> Pipe
     Pipe --> Validate[Version nonce and peer PID checks]
-    Validate --> CimBatch[In-process System.Management]
+    Validate --> CimBatch[In-process CIM]
     Validate --> EnergyRead[Exact zero-access EnergyDrv battery read]
     CimBatch --> Getters[Fixed Lenovo getters]
     Getters --> Wire[Validated wire DTO]

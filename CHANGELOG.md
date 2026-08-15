@@ -41,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Skip the fan-table probe on apply expected-state and readback captures
 - Use in-process WMI for privileged reads and writes instead of PowerShell child processes
 - Invoke Lenovo GameZone methods through the class parameter object so thermal, overdrive, and GPU reads resolve
+- Call GameZone and fan methods through in-process CIM, the same stack that already worked on this LOQ
 
 ### Security
 

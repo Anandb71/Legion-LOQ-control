@@ -24,13 +24,9 @@ public sealed class HardwareStateService
             .ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
 
-        ValueTask<HardwareReadResult<ThermalMode>> thermalTask = _reader
-            .ReadThermalModeAsync(cancellationToken);
-        ValueTask<HardwareReadResult<FanTableSnapshot>> fanTask = includeFanTable
-            ? _reader.ReadFanTableAsync(cancellationToken)
-            : default;
-
-        HardwareReadResult<ThermalMode> thermal = await thermalTask.ConfigureAwait(false);
+        HardwareReadResult<ThermalMode> thermal = await _reader
+            .ReadThermalModeAsync(cancellationToken)
+            .ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
 
         HardwareReadResult<ToggleState> overdrive = await _reader
@@ -49,7 +45,7 @@ public sealed class HardwareStateService
         cancellationToken.ThrowIfCancellationRequested();
 
         HardwareReadResult<FanTableSnapshot> fanTable = includeFanTable
-            ? await fanTask.ConfigureAwait(false)
+            ? await _reader.ReadFanTableAsync(cancellationToken).ConfigureAwait(false)
             : HardwareReadResult<FanTableSnapshot>.Failure(
                 HardwareReadStatus.Unavailable,
                 "fan_table_not_requested");

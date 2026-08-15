@@ -24,8 +24,9 @@ The rebuild is write-gated. Inventory, refresh, preview, and export stay read-on
 - default inventory invokes no Lenovo methods and opens no HID devices;
 - the optional state diagnostic invokes only `GetSmartFanMode`, `GetODStatus`, and
   `GetIGPUModeStatus`, with fixed identifiers, bounded execution, and typed failures;
-- those getters run in-process through System.Management with fixed class and method
-  names, Boolean status, UInt32 data, and a 5-second bound;
+- those getters run in-process through CIM (`Microsoft.Management.Infrastructure` on
+  the inbox Windows MI stack) with fixed class and method names, Boolean status,
+  UInt32 data, and a 5-second bound;
 - the optional elevated state path uses a session-lived broker: Windows asks once at
   connect, later reads and writes reuse the same pipe, each request is bounded (45
   seconds for reads, 90 seconds for writes), and the broker exits when the parent

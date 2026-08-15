@@ -268,6 +268,16 @@ public sealed class HardwareStateReaderTests
             LenovoWmiScope.ToUInt32Array(new object[] { 0, 40, (ushort)80 }));
         Assert.Throws<InvalidDataException>(() => LenovoWmiScope.ToUInt32Array("nope"));
         Assert.Throws<ArgumentOutOfRangeException>(() => LenovoWmiScope.GetInstance("Win32_Process"));
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => LenovoCimScope.GetInstance(null!, "Win32_Process"));
+        Assert.Equal(
+            HardwareReadStatus.Unavailable,
+            LenovoCimScope.MapNative(6, "wmi_getter_not_available", "wmi_getter_timed_out", "wmi_getter_failed")
+                .Status);
+        Assert.Equal(
+            "wmi_access_denied",
+            LenovoCimScope.MapNative(2, "wmi_getter_not_available", "wmi_getter_timed_out", "wmi_getter_failed")
+                .ErrorCode);
     }
 
     [Fact]
@@ -430,7 +440,7 @@ public sealed class HardwareStateReaderTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(
-            ["battery", "thermal", "fan", "overdrive", "igpu", "keyboard"],
+            ["battery", "thermal", "overdrive", "igpu", "keyboard", "fan"],
             reader.Operations);
         Assert.Equal(now, snapshot.ObservedAt);
         Assert.Equal(BatteryChargeMode.Normal, snapshot.BatteryChargeMode.Value);

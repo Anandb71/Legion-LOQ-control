@@ -34,7 +34,10 @@ internal static class LenovoWmiScope
         ArgumentNullException.ThrowIfNull(instance);
         ArgumentException.ThrowIfNullOrWhiteSpace(methodName);
 
-        using var managementClass = new ManagementClass(instance.Scope, instance.ClassPath, null);
+        using var managementClass = new ManagementClass(
+            instance.Scope,
+            new ManagementPath(instance.ClassPath.ClassName),
+            null);
         using ManagementBaseObject? input = managementClass.GetMethodParameters(methodName);
         if (bindInput is not null)
         {

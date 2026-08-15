@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <PackageReference Include="HidSharp" />
+    <PackageReference Include="Microsoft.Management.Infrastructure" />
     <PackageReference Include="System.Management" />
   </ItemGroup>
 </Project>

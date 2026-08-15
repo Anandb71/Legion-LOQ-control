@@ -22,6 +22,7 @@ or source of adapted code. An entry in the candidate list is not approval to imp
 | [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet) | NuGet `8.4.2` | MIT | Observable state and asynchronous commands for the WPF shell | Runtime dependency |
 | [HidSharp](https://github.com/IntergatedCircuits/HidSharp) | NuGet `2.6.4` | Apache-2.0 | Read-only HID inventory; quarantined legacy transport | Runtime dependency |
 | [System.Management](https://github.com/dotnet/runtime) | NuGet `10.0.10` | MIT | Allowlisted identity reads and WMI metadata inventory | Runtime dependency |
+| [Microsoft.Management.Infrastructure](https://github.com/PowerShell/MMI) | NuGet `3.0.0` | MIT | In-process CIM for allowlisted Lenovo GameZone and fan getters/setters; uses inbox `mi.dll` | Runtime dependency |
 | [Windows PowerShell](https://learn.microsoft.com/powershell/scripting/windows-powershell/starting-windows-powershell) | OS component `5.1` | Microsoft Windows component | Static, bounded local `CimCmdlets` batch for typed Lenovo getters | Required from Windows; not redistributed |
 | [xUnit.net](https://github.com/xunit/xunit) | NuGet `xunit.v3.mtp-v2` `3.2.2` | Apache-2.0 | Core safety and contract tests | Test-only dependency |
 

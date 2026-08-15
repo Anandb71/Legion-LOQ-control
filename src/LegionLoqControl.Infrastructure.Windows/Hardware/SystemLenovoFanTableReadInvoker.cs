@@ -1,4 +1,4 @@
-using System.Management;
+using Microsoft.Management.Infrastructure;
 using LegionLoqControl.Domain.Controls;
 using LegionLoqControl.Domain.Results;
 using LegionLoqControl.Infrastructure.Windows.Platform;
@@ -18,7 +18,7 @@ internal sealed class SystemLenovoFanTableReadInvoker : IFanTableReader
         {
             return await Task
                 .Run(ReadCore, CancellationToken.None)
-                .WaitAsync(LenovoWmiScope.Timeout, cancellationToken)
+                .WaitAsync(LenovoCimScope.Timeout, cancellationToken)
                 .ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -61,18 +61,25 @@ internal sealed class SystemLenovoFanTableReadInvoker : IFanTableReader
     {
         try
         {
-            using ManagementObject instance = LenovoWmiScope.GetInstance(LenovoWmiScope.FanMethodClass);
-            using ManagementBaseObject output = LenovoWmiScope.Invoke(
+            using CimSession session = LenovoCimScope.CreateSession();
+            using CimInstance instance = LenovoCimScope.GetInstance(
+                session,
+                LenovoCimScope.FanMethodClass);
+            using var parameters = new CimMethodParametersCollection
+            {
+                CimMethodParameter.Create("FanID", (byte)0, CimFlags.In),
+                CimMethodParameter.Create("SensorID", (byte)0, CimFlags.In),
+            };
+            using CimMethodResult output = LenovoCimScope.Invoke(
+                session,
                 instance,
                 MethodName,
-                input =>
-                {
-                    input["FanID"] = (byte)0;
-                    input["SensorID"] = (byte)0;
-                });
+                parameters);
 
-            uint[] fanTable = LenovoWmiScope.ToUInt32Array(output.Properties["FanTable"]?.Value);
-            uint[] sensorTable = LenovoWmiScope.ToUInt32Array(output.Properties["SensorTable"]?.Value);
+            uint[] fanTable = LenovoWmiScope.ToUInt32Array(
+                LenovoCimScope.GetParameter(output, "FanTable"));
+            uint[] sensorTable = LenovoWmiScope.ToUInt32Array(
+                LenovoCimScope.GetParameter(output, "SensorTable"));
             if (TryReadUInt32(output, "FanTableSize", out uint expectedFan) &&
                 expectedFan != fanTable.Length)
             {
@@ -87,9 +94,9 @@ internal sealed class SystemLenovoFanTableReadInvoker : IFanTableReader
 
             return FanTableParser.Parse(0, 0, fanTable, sensorTable);
         }
-        catch (ManagementException exception)
+        catch (CimException exception)
         {
-            throw LenovoWmiScope.Map(
+            throw LenovoCimScope.Map(
                 exception,
                 "wmi_getter_not_available",
                 "wmi_getter_timed_out",
@@ -98,19 +105,19 @@ internal sealed class SystemLenovoFanTableReadInvoker : IFanTableReader
     }
 
     private static bool TryReadUInt32(
-        ManagementBaseObject output,
+        CimMethodResult output,
         string name,
         out uint value)
     {
         try
         {
-            if (output.Properties[name]?.Value is uint number)
+            if (LenovoCimScope.GetParameter(output, name) is uint number)
             {
                 value = number;
                 return true;
             }
         }
-        catch (ManagementException)
+        catch (CimException)
         {
         }
 
