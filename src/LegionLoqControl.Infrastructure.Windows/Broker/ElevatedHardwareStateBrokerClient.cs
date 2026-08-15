@@ -217,6 +217,16 @@ public sealed class ElevatedHardwareStateBrokerClient : IDisposable
             DisconnectUnlocked();
             throw new BrokerTransportException("broker_transport_failed", exception);
         }
+        finally
+        {
+            try
+            {
+                _sessionGate.Release();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+        }
     }
 
     private async ValueTask EnsureConnectedUnlockedAsync(CancellationToken cancellationToken)

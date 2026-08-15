@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Use in-process WMI for privileged reads and writes instead of PowerShell child processes
 - Invoke Lenovo GameZone methods through the class parameter object so thermal, overdrive, and GPU reads resolve
 - Call GameZone and fan methods through in-process CIM, the same stack that already worked on this LOQ
+- Release the session broker lock after each read or apply so refresh can run more than once
 
 ### Security
 
