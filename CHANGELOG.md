@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Diagnostics `inventory --output` using the same atomic allowlisted writer as the dashboard
 - Explicit elevated apply for thermal mode, display overdrive, integrated-GPU mode,
   battery charge mode, and 4-zone keyboard brightness
+- Privileged read-only OEM fan table through `Fan_Get_Table`
 - Locked dependency restore, comprehensive automated tests, CodeQL, and accessibility contracts
 - Manually generated, short-lived, broker-free read-only preview artifact
 
@@ -39,7 +40,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-- Fan tables, per-zone colors, profile application, and automation execution remain absent
+- Fan-table writes, per-zone colors, profile application, and automation execution remain
+  absent
 - Broker IPC uses a random pipe, current-user ACL, one-time nonce, strict framing, and
   mutual process-ID checks
 - WMI reads use fixed getter names, static script text, capped output, and bounded execution

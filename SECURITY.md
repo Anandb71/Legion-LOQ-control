@@ -5,9 +5,10 @@
 The current rebuild is write-gated. Inventory, refresh, preview, and export stay
 read-only. Dashboard apply may change thermal mode, display overdrive, integrated-GPU
 mode, battery charge mode, or 4-zone keyboard brightness only after an explicit click, a
-UAC prompt, an expected-state check, and a readback. Fan tables, per-zone colors, profile
-Apply, and automation execution remain disabled until the remaining controls in
-[SAFETY.md](SAFETY.md) pass their release gates.
+UAC prompt, an expected-state check, and a readback. The same privileged refresh can read
+the OEM fan table. Fan-table writes, per-zone colors, profile Apply, and automation
+execution remain disabled until the remaining controls in [SAFETY.md](SAFETY.md) pass
+their release gates.
 
 Do not publish a build that bypasses `HardwareWritePolicy`.
 Do not publish the elevated broker until it is signed and installed in an

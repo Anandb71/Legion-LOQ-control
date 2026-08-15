@@ -12,15 +12,15 @@ Not yet. The current `main` rebuild provides serial-free diagnostics and atomic 
 explicit hardware-state dashboard, local battery/thermal profile previews, and
 deterministic AC/battery automation previews. Thermal, overdrive, integrated-GPU, and
 battery apply, and 4-zone keyboard brightness require an explicit click and a UAC prompt.
-Per-zone colors, fans, profile application, and automation execution remain disabled.
+The OEM fan table is read-only. Per-zone colors, fan-table writes, profile application,
+and automation execution remain disabled.
 
 ## What is being built next?
 
 The release-grade foundation now has hardened CI, preview packaging, accessibility
 contracts, diagnostics export, and the first typed apply path. Remaining work includes
-bounded fans, profile Apply, opt-in automation, Authenticode signing, a protected
-installer, and supported Windows/scaling validation. See the
-[rebuild roadmap](ROADMAP.md).
+profile Apply, opt-in automation, Authenticode signing, a protected installer, and
+supported Windows/scaling validation. See the [rebuild roadmap](ROADMAP.md).
 
 ## Can a saved profile change my hardware?
 
@@ -96,5 +96,6 @@ and BIOS revision.
 
 ## Can I test fan curves or power limits?
 
-Not yet. Arbitrary fan tables and power limits are explicitly prohibited until bounded
-models, validation, serialization, readback, and recovery are implemented.
+No. The dashboard can show the OEM `Fan_Get_Table` result after an elevated refresh.
+`Fan_Set_Table`, freeform curves, and power limits stay prohibited. This LOQ BIOS has
+no full-speed fan methods.

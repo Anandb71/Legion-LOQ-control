@@ -32,7 +32,8 @@ public sealed record HardwareStateReadPayload(
     HardwareReadValue<ThermalMode> ThermalMode,
     HardwareReadValue<ToggleState> DisplayOverdrive,
     HardwareReadValue<IntegratedGpuMode> IntegratedGpuMode,
-    HardwareReadValue<FourZoneKeyboardMode> FourZoneKeyboard)
+    HardwareReadValue<FourZoneKeyboardMode> FourZoneKeyboard,
+    HardwareReadValue<FanTableSnapshot> FanTable)
 {
     public static HardwareStateReadPayload FromSnapshot(HardwareStateSnapshot snapshot)
     {
@@ -43,7 +44,8 @@ public sealed record HardwareStateReadPayload(
             HardwareReadValue<ThermalMode>.FromResult(snapshot.ThermalMode),
             HardwareReadValue<ToggleState>.FromResult(snapshot.DisplayOverdrive),
             HardwareReadValue<IntegratedGpuMode>.FromResult(snapshot.IntegratedGpuMode),
-            HardwareReadValue<FourZoneKeyboardMode>.FromResult(snapshot.FourZoneKeyboard));
+            HardwareReadValue<FourZoneKeyboardMode>.FromResult(snapshot.FourZoneKeyboard),
+            HardwareReadValue<FanTableSnapshot>.FromResult(snapshot.FanTable));
     }
 
     public HardwareStateSnapshot ToSnapshot()
@@ -52,7 +54,17 @@ public sealed record HardwareStateReadPayload(
             ThermalMode is null ||
             DisplayOverdrive is null ||
             IntegratedGpuMode is null ||
-            FourZoneKeyboard is null)
+            FourZoneKeyboard is null ||
+            FanTable is null)
+        {
+            throw new InvalidDataException("The hardware state payload is incomplete.");
+        }
+
+        HardwareReadResult<FanTableSnapshot> fanTable = FanTable.ToResult();
+        if (fanTable.Status == HardwareReadStatus.Success &&
+            (!fanTable.Value.HasValue ||
+             fanTable.Value.Value.PointCount is < 1 or > FanTableSnapshot.MaximumPoints ||
+             fanTable.Value.Value.Points is null))
         {
             throw new InvalidDataException("The hardware state payload is incomplete.");
         }
@@ -63,7 +75,8 @@ public sealed record HardwareStateReadPayload(
             ThermalMode.ToResult(),
             DisplayOverdrive.ToResult(),
             IntegratedGpuMode.ToResult(),
-            FourZoneKeyboard.ToResult());
+            FourZoneKeyboard.ToResult(),
+            fanTable);
     }
 }
 

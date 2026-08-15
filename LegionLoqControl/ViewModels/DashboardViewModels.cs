@@ -78,7 +78,8 @@ public sealed partial class HardwareStateCardViewModel : ObservableObject
 
     public void Apply<T>(
         HardwareReadResult<T> result,
-        Func<T, string> formatter)
+        Func<T, string> formatter,
+        string? successDetail = null)
         where T : struct
     {
         ArgumentNullException.ThrowIfNull(result);
@@ -87,7 +88,8 @@ public sealed partial class HardwareStateCardViewModel : ObservableObject
         if (result.Status == HardwareReadStatus.Success && result.Value.HasValue)
         {
             Value = formatter(result.Value.Value);
-            Detail = "Verified. Choose a value to apply it through Windows elevation.";
+            Detail = successDetail ??
+                "Verified. Choose a value to apply it through Windows elevation.";
             State = DashboardStateKind.Success;
             CanApply = ApplyAsync is not null;
             ApplyOptionCommand.NotifyCanExecuteChanged();
@@ -215,6 +217,10 @@ public sealed partial class MainWindowViewModel : ObservableObject
             "KEYBOARD",
             "4-zone RGB brightness",
             "Elevation required for the ITE lighting controller");
+        Fans = new HardwareStateCardViewModel(
+            "FANS",
+            "OEM firmware table",
+            "Elevation required by Lenovo WMI");
 
         AddOptions(
             Battery,
@@ -245,6 +251,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public HardwareStateCardViewModel IntegratedGpu { get; }
 
     public HardwareStateCardViewModel Keyboard { get; }
+
+    public HardwareStateCardViewModel Fans { get; }
 
     public MachineSessionViewModel Session { get; }
 
@@ -325,6 +333,10 @@ public sealed partial class MainWindowViewModel : ObservableObject
             DisplayOverdrive.Apply(snapshot.DisplayOverdrive, FormatToggle);
             IntegratedGpu.Apply(snapshot.IntegratedGpuMode, FormatGpuMode);
             Keyboard.Apply(snapshot.FourZoneKeyboard, FormatKeyboardMode);
+            Fans.Apply(
+                snapshot.FanTable,
+                FormatFanTable,
+                "Read-only OEM table. Curve writes stay disabled.");
 
             HardwareReadStatus[] statuses =
             [
@@ -333,6 +345,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
                 snapshot.DisplayOverdrive.Status,
                 snapshot.IntegratedGpuMode.Status,
                 snapshot.FourZoneKeyboard.Status,
+                snapshot.FanTable.Status,
             ];
             int successCount = statuses.Count(static status => status == HardwareReadStatus.Success);
             LastUpdated = snapshot.ObservedAt.ToLocalTime().ToString("HH:mm:ss");
@@ -505,6 +518,10 @@ public sealed partial class MainWindowViewModel : ObservableObject
             DisplayOverdrive.Apply(snapshot.DisplayOverdrive, FormatToggle);
             IntegratedGpu.Apply(snapshot.IntegratedGpuMode, FormatGpuMode);
             Keyboard.Apply(snapshot.FourZoneKeyboard, FormatKeyboardMode);
+            Fans.Apply(
+                snapshot.FanTable,
+                FormatFanTable,
+                "Read-only OEM table. Curve writes stay disabled.");
             LastUpdated = snapshot.ObservedAt.ToLocalTime().ToString("HH:mm:ss");
             BannerTitle = "Hardware change verified";
             BannerMessage = $"Applied {desired} · read back at {LastUpdated}";
@@ -578,6 +595,21 @@ public sealed partial class MainWindowViewModel : ObservableObject
             IntegratedGpuMode.Automatic => "Automatic",
             _ => value.ToString(),
         };
+
+    private static string FormatFanTable(FanTableSnapshot value)
+    {
+        int count = value.PointCount;
+        if (count <= 0 || value.Points is null)
+            return "Empty";
+
+        byte minSpeed = value.Points.Min(static point => point.Speed);
+        byte maxSpeed = value.Points.Max(static point => point.Speed);
+        byte minSensor = value.Points.Min(static point => point.Sensor);
+        byte maxSensor = value.Points.Max(static point => point.Sensor);
+        return count == 1
+            ? $"1 OEM point · speed {minSpeed} · sensor {minSensor}"
+            : $"{count} OEM points · speed {minSpeed}–{maxSpeed} · sensor {minSensor}–{maxSensor}";
+    }
 
     private static string FormatKeyboardMode(FourZoneKeyboardMode value) =>
         value switch

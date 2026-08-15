@@ -162,6 +162,12 @@ public sealed class HardwareStateWriteServiceTests
             CancellationToken cancellationToken) =>
             ValueTask.FromResult(
                 HardwareReadResult<FourZoneKeyboardMode>.Success(FourZoneKeyboardMode.Unknown));
+
+        public ValueTask<HardwareReadResult<FanTableSnapshot>> ReadFanTableAsync(
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult(HardwareReadResult<FanTableSnapshot>.Failure(
+                HardwareReadStatus.Unavailable,
+                "fan_table_not_opened"));
     }
 
     private sealed class StubWriter : IHardwareStateWriter

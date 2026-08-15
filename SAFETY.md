@@ -12,7 +12,10 @@ The rebuild is write-gated. Inventory, refresh, preview, and export stay read-on
   battery charge mode, and 4-zone keyboard brightness only after an explicit click and a
   UAC prompt;
 - each apply is one typed broker write with a fresh expected-state check and readback;
-- custom thermal mode, fan tables, and per-zone RGB color writes remain disabled;
+- the elevated broker may read `LENOVO_FAN_METHOD.Fan_Get_Table` with FanID `0` and
+  SensorID `0` and show the bounded OEM table; `Fan_Set_Table` and full-speed methods
+  stay disabled;
+- custom thermal mode, fan-table writes, and per-zone RGB color writes remain disabled;
 - `HardwareWritePolicy` in the quarantined Core assembly still has no unlock path;
 - legacy or write-capable EnergyDrv, WMI mutation, and HID feature-write entry points
   reject commands before opening a driver or selecting a device;
@@ -34,6 +37,8 @@ The rebuild is write-gated. Inventory, refresh, preview, and export stay read-on
 - the elevated broker may open one allowlisted ITE HID collection (`048D` + `C935` /
   `C955` / `C993`, 33-byte feature report) for 4-zone brightness; it still has no legacy
   Core reference, generic IOCTL entry point, or caller-supplied WMI names;
+- the elevated read path may invoke `Fan_Get_Table` on `LENOVO_FAN_METHOD` with fixed
+  zero identifiers; it never invokes `Fan_Set_Table`;
 - profile drafts use a bounded, strict, versioned local JSON store with a
   cross-process file lock and compare only against retained typed snapshots and
   capability evidence;
@@ -51,7 +56,7 @@ The rebuild is write-gated. Inventory, refresh, preview, and export stay read-on
 
 The broker may apply the allowlisted WMI setters, the typed battery-mode write, and the
 typed 4-zone brightness packet after an explicit UAC prompt. That is not authorization
-for fan tables, per-zone color editors, or unsigned production installs. Development mode may launch an unsigned sibling broker after an
+for fan-table writes, per-zone color editors, or unsigned production installs. Development mode may launch an unsigned sibling broker after an
 explicit UAC prompt. Production mode refuses that launch unless the sibling directory is
 administrator-protected and the broker is Authenticode-signed. See
 [`docs/BROKER_INSTALL.md`](docs/BROKER_INSTALL.md).

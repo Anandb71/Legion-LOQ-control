@@ -19,4 +19,7 @@ public interface IHardwareStateReader
 
     ValueTask<HardwareReadResult<FourZoneKeyboardMode>> ReadFourZoneKeyboardAsync(
         CancellationToken cancellationToken);
+
+    ValueTask<HardwareReadResult<FanTableSnapshot>> ReadFanTableAsync(
+        CancellationToken cancellationToken);
 }

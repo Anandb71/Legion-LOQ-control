@@ -49,8 +49,9 @@ hardware write.
 The dashboard can apply thermal mode, display overdrive, integrated-GPU mode, battery
 charge mode, and 4-zone keyboard brightness. Each apply is an explicit click, one UAC
 prompt, an expected-state check, one allowlisted setter, and a readback. This LOQ's ITE
-controller is `048D:C993`. Per-zone colors, bounded fans, profile Apply, and automation
-execution are next.
+controller is `048D:C993`. The same privileged refresh now reads the OEM fan table
+through `Fan_Get_Table`; this BIOS has no full-speed methods, and curve writes stay
+disabled. Per-zone colors, profile Apply, and automation execution are next.
 
 ## Previous milestone: release-grade read-only foundation
 

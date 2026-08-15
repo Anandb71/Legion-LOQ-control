@@ -216,7 +216,10 @@ public sealed class ProfilePreviewServiceTests
             thermal ?? HardwareReadResult<ThermalMode>.Success(ThermalMode.Balanced),
             HardwareReadResult<ToggleState>.Success(ToggleState.Disabled),
             HardwareReadResult<IntegratedGpuMode>.Success(IntegratedGpuMode.Default),
-            HardwareReadResult<FourZoneKeyboardMode>.Success(FourZoneKeyboardMode.Unknown));
+            HardwareReadResult<FourZoneKeyboardMode>.Success(FourZoneKeyboardMode.Unknown),
+            HardwareReadResult<FanTableSnapshot>.Failure(
+                HardwareReadStatus.Unavailable,
+                "fan_table_not_opened"));
 
     private static CapabilityEvidence Evidence(
         HardwareCapability capability,

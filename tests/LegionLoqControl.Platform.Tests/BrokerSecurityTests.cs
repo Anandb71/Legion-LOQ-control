@@ -198,5 +198,8 @@ public sealed class BrokerSecurityTests
             HardwareReadResult<ThermalMode>.Success(ThermalMode.Balanced),
             HardwareReadResult<ToggleState>.Success(ToggleState.Disabled),
             HardwareReadResult<IntegratedGpuMode>.Success(IntegratedGpuMode.Default),
-            HardwareReadResult<FourZoneKeyboardMode>.Success(FourZoneKeyboardMode.Unknown));
+            HardwareReadResult<FourZoneKeyboardMode>.Success(FourZoneKeyboardMode.Unknown),
+            HardwareReadResult<FanTableSnapshot>.Failure(
+                HardwareReadStatus.Unavailable,
+                "fan_table_not_opened"));
 }

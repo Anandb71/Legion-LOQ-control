@@ -9,4 +9,5 @@ public sealed record HardwareStateSnapshot(
     HardwareReadResult<ThermalMode> ThermalMode,
     HardwareReadResult<ToggleState> DisplayOverdrive,
     HardwareReadResult<IntegratedGpuMode> IntegratedGpuMode,
-    HardwareReadResult<FourZoneKeyboardMode> FourZoneKeyboard);
+    HardwareReadResult<FourZoneKeyboardMode> FourZoneKeyboard,
+    HardwareReadResult<FanTableSnapshot> FanTable);

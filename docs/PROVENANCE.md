@@ -180,6 +180,34 @@ Legion + LOQ Control.
 - **Reviewer:** Pending
 - **Date:** 2026-08-15
 
+## Implementation record: OEM fan-table read
+
+- **Feature:** Privileged `Fan_Get_Table` read with FanID `0` and SensorID `0`
+- **Local files:**
+  `src/LegionLoqControl.Infrastructure.Windows/Hardware/FanTableParser.cs` and
+  `src/LegionLoqControl.Infrastructure.Windows/Hardware/PowerShellLenovoFanTableReadInvoker.cs`
+- **Classification:** Original implementation with protocol cross-check
+- **External projects and URLs:** LenovoLegionLinux,
+  <https://github.com/johnfanv2/LenovoLegionLinux>
+- **External files examined:** `kernel_module/legion-laptop.c` (`WMI_METHOD_ID_FAN_GET_TABLE`,
+  `wmi_fan_table_read`)
+- **License:** GPL-2.0-or-later. No source was copied.
+- **Local implementation:** Independently written CIM reader for `LENOVO_FAN_METHOD`. The
+  getter is invoked with fixed FanID `0` and SensorID `0`. Output must be two matching
+  UInt32 arrays of 1–10 values in `0–255`. `Fan_Set_Table` is not present in the script.
+- **Protocol facts cross-checked:** LenovoLegionLinux treats method 5 as a no-arg/zero-param
+  current-table read and caps the curve at 10 points. This machine's CIM metadata names
+  the inputs `FanID`/`SensorID` (UInt8, in) and the outputs `FanTable`/`SensorTable`
+  (UInt32Array) plus size fields.
+- **Independent evidence:** Unelevated `Get-CimClass` on LOQ 15IRX9 `83DV` / `NECN50WW`
+  observed only `Fan_Get_Table` and `Fan_Set_Table` on `LENOVO_FAN_METHOD`. The
+  `LENOVO_FAN_TABLE_DATA` class exists. No `Fan_Get_Table` invoke has been recorded yet.
+- **Test fixtures:** Parser and script allowlist in
+  `tests/LegionLoqControl.Platform.Tests/HardwareStateReaderTests.cs`
+- **Hardware validation:** No elevated `Fan_Get_Table` result has been recorded yet.
+- **Reviewer:** Pending
+- **Date:** 2026-08-15
+
 ## Implementation record: ITE 4-zone keyboard brightness
 
 - **Feature:** Detect `048D:C993` and apply Off/Low/High brightness

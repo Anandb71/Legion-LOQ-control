@@ -121,3 +121,5 @@ Color never carries meaning alone. Every semantic color is paired with a label o
   G-Helper, and hardware-monitoring dashboards.
 - **2026-08-15:** 4-zone keyboard brightness sits in a third row under the 2 × 2 matrix.
   Off/Low/High only; no RGB color picker or effect chrome.
+- **2026-08-15:** The OEM fan table sits in a fourth full-width row. It is read-only: no
+  apply chrome, no freeform curve editor, and no invented full-speed control.

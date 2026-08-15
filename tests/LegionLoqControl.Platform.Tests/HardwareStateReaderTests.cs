@@ -29,6 +29,18 @@ public sealed class HardwareStateReaderTests
     }
 
     [Fact]
+    public async Task Unelevated_reader_does_not_open_the_fan_table()
+    {
+        var reader = new WindowsHardwareStateReader(new StubInvoker());
+
+        HardwareReadResult<FanTableSnapshot> result = await reader.ReadFanTableAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HardwareReadStatus.Unavailable, result.Status);
+        Assert.Equal("fan_table_not_opened", result.ErrorCode);
+    }
+
+    [Fact]
     public async Task Battery_mode_is_not_inferred_from_an_unrelated_WMI_getter()
     {
         var invoker = new StubInvoker();
@@ -136,6 +148,83 @@ public sealed class HardwareStateReaderTests
         Assert.Equal(FourZoneKeyboardMode.Unknown, FourZoneKeyboardPacket.Parse(identity).Value);
         Assert.Contains(0xC993, FourZoneKeyboardPacket.RecognizedProductIds);
         Assert.DoesNotContain(0xC996, FourZoneKeyboardPacket.RecognizedProductIds);
+    }
+
+    [Fact]
+    public void Fan_table_parser_accepts_a_bounded_oem_table()
+    {
+        HardwareReadResult<FanTableSnapshot> result = FanTableParser.Parse(
+            0,
+            0,
+            [0u, 20u, 80u],
+            [40u, 60u, 90u]);
+
+        Assert.Equal(HardwareReadStatus.Success, result.Status);
+        Assert.Equal(3, result.Value!.Value.PointCount);
+        Assert.Equal(20, result.Value.Value.Points[1].Speed);
+        Assert.Equal(60, result.Value.Value.Points[1].Sensor);
+    }
+
+    [Theory]
+    [InlineData(new uint[] { }, new uint[] { }, "fan_table_empty")]
+    [InlineData(new uint[] { 1 }, new uint[] { 1, 2 }, "fan_table_length_mismatch")]
+    [InlineData(new uint[] { 256 }, new uint[] { 40 }, "fan_table_value_invalid")]
+    public void Fan_table_parser_rejects_malformed_tables(
+        uint[] speeds,
+        uint[] sensors,
+        string errorCode)
+    {
+        HardwareReadResult<FanTableSnapshot> result = FanTableParser.Parse(0, 0, speeds, sensors);
+
+        Assert.Equal(HardwareReadStatus.InvalidData, result.Status);
+        Assert.Equal(errorCode, result.ErrorCode);
+    }
+
+    [Fact]
+    public void Fan_table_parser_rejects_more_than_ten_points()
+    {
+        uint[] speeds = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+        uint[] sensors = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+        HardwareReadResult<FanTableSnapshot> result = FanTableParser.Parse(0, 0, speeds, sensors);
+
+        Assert.Equal(HardwareReadStatus.InvalidData, result.Status);
+        Assert.Equal("fan_table_too_long", result.ErrorCode);
+    }
+
+    [Fact]
+    public void Fan_table_script_is_static_and_getter_only()
+    {
+        string script = PowerShellLenovoFanTableReadInvoker.ScriptForValidation;
+
+        Assert.Contains("'LENOVO_FAN_METHOD'", script, StringComparison.Ordinal);
+        Assert.Contains("'Fan_Get_Table'", script, StringComparison.Ordinal);
+        Assert.Contains("FanID = [byte]0", script, StringComparison.Ordinal);
+        Assert.Contains("SensorID = [byte]0", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("Fan_Set_Table", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("Fan_Set_FullSpeed", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("Invoke-Expression", script, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Start-Process", script, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Fan_table_json_requires_matching_uint32_arrays()
+    {
+        HardwareReadResult<FanTableSnapshot> result = PowerShellLenovoFanTableReadInvoker.Parse(
+            """
+            {
+              "status": "success",
+              "fanId": 0,
+              "sensorId": 0,
+              "fanTable": [0, 40, 80],
+              "sensorTable": [45, 65, 85]
+            }
+            """);
+
+        Assert.Equal(HardwareReadStatus.Success, result.Status);
+        Assert.Equal(3, result.Value!.Value.PointCount);
+        Assert.Equal(80, result.Value.Value.Points[2].Speed);
+        Assert.Equal(85, result.Value.Value.Points[2].Sensor);
     }
 
     [Fact]
@@ -269,6 +358,7 @@ public sealed class HardwareStateReaderTests
         Assert.Contains("'SetODStatus'", script, StringComparison.Ordinal);
         Assert.Contains("'SetIGPUModeStatus'", script, StringComparison.Ordinal);
         Assert.Contains("'SetLightControlOwner'", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("Fan_Set_Table", script, StringComparison.Ordinal);
         Assert.DoesNotContain("GetSmartFanMode", script, StringComparison.Ordinal);
         Assert.DoesNotContain("Invoke-Expression", script, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("Add-Type", script, StringComparison.OrdinalIgnoreCase);
@@ -322,7 +412,7 @@ public sealed class HardwareStateReaderTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(
-            ["battery", "thermal", "overdrive", "igpu", "keyboard"],
+            ["battery", "thermal", "overdrive", "igpu", "keyboard", "fan"],
             reader.Operations);
         Assert.Equal(now, snapshot.ObservedAt);
         Assert.Equal(BatteryChargeMode.Normal, snapshot.BatteryChargeMode.Value);
@@ -402,6 +492,15 @@ public sealed class HardwareStateReaderTests
             Operations.Add("keyboard");
             return ValueTask.FromResult(
                 HardwareReadResult<FourZoneKeyboardMode>.Success(FourZoneKeyboardMode.Unknown));
+        }
+
+        public ValueTask<HardwareReadResult<FanTableSnapshot>> ReadFanTableAsync(
+            CancellationToken cancellationToken)
+        {
+            Operations.Add("fan");
+            return ValueTask.FromResult(HardwareReadResult<FanTableSnapshot>.Failure(
+                HardwareReadStatus.Unavailable,
+                "fan_table_not_opened"));
         }
     }
 

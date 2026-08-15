@@ -93,7 +93,10 @@ caches the batch for the snapshot, validates Boolean return status and UInt32 da
 output, and applies a 12-second process timeout. It fails closed when the provider does not
 expose that complete output. The default unelevated reader reports battery mode as
 `Unavailable`; the broker-only factory adds the fixed, parameterless EnergyDrv reader with
-zero requested device access.
+zero requested device access. The same privileged factory may invoke `Fan_Get_Table` on
+`LENOVO_FAN_METHOD` with FanID `0` and SensorID `0`, then accept only matching UInt32
+speed/sensor arrays of 1–10 values in `0–255`. The unelevated reader does not open that
+class.
 
 ## Broker contracts
 
@@ -113,8 +116,9 @@ enum values. Transport peers must still validate every semantic field before per
 read.
 
 `HardwareStateReadPayload` and `HardwareReadValue<T>` are explicit wire DTOs. They convert
-to domain snapshots only after validating success/failure shape, enum values, and stable
-error-code syntax; domain constructors are not exposed for deserialization.
+to domain snapshots only after validating success/failure shape, enum values, fan-table
+point bounds, and stable error-code syntax; domain constructors are not exposed for
+deserialization.
 
 `ElevatedHardwareStateBrokerClient` launches only a sibling executable named
 `LegionLoqControl.Broker.exe`, performs the one-request exchange, validates the response,

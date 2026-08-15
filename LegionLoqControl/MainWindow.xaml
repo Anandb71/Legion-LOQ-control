@@ -367,6 +367,7 @@
                     <RowDefinition Height="*" />
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -398,6 +399,12 @@
                                 Grid.ColumnSpan="2"
                                 Margin="0,12,0,0"
                                 Content="{Binding Keyboard}"
+                                ContentTemplate="{StaticResource StateCardTemplate}" />
+                <ContentControl Grid.Row="3"
+                                Grid.Column="0"
+                                Grid.ColumnSpan="2"
+                                Margin="0,12,0,0"
+                                Content="{Binding Fans}"
                                 ContentTemplate="{StaticResource StateCardTemplate}" />
             </Grid>
 

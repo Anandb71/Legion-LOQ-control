@@ -41,6 +41,11 @@ public sealed class HardwareStateService
         HardwareReadResult<FourZoneKeyboardMode> keyboard = await _reader
             .ReadFourZoneKeyboardAsync(cancellationToken)
             .ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        HardwareReadResult<FanTableSnapshot> fanTable = await _reader
+            .ReadFanTableAsync(cancellationToken)
+            .ConfigureAwait(false);
 
         return new HardwareStateSnapshot(
             _timeProvider.GetUtcNow(),
@@ -48,6 +53,7 @@ public sealed class HardwareStateService
             thermal,
             overdrive,
             integratedGpu,
-            keyboard);
+            keyboard,
+            fanTable);
     }
 }

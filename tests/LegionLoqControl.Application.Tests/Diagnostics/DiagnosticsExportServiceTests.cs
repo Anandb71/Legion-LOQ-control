@@ -88,7 +88,9 @@ public sealed class DiagnosticsExportServiceTests
             HardwareReadResult<IntegratedGpuMode>.Success(
                 IntegratedGpuMode.IntegratedOnly),
             HardwareReadResult<FourZoneKeyboardMode>.Success(
-                FourZoneKeyboardMode.Unknown));
+                FourZoneKeyboardMode.Unknown),
+            HardwareReadResult<FanTableSnapshot>.Success(
+                new FanTableSnapshot(0, 0, [new FanTablePoint(0, 40), new FanTablePoint(50, 70)])));
         var service = new DiagnosticsExportService(new FixedTimeProvider(ExportedAt));
 
         DiagnosticsExportDocument document = service.Create(
@@ -109,6 +111,7 @@ public sealed class DiagnosticsExportServiceTests
             document.HardwareState.ThermalMode.ErrorCode);
         Assert.Equal("disabled", document.HardwareState.DisplayOverdrive!.Value);
         Assert.Equal("integratedOnly", document.HardwareState.IntegratedGpuMode!.Value);
+        Assert.Equal("2-point", document.HardwareState.FanTable!.Value);
     }
 
     [Fact]

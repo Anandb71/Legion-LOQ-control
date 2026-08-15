@@ -194,7 +194,10 @@ public sealed class ProfileWorkspaceViewModelTests
             HardwareReadResult<ThermalMode>.Success(thermalMode),
             HardwareReadResult<ToggleState>.Success(ToggleState.Disabled),
             HardwareReadResult<IntegratedGpuMode>.Success(IntegratedGpuMode.Default),
-            HardwareReadResult<FourZoneKeyboardMode>.Success(FourZoneKeyboardMode.Unknown));
+            HardwareReadResult<FourZoneKeyboardMode>.Success(FourZoneKeyboardMode.Unknown),
+            HardwareReadResult<FanTableSnapshot>.Failure(
+                HardwareReadStatus.Unavailable,
+                "fan_table_not_opened"));
 
     private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
     {

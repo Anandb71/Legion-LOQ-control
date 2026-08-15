@@ -15,21 +15,22 @@ public sealed class WindowsHardwareStateReader : IHardwareStateReader
     private readonly ILenovoWmiReadInvoker _invoker;
     private readonly IEnergyDriverBatteryReader? _batteryReader;
     private readonly IFourZoneKeyboardHid? _keyboard;
+    private readonly IFanTableReader? _fanTable;
 
     public WindowsHardwareStateReader()
-        : this(new PowerShellLenovoWmiReadInvoker(), batteryReader: null, keyboard: null)
+        : this(new PowerShellLenovoWmiReadInvoker(), batteryReader: null, keyboard: null, fanTable: null)
     {
     }
 
     internal WindowsHardwareStateReader(ILenovoWmiReadInvoker invoker)
-        : this(invoker, batteryReader: null, keyboard: null)
+        : this(invoker, batteryReader: null, keyboard: null, fanTable: null)
     {
     }
 
     internal WindowsHardwareStateReader(
         ILenovoWmiReadInvoker invoker,
         IEnergyDriverBatteryReader? batteryReader)
-        : this(invoker, batteryReader, keyboard: null)
+        : this(invoker, batteryReader, keyboard: null, fanTable: null)
     {
     }
 
@@ -37,17 +38,28 @@ public sealed class WindowsHardwareStateReader : IHardwareStateReader
         ILenovoWmiReadInvoker invoker,
         IEnergyDriverBatteryReader? batteryReader,
         IFourZoneKeyboardHid? keyboard)
+        : this(invoker, batteryReader, keyboard, fanTable: null)
+    {
+    }
+
+    internal WindowsHardwareStateReader(
+        ILenovoWmiReadInvoker invoker,
+        IEnergyDriverBatteryReader? batteryReader,
+        IFourZoneKeyboardHid? keyboard,
+        IFanTableReader? fanTable)
     {
         _invoker = invoker ?? throw new ArgumentNullException(nameof(invoker));
         _batteryReader = batteryReader;
         _keyboard = keyboard;
+        _fanTable = fanTable;
     }
 
     internal static WindowsHardwareStateReader CreatePrivilegedReadOnly() =>
         new(
             new PowerShellLenovoWmiReadInvoker(),
             new EnergyDriverBatteryReader(),
-            new FourZoneKeyboardHid());
+            new FourZoneKeyboardHid(),
+            new PowerShellLenovoFanTableReadInvoker());
 
     public ValueTask<HardwareReadResult<BatteryChargeMode>> ReadBatteryChargeModeAsync(
         CancellationToken cancellationToken)
@@ -114,6 +126,18 @@ public sealed class WindowsHardwareStateReader : IHardwareStateReader
         return ValueTask.FromResult(HardwareReadResult<FourZoneKeyboardMode>.Failure(
             HardwareReadStatus.Unavailable,
             "keyboard_hid_not_opened"));
+    }
+
+    public ValueTask<HardwareReadResult<FanTableSnapshot>> ReadFanTableAsync(
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (_fanTable is not null)
+            return _fanTable.ReadAsync(cancellationToken);
+
+        return ValueTask.FromResult(HardwareReadResult<FanTableSnapshot>.Failure(
+            HardwareReadStatus.Unavailable,
+            "fan_table_not_opened"));
     }
 
     private async ValueTask<HardwareReadResult<T>> ReadAsync<T>(

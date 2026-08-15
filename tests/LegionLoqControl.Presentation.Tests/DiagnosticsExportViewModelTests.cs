@@ -139,7 +139,10 @@ public sealed class DiagnosticsExportViewModelTests
             HardwareReadResult<IntegratedGpuMode>.Success(
                 IntegratedGpuMode.IntegratedOnly),
             HardwareReadResult<FourZoneKeyboardMode>.Success(
-                FourZoneKeyboardMode.Unknown));
+                FourZoneKeyboardMode.Unknown),
+            HardwareReadResult<FanTableSnapshot>.Failure(
+                HardwareReadStatus.Unavailable,
+                "fan_table_not_opened"));
 
     private sealed class StubPicker(string? destinationPath)
         : IDiagnosticsExportDestinationPicker

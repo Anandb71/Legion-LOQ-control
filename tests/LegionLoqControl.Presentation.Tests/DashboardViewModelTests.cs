@@ -152,6 +152,20 @@ public sealed class DashboardViewModelTests
     }
 
     [Fact]
+    public async Task Fan_table_card_stays_read_only_after_a_verified_refresh()
+    {
+        var source = new StubDashboardDataSource(CreateMachineSnapshot(), CreateHardwareSnapshot());
+        var viewModel = new MainWindowViewModel(source);
+        await viewModel.InitializeAsync();
+        await viewModel.RefreshHardwareStateCommand.ExecuteAsync(null);
+
+        Assert.Empty(viewModel.Fans.Options);
+        Assert.False(viewModel.Fans.CanApply);
+        Assert.Contains("2 OEM points", viewModel.Fans.Value, StringComparison.Ordinal);
+        Assert.Contains("Curve writes stay disabled", viewModel.Fans.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Production_install_refusal_explains_the_unprotected_path()
     {
         var source = new StubDashboardDataSource(
@@ -200,7 +214,9 @@ public sealed class DashboardViewModelTests
             HardwareReadResult<IntegratedGpuMode>.Success(
                 IntegratedGpuMode.IntegratedOnly),
             HardwareReadResult<FourZoneKeyboardMode>.Success(
-                FourZoneKeyboardMode.Unknown));
+                FourZoneKeyboardMode.Unknown),
+            HardwareReadResult<FanTableSnapshot>.Success(
+                new FanTableSnapshot(0, 0, [new FanTablePoint(0, 40), new FanTablePoint(80, 90)])));
 
     private sealed class StubDashboardDataSource(
         MachineSnapshot machineSnapshot,

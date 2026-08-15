@@ -110,7 +110,8 @@ public sealed class DiagnosticsExportService
                 ThermalMode: null,
                 DisplayOverdrive: null,
                 IntegratedGpuMode: null,
-                FourZoneKeyboard: null);
+                FourZoneKeyboard: null,
+                FanTable: null);
         }
 
         return new DiagnosticsHardwareStateExport(
@@ -120,7 +121,37 @@ public sealed class DiagnosticsExportService
             MapHardwareRead(snapshot.ThermalMode),
             MapHardwareRead(snapshot.DisplayOverdrive),
             MapHardwareRead(snapshot.IntegratedGpuMode),
-            MapHardwareRead(snapshot.FourZoneKeyboard));
+            MapHardwareRead(snapshot.FourZoneKeyboard),
+            MapFanTable(snapshot.FanTable));
+    }
+
+    private static DiagnosticsHardwareReadExport MapFanTable(
+        HardwareReadResult<FanTableSnapshot> result)
+    {
+        if (result is null || !Enum.IsDefined(result.Status))
+            throw InvalidSnapshot();
+
+        if (result.Status == HardwareReadStatus.Success)
+        {
+            if (!result.Value.HasValue ||
+                result.Value.Value.PointCount is < 1 or > FanTableSnapshot.MaximumPoints)
+            {
+                throw InvalidSnapshot();
+            }
+
+            return new DiagnosticsHardwareReadExport(
+                result.Status,
+                result.Value.Value.PointCount + "-point",
+                ErrorCode: null);
+        }
+
+        if (result.Value.HasValue)
+            throw InvalidSnapshot();
+
+        return new DiagnosticsHardwareReadExport(
+            result.Status,
+            Value: null,
+            ValidateStableToken(result.ErrorCode));
     }
 
     private static DiagnosticsHardwareReadExport MapHardwareRead<T>(
