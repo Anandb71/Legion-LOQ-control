@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   when the machine does not support them
 - 4-zone lighting editor (effect, speed, divide-area colors) and a gated Spectrum path
 - Bounded fan-curve apply with a local OEM snapshot and Restore OEM
+- Live unelevated CPU, RAM, and system-disk numbers on the dashboard header
 
 ### Changed
 

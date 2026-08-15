@@ -134,7 +134,6 @@ Color never carries meaning alone. Every semantic color is paired with a label o
 - **2026-08-15:** The header shows a live power glance (source, charge percent, charging
   mode) under serial-free identity. Applies rebase on live firmware, so Refresh is not
   a prerequisite for a click.
-- **2026-08-15:** POWER, INPUT, LIGHTING, DISPLAY, and DEVICE are first-class tabs
-  beside Dashboard / Profile / Automation. They reuse this design system. No ads,
-  store, Lena, warranty, serial, product number, or Device ID. Unsupported controls
-  are omitted.
+- **2026-08-15:** The dashboard header has a second instrument row for unelevated
+  CPU, RAM, and system-disk numbers. No charts, no GPU gauges until a typed GPU
+  reader exists.

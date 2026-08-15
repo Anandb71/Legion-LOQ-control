@@ -1,4 +1,5 @@
 using LegionLoqControl.Domain.Automation;
+using LegionLoqControl.Domain.Diagnostics;
 using LegionLoqControl.Domain.Results;
 
 namespace LegionLoqControl.Application.Automation;
@@ -13,6 +14,11 @@ public interface ISystemPowerTelemetryReader
 {
     ValueTask<SystemPowerTelemetry> ReadTelemetryAsync(
         CancellationToken cancellationToken);
+}
+
+public interface ISystemResourceTelemetryReader
+{
+    ValueTask<SystemResourceTelemetry> ReadAsync(CancellationToken cancellationToken);
 }
 
 public sealed class PowerSourceService

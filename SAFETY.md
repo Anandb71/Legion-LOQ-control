@@ -63,6 +63,9 @@ The rebuild is write-gated. Inventory, refresh, preview, and export stay read-on
   batch; preview, save, and delete still do not start a write;
 - AC/battery automation observes one typed `GetSystemPowerStatus` result, then performs
   deterministic in-memory rule evaluation;
+- the dashboard may also poll unelevated CPU (`GetSystemTimes`), RAM
+  (`GlobalMemoryStatusEx`), and system-disk space (`GetDiskFreeSpaceEx`); those
+  reads never open Lenovo WMI, EnergyDrv, or HID;
 - an opt-in in-process watcher may apply the winning profile through that same session
   broker, cools down after an attempt, and suspends after a failed readback;
 - automation rules use a separate bounded, strict, versioned local JSON store; there is

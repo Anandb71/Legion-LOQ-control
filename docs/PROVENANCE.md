@@ -390,6 +390,27 @@ Legion + LOQ Control.
 - **Reviewer:** Pending
 - **Date:** 2026-08-08
 
+## Implementation record: unelevated CPU, RAM, and disk gauges
+
+- **Feature:** Live CPU percent, RAM used/total, and system-disk used/total
+- **Local files:**
+  `src/LegionLoqControl.Infrastructure.Windows/Diagnostics/WindowsResourceTelemetryReader.cs`
+- **Classification:** Original implementation from Windows platform documentation
+- **External documentation:**
+  [GetSystemTimes](https://learn.microsoft.com/windows/win32/api/processthreadsapi/nf-processthreadsapi-getsystemtimes),
+  [GlobalMemoryStatusEx](https://learn.microsoft.com/windows/win32/api/sysinfoapi/nf-sysinfoapi-globalmemorystatusex),
+  and [GetDiskFreeSpaceEx](https://learn.microsoft.com/windows/win32/api/fileapi/nf-fileapi-getdiskfreespaceexw)
+- **License:** Windows API. No third-party source was copied.
+- **Local implementation:** Independently written unelevated reader. CPU percent is
+  computed from successive `GetSystemTimes` samples (kernel includes idle). RAM uses
+  `ullTotalPhys` / `ullAvailPhys`. Disk uses the system-drive root from
+  `GetDiskFreeSpaceEx`. GPU gauges are not included.
+- **Independent evidence:** Mapping fixtures plus a live Windows API read in
+  `tests/LegionLoqControl.Platform.Tests/ResourceTelemetryReaderTests.cs`
+- **Hardware validation:** Local Windows 10/11 API read only. No Lenovo interface.
+- **Reviewer:** Pending
+- **Date:** 2026-08-15
+
 ## Classification
 
 Every implementation record must use one classification:

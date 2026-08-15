@@ -136,6 +136,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
 {
     private readonly IDashboardDataSource _dataSource;
     private readonly ISystemPowerTelemetryReader _powerTelemetry;
+    private readonly ISystemResourceTelemetryReader _resourceTelemetry;
     private readonly CancellationTokenSource _lifetime = new();
     private bool _initialized;
     private bool _autoRefreshStarted;
@@ -194,6 +195,15 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private string _chargingModeLabel = "Not read";
 
     [ObservableProperty]
+    private string _cpuLabel = "Detecting";
+
+    [ObservableProperty]
+    private string _memoryLabel = "Detecting";
+
+    [ObservableProperty]
+    private string _diskLabel = "Detecting";
+
+    [ObservableProperty]
     private string _manufacturerLabel = "Unknown";
 
     [ObservableProperty]
@@ -225,10 +235,12 @@ public sealed partial class MainWindowViewModel : ObservableObject
         IAutomationRuleStore? automationRuleStore = null,
         PowerSourceService? powerSourceService = null,
         AutomationPreviewService? automationPreviewService = null,
-        ISystemPowerTelemetryReader? powerTelemetry = null)
+        ISystemPowerTelemetryReader? powerTelemetry = null,
+        ISystemResourceTelemetryReader? resourceTelemetry = null)
     {
         _dataSource = dataSource ?? throw new ArgumentNullException(nameof(dataSource));
         _powerTelemetry = powerTelemetry ?? new WindowsPowerSourceReader();
+        _resourceTelemetry = resourceTelemetry ?? new WindowsResourceTelemetryReader();
         Session = session ?? new MachineSessionViewModel();
         DiagnosticsExport = new DiagnosticsExportViewModel(
             Session,
@@ -916,6 +928,21 @@ public sealed partial class MainWindowViewModel : ObservableObject
             ChargeLabel = telemetry.BatteryPercent is { } percent
                 ? $"{percent}%"
                 : "Unknown";
+
+            SystemResourceTelemetry resources = await _resourceTelemetry
+                .ReadAsync(_lifetime.Token)
+                .ConfigureAwait(true);
+            CpuLabel = resources.CpuPercent is { Status: HardwareReadStatus.Success, Value: { } cpu }
+                ? $"{cpu}%"
+                : resources.CpuPercent.ErrorCode == "cpu_baseline_pending"
+                    ? "Detecting"
+                    : "Unavailable";
+            MemoryLabel = resources.Memory is { Status: HardwareReadStatus.Success, Value: { } memory }
+                ? $"{FormatGib(memory.UsedBytes)} / {FormatGib(memory.TotalBytes)}"
+                : "Unavailable";
+            DiskLabel = resources.Disk is { Status: HardwareReadStatus.Success, Value: { } disk }
+                ? $"{disk.Root} · {FormatGib(disk.UsedBytes)} / {FormatGib(disk.TotalBytes)}"
+                : "Unavailable";
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
@@ -924,6 +951,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
         {
             PowerSourceLabel = "Unavailable";
             ChargeLabel = "Unknown";
+            CpuLabel = "Unavailable";
+            MemoryLabel = "Unavailable";
+            DiskLabel = "Unavailable";
         }
     }
 
@@ -976,6 +1006,13 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     private static string Display(Observation observation) =>
         observation.State == ObservationState.Observed ? observation.Value! : "Unknown";
+
+    private static string FormatGib(ulong bytes)
+    {
+        double gib = bytes / 1073741824d;
+        string format = gib >= 10 ? "0" : "0.0";
+        return gib.ToString(format, System.Globalization.CultureInfo.InvariantCulture) + " GB";
+    }
 
     private static string GetProductVersion()
     {

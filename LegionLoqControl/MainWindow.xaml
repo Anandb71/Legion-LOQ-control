@@ -306,6 +306,42 @@
                                        Text="{Binding ChargingModeLabel}" />
                         </StackPanel>
                     </Grid>
+                    <Grid Margin="0,16,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="20" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="20" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Style="{StaticResource EyebrowTextStyle}"
+                                       Text="CPU" />
+                            <TextBlock Margin="0,4,0,0"
+                                       FontFamily="{StaticResource DisplayFont}"
+                                       FontSize="13"
+                                       FontWeight="SemiBold"
+                                       Text="{Binding CpuLabel}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Style="{StaticResource EyebrowTextStyle}"
+                                       Text="RAM" />
+                            <TextBlock Margin="0,4,0,0"
+                                       FontFamily="{StaticResource DisplayFont}"
+                                       FontSize="13"
+                                       FontWeight="SemiBold"
+                                       Text="{Binding MemoryLabel}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="4">
+                            <TextBlock Style="{StaticResource EyebrowTextStyle}"
+                                       Text="DISK" />
+                            <TextBlock Margin="0,4,0,0"
+                                       FontFamily="{StaticResource DisplayFont}"
+                                       FontSize="13"
+                                       FontWeight="SemiBold"
+                                       Text="{Binding DiskLabel}" />
+                        </StackPanel>
+                    </Grid>
                 </StackPanel>
 
                 <StackPanel Grid.Column="1"

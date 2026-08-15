@@ -63,7 +63,7 @@ Vantage chrome, ads, Lena, warranty upsell, or serial numbers.
 | --- | --- | --- |
 | Home device identity | DEVICE tab: manufacturer, model, type, BIOS | No serial, product number, or Device ID |
 | Home / Power battery | POWER: live %, AC, Normal / Conservation / Rapid, overnight, Always-on USB | No invented 75/80% conservation graph |
-| Performance thermal / GPU | Quiet–Extreme, GPU working mode, overdrive | CPU/GPU/RAM gauges only after unelevated telemetry is typed |
+| Performance thermal / GPU | Quiet–Extreme, GPU working mode, overdrive, live CPU/RAM/disk | GPU gauges only after a typed GPU reader exists |
 | Keyboard lighting | LIGHTING: 4-zone effect, speed, zone colors | Spectrum section only on 960-byte HID |
 | Fans | Bounded `Fan_Set_Table` plus Restore OEM | No invented full-speed on 83DV |
 | Input | INPUT: Fn lock, touchpad lock, Win key | Gestures and widgets stay out |

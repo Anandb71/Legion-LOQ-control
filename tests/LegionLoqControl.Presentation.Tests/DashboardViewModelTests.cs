@@ -25,17 +25,29 @@ public sealed class DashboardViewModelTests
             PowerSourceKind.Ac,
             BatteryPercent: 87,
             Charging: true);
+        var resources = new StubResourceTelemetry(
+            CpuPercent: 12,
+            UsedMemoryBytes: 18L * 1073741824,
+            TotalMemoryBytes: 32L * 1073741824,
+            DiskRoot: "C:",
+            UsedDiskBytes: 400L * 1073741824,
+            TotalDiskBytes: 953L * 1073741824);
         var viewModel = new MainWindowViewModel(
             source,
-            powerTelemetry: telemetry);
+            powerTelemetry: telemetry,
+            resourceTelemetry: resources);
 
         await viewModel.InitializeAsync();
 
         Assert.Equal("AC · charging", viewModel.PowerSourceLabel);
         Assert.Equal("87%", viewModel.ChargeLabel);
         Assert.Equal("Conservation", viewModel.ChargingModeLabel);
+        Assert.Equal("12%", viewModel.CpuLabel);
+        Assert.Equal("18 GB / 32 GB", viewModel.MemoryLabel);
+        Assert.Equal("C: · 400 GB / 953 GB", viewModel.DiskLabel);
         Assert.Equal(1, source.HardwareReadCount);
         Assert.Equal(1, telemetry.ReadCount);
+        Assert.Equal(1, resources.ReadCount);
     }
 
     [Fact]
@@ -369,6 +381,30 @@ public sealed class DashboardViewModelTests
                 HardwareReadResult<PowerSourceKind>.Success(source),
                 BatteryPercent,
                 Charging));
+        }
+    }
+
+    private sealed class StubResourceTelemetry(
+        byte CpuPercent,
+        ulong UsedMemoryBytes,
+        ulong TotalMemoryBytes,
+        string DiskRoot,
+        ulong UsedDiskBytes,
+        ulong TotalDiskBytes) : ISystemResourceTelemetryReader
+    {
+        public int ReadCount { get; private set; }
+
+        public ValueTask<SystemResourceTelemetry> ReadAsync(
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            ReadCount++;
+            return ValueTask.FromResult(new SystemResourceTelemetry(
+                HardwareReadResult<byte>.Success(CpuPercent),
+                HardwareReadResult<MemoryTelemetry>.Success(
+                    new MemoryTelemetry(TotalMemoryBytes, UsedMemoryBytes)),
+                HardwareReadResult<DiskTelemetry>.Success(
+                    new DiskTelemetry(DiskRoot, TotalDiskBytes, UsedDiskBytes))));
         }
     }
 
