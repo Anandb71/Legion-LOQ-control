@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cross-process exclusive locking for local profile and automation JSON
 - Versioned, allowlisted diagnostics reports with atomic dashboard export
 - Broker install policy that refuses production launches from unsigned or user-writable paths
+- Diagnostics `inventory --output` using the same atomic allowlisted writer as the dashboard
 - Locked dependency restore, comprehensive automated tests, CodeQL, and accessibility contracts
 - Manually generated, short-lived, broker-free read-only preview artifact
 
@@ -29,7 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Migrated the active application from .NET 9 to .NET 10 WPF
 - Relicensed the active rebuild under GPL-3.0-or-later
 - Quarantined the old C# writer prototype behind a fail-closed global policy
-- Kept Lenovo Legion Toolkit as a pinned reference-only submodule
+- Studied Lenovo Legion Toolkit as an external protocol reference
 - Selected built-in Windows PowerShell CIM cmdlets instead of a restricted MI runtime
 - Selected WPF software rendering while the failing hardware-composition path is qualified
 - Replaced reflection-based inventory JSON with an explicit privacy-bounded export contract

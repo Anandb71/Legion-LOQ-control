@@ -14,9 +14,9 @@ Copyright belongs to the Lenovo Legion Toolkit contributors.
 - License: GNU General Public License version 3 with the additional permission published
   in the LLT repository.
 
-LLT is retained as a reference-only git submodule and is not compiled into release
-artifacts. Legacy prototype files that state they derive from LLT are being replaced or
-will retain explicit GPL attribution and modification notices.
+LLT is an external protocol reference and is not compiled into release artifacts. Legacy
+prototype files that state they derive from LLT are being replaced or will retain explicit
+GPL attribution and modification notices.
 
 ## CommunityToolkit.Mvvm
 

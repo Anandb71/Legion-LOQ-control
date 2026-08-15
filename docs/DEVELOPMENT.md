@@ -14,7 +14,7 @@ require administrator privileges.
 ## Clone and verify
 
 ```powershell
-git clone --recurse-submodules https://github.com/Anandb71/Legion-LOQ-control.git
+git clone https://github.com/Anandb71/Legion-LOQ-control.git
 cd Legion-LOQ-control
 dotnet restore LegionLoqControl.sln --locked-mode
 dotnet build LegionLoqControl.sln --configuration Release --no-restore
@@ -67,7 +67,6 @@ Preview packaging and production release blockers are documented in
 - `hardware-evidence/`: redacted exact machine/BIOS observations
 - `LegionLoqControl/`: WPF shell
 - `LegionLoqControl.Core/`: quarantined legacy prototype
-- `LLT_Reference/`: reference-only fork submodule; never compile or package it
 - `rust_prototype/`: archived first prototype
 
 ## Dependency updates

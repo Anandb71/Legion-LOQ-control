@@ -66,7 +66,7 @@ Requirements: Windows 10 version 1809 or later and the .NET SDK pinned by
 [`global.json`](global.json).
 
 ```powershell
-git clone --recurse-submodules https://github.com/Anandb71/Legion-LOQ-control.git
+git clone https://github.com/Anandb71/Legion-LOQ-control.git
 cd Legion-LOQ-control
 dotnet restore LegionLoqControl.sln --locked-mode
 dotnet build LegionLoqControl.sln --configuration Release --no-restore
@@ -77,6 +77,7 @@ Run the default serial-free inventory:
 
 ```powershell
 dotnet run --project src/LegionLoqControl.Diagnostics --configuration Release -- inventory
+dotnet run --project src/LegionLoqControl.Diagnostics --configuration Release -- inventory --output "$env:TEMP\legion-loq-inventory.json"
 ```
 
 Probe typed hardware state without writing:

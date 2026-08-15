@@ -75,7 +75,8 @@ versioned.
 `IDiagnosticsExportWriter` accepts `CreateNew` or `ReplaceExisting` mode. The Windows JSON
 writer uses string-only enums, a 256 KiB cap, an exclusive same-directory temporary file,
 write-through flush, and atomic rename. Export failure codes are stable and do not include
-the selected path.
+the selected path. The diagnostics CLI `inventory --output` path uses `CreateNew` and the
+same writer; stdout remains the default.
 
 ## Windows diagnostics
 

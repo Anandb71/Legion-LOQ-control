@@ -19,7 +19,9 @@ dotnet run --project src/LegionLoqControl.Diagnostics --configuration Release --
 ```
 
 Run inventory as a normal user. Omitting the command selects `inventory`. JSON is written
-to standard output; stable failures are written to standard error. Press Ctrl+C to cancel.
+to standard output unless `--output` names a fully qualified new file. That path uses the
+same atomic writer as the dashboard export and refuses relative paths or an existing file.
+Stable failures are written to standard error. Press Ctrl+C to cancel.
 Inventory output uses the same explicit, versioned allowlist as the dashboard export
 instead of serializing domain objects by reflection.
 

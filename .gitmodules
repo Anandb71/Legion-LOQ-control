@@ -1,4 +1,0 @@
-[submodule "LLT_Reference"]
-	path = LLT_Reference
-	url = https://github.com/Anandb71/LenovoLegionToolkit.git
-	branch = master

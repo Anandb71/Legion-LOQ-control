@@ -130,3 +130,7 @@ rust_prototype/target/
 
 # Cursor transient agent state
 .cursor/hooks/state/
+
+# Local scratch and research trees
+bounty-chainlink/
+LLT_Reference/

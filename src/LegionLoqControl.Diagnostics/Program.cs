@@ -24,26 +24,24 @@ var serializerOptions = new JsonSerializerOptions
 
 try
 {
-    string command = args.Length == 0 ? "inventory" : args[0].ToLowerInvariant();
-    if (args.Length > 1 ||
-        command is not ("inventory" or "state" or "state-elevated" or "--help" or "-h"))
+    DiagnosticsCliParseResult parsed = DiagnosticsCliParser.Parse(args);
+    if (!parsed.IsValid)
     {
-        Console.Error.WriteLine(
-            "Usage: LegionLoqControl.Diagnostics [inventory|state|state-elevated]");
+        Console.Error.WriteLine(DiagnosticsCliParser.Usage);
         return 64;
     }
 
-    if (command is "--help" or "-h")
+    if (parsed.Verb == DiagnosticsCliVerb.Help)
     {
-        Console.WriteLine(
-            "Usage: LegionLoqControl.Diagnostics [inventory|state|state-elevated]");
+        Console.WriteLine(DiagnosticsCliParser.Usage);
         Console.WriteLine("  inventory  Collect serial-free identity and interface evidence (default).");
         Console.WriteLine("  state      Invoke allowlisted Lenovo getters and return typed read results.");
         Console.WriteLine("  state-elevated  Request the same reads through the short-lived UAC broker.");
+        Console.WriteLine("  --output   Write inventory through the atomic export writer. Inventory only.");
         return 0;
     }
 
-    if (command == "state-elevated")
+    if (parsed.Verb == DiagnosticsCliVerb.StateElevated)
     {
         var broker = new ElevatedHardwareStateBrokerClient();
         HardwareStateReadResponse response = await broker.ReadAsync(cancellation.Token);
@@ -60,7 +58,7 @@ try
         return 0;
     }
 
-    if (command == "state")
+    if (parsed.Verb == DiagnosticsCliVerb.State)
     {
         var stateService = new HardwareStateService(new WindowsHardwareStateReader());
         HardwareStateSnapshot state = await stateService.CaptureAsync(cancellation.Token);
@@ -76,13 +74,32 @@ try
         snapshot,
         retainedHardwareState: null,
         GetProductVersion());
-    Console.WriteLine(DiagnosticsJsonSerializer.SerializeToString(document));
+    if (parsed.OutputPath is null)
+    {
+        Console.WriteLine(DiagnosticsJsonSerializer.SerializeToString(document));
+        return 0;
+    }
+
+    await new JsonDiagnosticsExportWriter()
+        .WriteAsync(
+            document,
+            parsed.OutputPath,
+            DiagnosticsExportWriteMode.CreateNew,
+            cancellation.Token)
+        .ConfigureAwait(false);
     return 0;
 }
 catch (OperationCanceledException)
 {
     Console.Error.WriteLine("{\"error\":\"diagnostics_cancelled\"}");
     return 2;
+}
+catch (DiagnosticsExportException exception)
+{
+    Console.Error.WriteLine(JsonSerializer.Serialize(
+        new { error = exception.ErrorCode },
+        serializerOptions));
+    return 1;
 }
 catch (BrokerTransportException exception)
 {
