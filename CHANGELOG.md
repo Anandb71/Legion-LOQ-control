@@ -40,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Keep one elevated broker for the app session so Windows asks once at start
 - Skip the fan-table probe on apply expected-state and readback captures
 - Use in-process WMI for privileged reads and writes instead of PowerShell child processes
+- Invoke Lenovo GameZone methods through the class parameter object so thermal, overdrive, and GPU reads resolve
 
 ### Security
 

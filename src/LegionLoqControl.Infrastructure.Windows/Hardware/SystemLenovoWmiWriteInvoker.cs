@@ -16,10 +16,20 @@ internal sealed class SystemLenovoWmiWriteInvoker : ILenovoWmiWriteInvoker
         if (!Enum.IsDefined(operation))
             throw new ArgumentOutOfRangeException(nameof(operation));
 
-        await Task
-            .Run(() => WriteCore(operation, data), CancellationToken.None)
-            .WaitAsync(cancellationToken)
-            .ConfigureAwait(false);
+        try
+        {
+            await Task
+                .Run(() => WriteCore(operation, data), CancellationToken.None)
+                .WaitAsync(LenovoWmiScope.Timeout, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (TimeoutException exception)
+        {
+            throw new LenovoWmiReadFailureException(
+                HardwareReadStatus.TimedOut,
+                "wmi_setter_timed_out",
+                exception);
+        }
     }
 
     internal static string MethodName(LenovoWmiWriteOperation operation) =>
@@ -38,18 +48,10 @@ internal sealed class SystemLenovoWmiWriteInvoker : ILenovoWmiWriteInvoker
         try
         {
             using ManagementObject instance = LenovoWmiScope.GetInstance(LenovoWmiScope.GameZoneClass);
-            using ManagementBaseObject? input = instance.GetMethodParameters(methodName);
-            if (input is null)
-                throw new InvalidDataException("Lenovo WMI setter has no input object.");
-
-            input["Data"] = data;
-            using ManagementBaseObject? output = instance.InvokeMethod(
+            using ManagementBaseObject output = LenovoWmiScope.Invoke(
+                instance,
                 methodName,
-                input,
-                LenovoWmiScope.MethodOptions());
-            if (output is null)
-                throw new InvalidDataException("Lenovo WMI setter returned no output object.");
-
+                input => input["Data"] = data);
             SystemLenovoWmiReadInvoker.ValidateReturnValue(output.Properties["ReturnValue"]?.Value);
         }
         catch (LenovoWmiNoInstanceException)

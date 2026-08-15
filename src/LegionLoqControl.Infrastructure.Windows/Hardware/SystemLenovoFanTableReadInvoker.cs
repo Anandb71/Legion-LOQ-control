@@ -18,12 +18,18 @@ internal sealed class SystemLenovoFanTableReadInvoker : IFanTableReader
         {
             return await Task
                 .Run(ReadCore, CancellationToken.None)
-                .WaitAsync(cancellationToken)
+                .WaitAsync(LenovoWmiScope.Timeout, cancellationToken)
                 .ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
+        }
+        catch (TimeoutException)
+        {
+            return HardwareReadResult<FanTableSnapshot>.Failure(
+                HardwareReadStatus.TimedOut,
+                "wmi_getter_timed_out");
         }
         catch (LenovoWmiReadFailureException exception)
         {
@@ -56,18 +62,14 @@ internal sealed class SystemLenovoFanTableReadInvoker : IFanTableReader
         try
         {
             using ManagementObject instance = LenovoWmiScope.GetInstance(LenovoWmiScope.FanMethodClass);
-            using ManagementBaseObject? input = instance.GetMethodParameters(MethodName);
-            if (input is null)
-                throw new InvalidDataException("Fan_Get_Table has no input object.");
-
-            input["FanID"] = (byte)0;
-            input["SensorID"] = (byte)0;
-            using ManagementBaseObject? output = instance.InvokeMethod(
+            using ManagementBaseObject output = LenovoWmiScope.Invoke(
+                instance,
                 MethodName,
-                input,
-                LenovoWmiScope.MethodOptions());
-            if (output is null)
-                throw new InvalidDataException("Fan_Get_Table returned no output object.");
+                input =>
+                {
+                    input["FanID"] = (byte)0;
+                    input["SensorID"] = (byte)0;
+                });
 
             uint[] fanTable = LenovoWmiScope.ToUInt32Array(output.Properties["FanTable"]?.Value);
             uint[] sensorTable = LenovoWmiScope.ToUInt32Array(output.Properties["SensorTable"]?.Value);

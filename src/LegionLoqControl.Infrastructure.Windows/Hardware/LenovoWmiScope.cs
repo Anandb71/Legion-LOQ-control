@@ -15,19 +15,36 @@ internal static class LenovoWmiScope
         if (className is not (GameZoneClass or FanMethodClass))
             throw new ArgumentOutOfRangeException(nameof(className));
 
-        using var searcher = new ManagementObjectSearcher(Path, $"SELECT * FROM {className}");
-        searcher.Options.Timeout = Timeout;
-        using ManagementObjectCollection instances = searcher.Get();
-        ManagementObject[] items = instances.Cast<ManagementObject>().ToArray();
-        ManagementObject? selected =
-            items.FirstOrDefault(IsActive) ?? items.FirstOrDefault();
-        foreach (ManagementObject item in items)
+        ManagementScope scope = Connect();
+        ManagementObject? selected = FindInstance(scope, new SelectQuery(className));
+        if (selected is null)
         {
-            if (!ReferenceEquals(item, selected))
-                item.Dispose();
+            using var managementClass = new ManagementClass(scope, new ManagementPath(className), null);
+            selected = FindInstance(managementClass.GetInstances());
         }
 
         return selected ?? throw new LenovoWmiNoInstanceException();
+    }
+
+    internal static ManagementBaseObject Invoke(
+        ManagementObject instance,
+        string methodName,
+        Action<ManagementBaseObject>? bindInput = null)
+    {
+        ArgumentNullException.ThrowIfNull(instance);
+        ArgumentException.ThrowIfNullOrWhiteSpace(methodName);
+
+        using var managementClass = new ManagementClass(instance.Scope, instance.ClassPath, null);
+        using ManagementBaseObject? input = managementClass.GetMethodParameters(methodName);
+        if (bindInput is not null)
+        {
+            if (input is null)
+                throw new InvalidDataException("Lenovo WMI method has no input object.");
+            bindInput(input);
+        }
+
+        return instance.InvokeMethod(methodName, input, MethodOptions())
+            ?? throw new InvalidDataException("Lenovo WMI method returned no output object.");
     }
 
     internal static InvokeMethodOptions MethodOptions() =>
@@ -80,11 +97,45 @@ internal static class LenovoWmiScope
         };
     }
 
+    private static ManagementScope Connect()
+    {
+        var scope = new ManagementScope(@"\\.\root\WMI");
+        scope.Options.EnablePrivileges = true;
+        scope.Options.Impersonation = ImpersonationLevel.Impersonate;
+        scope.Options.Timeout = Timeout;
+        scope.Connect();
+        return scope;
+    }
+
+    private static ManagementObject? FindInstance(ManagementScope scope, SelectQuery query)
+    {
+        using var searcher = new ManagementObjectSearcher(scope, query);
+        searcher.Options.Timeout = Timeout;
+        return FindInstance(searcher.Get());
+    }
+
+    private static ManagementObject? FindInstance(ManagementObjectCollection instances)
+    {
+        using (instances)
+        {
+            ManagementObject[] items = instances.Cast<ManagementObject>().ToArray();
+            ManagementObject? selected =
+                items.FirstOrDefault(IsActive) ?? items.FirstOrDefault();
+            foreach (ManagementObject item in items)
+            {
+                if (!ReferenceEquals(item, selected))
+                    item.Dispose();
+            }
+
+            return selected;
+        }
+    }
+
     private static bool IsActive(ManagementObject instance)
     {
         try
         {
-            return instance.Properties["Active"]?.Value is true;
+            return instance.Properties["Active"]?.Value is true or 1 or 1u;
         }
         catch (Exception)
         {

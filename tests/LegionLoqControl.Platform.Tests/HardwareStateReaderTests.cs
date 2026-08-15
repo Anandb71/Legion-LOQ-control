@@ -242,11 +242,14 @@ public sealed class HardwareStateReaderTests
     public void Getter_output_contract_requires_true_status_and_UInt32_data()
     {
         SystemLenovoWmiReadInvoker.ValidateReturnValue(true);
+        SystemLenovoWmiReadInvoker.ValidateReturnValue(1);
+        SystemLenovoWmiReadInvoker.ValidateReturnValue(1u);
         Assert.Equal(42u, SystemLenovoWmiReadInvoker.ConvertDataToUInt32(42u));
+        Assert.Equal(3u, SystemLenovoWmiReadInvoker.ConvertDataToUInt32(3));
 
         Assert.Throws<LenovoWmiMethodRejectedException>(
             () => SystemLenovoWmiReadInvoker.ValidateReturnValue(false));
-        Assert.Throws<InvalidDataException>(
+        Assert.Throws<LenovoWmiMethodRejectedException>(
             () => SystemLenovoWmiReadInvoker.ValidateReturnValue(0u));
         Assert.Throws<InvalidDataException>(
             () => SystemLenovoWmiReadInvoker.ConvertDataToUInt32("42"));

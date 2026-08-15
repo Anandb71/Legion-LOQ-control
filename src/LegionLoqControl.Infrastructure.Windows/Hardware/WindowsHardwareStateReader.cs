@@ -181,6 +181,10 @@ public sealed class WindowsHardwareStateReader : IHardwareStateReader
         {
             return HardwareReadResult<T>.Failure(HardwareReadStatus.AccessDenied, "wmi_access_denied");
         }
+        catch (TimeoutException)
+        {
+            return HardwareReadResult<T>.Failure(HardwareReadStatus.TimedOut, "wmi_getter_timed_out");
+        }
         catch (ManagementException exception) when (exception.ErrorCode == ManagementStatus.Timedout)
         {
             return HardwareReadResult<T>.Failure(HardwareReadStatus.TimedOut, "wmi_getter_timed_out");

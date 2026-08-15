@@ -174,6 +174,8 @@ public sealed class ElevatedHardwareStateBrokerClient : IDisposable
             linked.CancelAfter(timeout);
             return await BrokerPipeExchange
                 .ExchangeSessionAsync(_pipe!, request, linked.Token)
+                .AsTask()
+                .WaitAsync(linked.Token)
                 .ConfigureAwait(false);
         }
         catch (Win32Exception exception) when (exception.NativeErrorCode == 1223)

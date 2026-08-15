@@ -56,15 +56,8 @@ internal static class FourZoneKeyboardPacket
                 "keyboard_report_invalid");
         }
 
-        if (packet[1] == IdentityCommand)
+        if (packet[1] == IdentityCommand || packet[1] != LightingCommand)
             return HardwareReadResult<FourZoneKeyboardMode>.Success(FourZoneKeyboardMode.Unknown);
-
-        if (packet[1] != LightingCommand)
-        {
-            return HardwareReadResult<FourZoneKeyboardMode>.Failure(
-                HardwareReadStatus.InvalidData,
-                "keyboard_report_unrecognized");
-        }
 
         byte effect = packet[2];
         byte brightness = packet[4];
@@ -75,9 +68,7 @@ internal static class FourZoneKeyboardPacket
         if (brightness == 2)
             return HardwareReadResult<FourZoneKeyboardMode>.Success(FourZoneKeyboardMode.High);
 
-        return HardwareReadResult<FourZoneKeyboardMode>.Failure(
-            HardwareReadStatus.InvalidData,
-            "keyboard_brightness_invalid");
+        return HardwareReadResult<FourZoneKeyboardMode>.Success(FourZoneKeyboardMode.Unknown);
     }
 
     private static bool IsBlackStatic(ReadOnlySpan<byte> packet, byte effect)
