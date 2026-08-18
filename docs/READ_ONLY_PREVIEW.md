@@ -5,11 +5,12 @@ release, installer, or production package.
 
 The preview deliberately excludes every `LegionLoqControl.Broker*` file because the elevated
 broker is not yet signed or installed under administrator-protected filesystem ACLs.
-Consequently, the dashboard's elevated hardware-state refresh reports that the broker is
-unavailable. Serial-free inventory, local profile previews, AC/battery observation, and
-deterministic automation previews remain available without elevation. The dashboard can
-also atomically export its retained serial-free inventory; hardware state remains
-`notCaptured` because the broker is absent.
+Consequently, privileged hardware reads report `broker_not_found`. The unelevated window
+must still open: a missing sibling is an install status, not a constructor failure. CI
+smoke-tests that startup on every push. Serial-free inventory, local profile previews,
+AC/battery observation, and deterministic automation previews remain available without
+elevation. The dashboard can also atomically export its retained serial-free inventory;
+hardware state remains `notCaptured` because the broker is absent.
 
 The artifact:
 

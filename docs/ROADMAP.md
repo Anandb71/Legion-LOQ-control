@@ -81,6 +81,9 @@ shipping a protected installer, and supported Windows/scaling validation.
 These gates must create a useful read-only release without weakening the write-path
 boundary.
 
+Verified 2026-08-18: broker-free CI preview starts the unelevated window. Verified
+2026-08-19: current-option chips match either the visible label or the firmware token.
+
 Process, temperature, time, resume, and hotkey sources follow only after the rule model,
 precedence, cooldown, stale-data handling, and audit output are tested.
 
