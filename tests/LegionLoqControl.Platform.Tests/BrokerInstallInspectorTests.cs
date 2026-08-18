@@ -68,6 +68,29 @@ public sealed class BrokerInstallInspectorTests
         Assert.Equal("broker_install_unprotected", exception.ErrorCode);
     }
 
+    [Fact]
+    public async Task Missing_sibling_fails_on_read_not_construction()
+    {
+        string brokerPath = Path.Combine(
+            AppContext.BaseDirectory,
+            ElevatedHardwareStateBrokerClient.BrokerExecutableName);
+        using var client = new ElevatedHardwareStateBrokerClient(
+            brokerPath,
+            BrokerInstallMode.Development,
+            (_, _) => new BrokerInstallAssessment(
+                BrokerInstallPlacement.Missing,
+                BrokerSignatureStatus.Missing,
+                DirectoryProtected: false,
+                AllowsDevelopmentRead: false,
+                AllowsProductionRelease: false,
+                "broker_not_found"));
+
+        BrokerTransportException exception = await Assert.ThrowsAsync<BrokerTransportException>(
+            () => client.ReadAsync(TestContext.Current.CancellationToken).AsTask());
+
+        Assert.Equal("broker_not_found", exception.ErrorCode);
+    }
+
     private sealed class TemporaryDirectory : IDisposable
     {
         public TemporaryDirectory()
